@@ -1,0 +1,16 @@
+{
+  "name": "agentic-commerce-gateway",
+  "private": true,
+  "packageManager": "pnpm@10.15.0",
+  "engines": {
+    "node": "24.19.x",
+    "pnpm": "10.15.0"
+  },
+  "scripts": {
+    "web:dev": "pnpm --filter @agentic-commerce/web dev",
+    "web:lint": "pnpm --filter @agentic-commerce/web lint",
+    "web:typecheck": "pnpm --filter @agentic-commerce/web typecheck",
+    "web:build": "pnpm --filter @agentic-commerce/web build",
+    "web:check": "pnpm web:lint && pnpm web:typecheck && pnpm web:build"
+  }
+}

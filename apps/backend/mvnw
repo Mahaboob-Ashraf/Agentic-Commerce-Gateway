@@ -1,0 +1,30 @@
+#!/bin/sh
+# Maven Wrapper, script-only distribution. Maven 3.9.11 is pinned in maven-wrapper.properties.
+set -eu
+
+BASE_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+PROPS="$BASE_DIR/.mvn/wrapper/maven-wrapper.properties"
+MAVEN_VERSION=3.9.11
+MAVEN_HOME="$BASE_DIR/.mvn/wrapper/dists/apache-maven-$MAVEN_VERSION"
+ARCHIVE="$BASE_DIR/.mvn/wrapper/dists/apache-maven-$MAVEN_VERSION-bin.zip"
+URL=$(sed -n 's/^distributionUrl=//p' "$PROPS")
+
+if [ ! -x "$MAVEN_HOME/bin/mvn" ]; then
+  mkdir -p "$(dirname "$ARCHIVE")"
+  if command -v curl >/dev/null 2>&1; then
+    curl --fail --location --silent --show-error "$URL" --output "$ARCHIVE"
+  elif command -v wget >/dev/null 2>&1; then
+    wget -q "$URL" -O "$ARCHIVE"
+  else
+    echo "Maven Wrapper requires curl or wget to download Maven." >&2
+    exit 1
+  fi
+  if command -v unzip >/dev/null 2>&1; then
+    unzip -q -o "$ARCHIVE" -d "$(dirname "$MAVEN_HOME")"
+  else
+    echo "Maven Wrapper requires unzip to unpack Maven." >&2
+    exit 1
+  fi
+fi
+
+exec "$MAVEN_HOME/bin/mvn" -f "$BASE_DIR/pom.xml" "$@"

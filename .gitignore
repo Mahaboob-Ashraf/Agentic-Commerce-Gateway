@@ -1,0 +1,37 @@
+# Secrets and local environment
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Java / Maven
+**/target/
+.mvn/wrapper/dists/
+**/.mvn/local-repository/
+*.class
+
+# Node / Next.js
+node_modules/
+.corepack-cache/
+**/.next/
+**/out/
+**/.turbo/
+*.tsbuildinfo
+
+# Test and tool output
+coverage/
+test-results/
+playwright-report/
+*.log
+
+# IDEs and editors
+.idea/
+.vscode/
+*.iml
+*.swp
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
