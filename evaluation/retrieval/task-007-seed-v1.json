@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "catalogue": "demo-grocery-v1",
+  "measurementStatus": "Not measured yet",
+  "cases": [
+    {"id":"exact-sku","request":{"merchantSku":"GROCERY-PANEER-200"},"expected":"VALID_MATCH"},
+    {"id":"exact-barcode","request":{"gtin":"8901234567002"},"expected":"VALID_MATCH"},
+    {"id":"exact-variant","request":{"query":"High Protein Paneer","variant":"Fresh","sizeStorage":"200 g"},"expected":"VALID_MATCH"},
+    {"id":"natural-language","request":{"query":"vegetarian high protein dairy food"},"expectedProduct":"GROCERY-PANEER-200"},
+    {"id":"typo","request":{"query":"rolld otes"},"expectedRelated":"GROCERY-OATS-500"},
+    {"id":"nonexistent","request":{"merchantSku":"DOES-NOT-EXIST"},"expected":"NO_TRUSTWORTHY_MATCH"},
+    {"id":"wrong-variant","request":{"query":"Paneer","variant":"Smoked"},"expected":"NO_TRUSTWORTHY_MATCH"},
+    {"id":"peanut-present","request":{"query":"protein snack","prohibitedAllergen":"peanut"},"expectedExcludes":"GROCERY-BAR-PEANUT"},
+    {"id":"peanut-unknown","request":{"query":"oats","prohibitedAllergen":"peanut"},"expectedExcludes":"GROCERY-OATS-500"},
+    {"id":"related-alternative","request":{"query":"protein food"},"expectedAllows":"RELATED_ALTERNATIVES"}
+  ]
+}

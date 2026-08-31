@@ -36,3 +36,50 @@ server:
         http-only: true
         secure: ${SESSION_COOKIE_SECURE:false}
         same-site: lax
+
+agentization:
+  gemini:
+    enabled: ${GEMINI_ENABLED:false}
+    api-key: ${GEMINI_API_KEY:}
+    model: ${GEMINI_MODEL:gemini-3.6-flash}
+
+catalogue:
+  open-food-facts:
+    enabled: ${OPEN_FOOD_FACTS_ENABLED:false}
+  embedding:
+    enabled: ${CATALOGUE_EMBEDDING_ENABLED:false}
+    api-key: ${GEMINI_API_KEY:}
+
+buyer:
+  gemini:
+    enabled: ${GEMINI_ENABLED:false}
+    api-key: ${GEMINI_API_KEY:}
+    model: ${GEMINI_MODEL:gemini-3.6-flash}
+
+commerce:
+  transaction-authority:
+    auto-execute-maximum-amount-minor: ${AUTO_EXECUTE_MAX_AMOUNT_MINOR:25000}
+    proposal-ttl: ${TRANSACTION_PROPOSAL_TTL:PT5M}
+    authorization-ttl: ${TRANSACTION_AUTHORIZATION_TTL:PT5M}
+    availability-maximum-age: ${AVAILABILITY_MAXIMUM_AGE:PT2M}
+    serviceability-maximum-age: ${SERVICEABILITY_MAXIMUM_AGE:PT5M}
+    minimum-quote-remaining: ${MINIMUM_QUOTE_REMAINING:PT30S}
+
+payment:
+  razorpay:
+    key-id: ${RAZORPAY_TEST_KEY_ID:}
+    key-secret: ${RAZORPAY_TEST_KEY_SECRET:}
+    webhook-secret: ${RAZORPAY_TEST_WEBHOOK_SECRET:}
+    api-base: ${RAZORPAY_API_BASE:https://api.razorpay.com}
+    configuration-reference: ${RAZORPAY_CONFIGURATION_REFERENCE:razorpay-test-default}
+    account-reference: ${RAZORPAY_TEST_ACCOUNT_REFERENCE:default-test-account}
+    connect-timeout: ${RAZORPAY_CONNECT_TIMEOUT:PT3S}
+    request-timeout: ${RAZORPAY_REQUEST_TIMEOUT:PT8S}
+  reconciliation:
+    maximum-attempts: ${PAYMENT_RECONCILIATION_MAXIMUM_ATTEMPTS:5}
+  outbox:
+    batch-size: ${PAYMENT_OUTBOX_BATCH_SIZE:10}
+    lease-seconds: ${PAYMENT_OUTBOX_LEASE_SECONDS:60}
+    poll-delay-ms: ${PAYMENT_OUTBOX_POLL_DELAY_MS:1000}
+  finalization:
+    maximum-attempts: ${MERCHANT_FINALIZATION_MAXIMUM_ATTEMPTS:8}

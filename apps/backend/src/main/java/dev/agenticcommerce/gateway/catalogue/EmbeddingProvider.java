@@ -1,8 +1,11 @@
 package dev.agenticcommerce.gateway.catalogue;
 
-/**
- * Boundary for catalogue embedding generation. The future canonical mapping is Gemini
- * gemini-embedding-2 with 768 output dimensions; no implementation exists in Task 000.
- */
+import java.util.List;
+
+/** Typed embedding boundary. Failed calls must throw; callers persist a lexical-fallback state. */
 public interface EmbeddingProvider {
+    String MODEL = "gemini-embedding-2";
+    int OUTPUT_DIMENSIONS = 768;
+
+    List<Float> embed(String input);
 }

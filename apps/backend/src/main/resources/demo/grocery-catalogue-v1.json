@@ -1,0 +1,8 @@
+{
+  "products": [
+    {"merchantSku":"GROCERY-PANEER-200","gtin":"8901234567001","brand":"Demo Dairy","canonicalName":"High Protein Paneer","variant":"Fresh","sizeStorage":"200 g","category":"Dairy","description":"Vegetarian paneer with high protein","active":true,"sourceRecordId":"demo-001","priceMinor":12000,"currency":"INR","stockQuantity":20,"availability":"IN_STOCK","observationSource":"DEMO_CATALOGUE","sourceVersion":"v1"},
+    {"merchantSku":"GROCERY-BAR-PEANUT","gtin":"8901234567002","brand":"Demo Fuel","canonicalName":"Peanut Protein Bar","variant":"Peanut Crunch","sizeStorage":"60 g","category":"Snacks","description":"Protein snack containing peanuts","active":true,"sourceRecordId":"demo-002","priceMinor":7500,"currency":"INR","stockQuantity":30,"availability":"IN_STOCK","observationSource":"DEMO_CATALOGUE","sourceVersion":"v1"},
+    {"merchantSku":"GROCERY-OATS-500","gtin":"8901234567003","brand":"Demo Grains","canonicalName":"Wholegrain Rolled Oats","variant":"Plain","sizeStorage":"500 g","category":"Breakfast","description":"Plain rolled oats; allergen status intentionally unknown","active":true,"sourceRecordId":"demo-003","priceMinor":18000,"currency":"INR","stockQuantity":12,"availability":"IN_STOCK","observationSource":"DEMO_CATALOGUE","sourceVersion":"v1"},
+    {"merchantSku":"GROCERY-MILK-1L","brand":"Demo Dairy","canonicalName":"Toned Milk","variant":"Toned","sizeStorage":"1 L","category":"Dairy","description":"Chilled milk with unresolved external identity","active":true,"sourceRecordId":"demo-004","priceMinor":6800,"currency":"INR","stockQuantity":0,"availability":"OUT_OF_STOCK","observationSource":"DEMO_CATALOGUE","sourceVersion":"v1"}
+  ]
+}

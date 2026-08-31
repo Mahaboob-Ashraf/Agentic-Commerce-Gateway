@@ -88,10 +88,19 @@ class PostgresFoundationIntegrationTest {
 
     @BeforeEach
     void clearIdentityData() {
-        jdbcClient.sql("""
-                        TRUNCATE TABLE spring_session_attributes, spring_session,
+                jdbcClient.sql("""
+                        TRUNCATE TABLE catalogue_retrieval_evidence, product_embedding, product_external_fact,
+                          product_identity_resolution, merchant_product_commerce_state, merchant_product, catalogue_version,
+                          agent_commerce_manifest_capability, agent_commerce_manifest,
+                          capability_readiness_evaluation, merchant_policy_snapshot_rule,
+                          merchant_policy_snapshot, policy_rule_approval_decision,
+                          merchant_clarification, proposed_policy_rule, policy_document,
+                          mapping_approval_decision, capability_contract_test_run,
+                          capability_mapping_proposal, agent_observation,
+                          agentization_run, openapi_artifact, merchant_approved_endpoint,
+                          spring_session_attributes, spring_session,
                           actor_password_credential, merchant_admin_membership,
-                          application_actor, merchant
+                          application_actor, merchant CASCADE
                         """)
                 .update();
     }
