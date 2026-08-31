@@ -1,73 +1,148 @@
 # Agentic Commerce Gateway
 
-**A Merchant Agentization Gateway + Safe AI Buyer for Razorpay Buildathon 2026 — Track 01: AI Growth & Agentic Commerce.**
+**A Merchant Agentization Agent + Safe AI Buyer for Razorpay Buildathon 2026 — Track 01: AI Growth & Agentic Commerce.**
 
-Agentic Commerce Gateway turns existing merchants into AI-transactable merchants without requiring them to rebuild their commerce stack, then lets AI buyers discover, reason, transact, and manage post-purchase actions with bounded, explainable authority.
+Agentic Commerce Gateway helps merchants expose their existing commerce capabilities safely to AI buyers, then lets buyers discover, reason, transact, and manage commerce through bounded, auditable agent workflows.
 
-> **AI handles unstructured meaning. Deterministic software controls truth, authority, and money.**
+> **AI handles unstructured meaning, planning, and bounded action selection. Deterministic software controls truth, authority, capability readiness, and money.**
 
 ---
 
 ## The Problem
 
-AI agents can understand what a user wants, but safely completing a real purchase is much harder.
+AI can understand what someone wants to buy. Safely completing the purchase is much harder.
 
-A commerce agent must know:
+A production commerce agent must know:
 
-- which merchants are actually capable of serving the request;
+- which merchants can actually perform the requested commerce actions;
 - which product facts are trustworthy;
-- whether hard constraints such as allergens, budget, model, variant, or delivery are satisfied;
-- whether the user needs clarification or confirmation;
-- exactly what transaction is being authorized;
+- whether hard constraints such as allergens, budget, variant, stock, and delivery are satisfied;
+- what information is missing;
+- exactly what transaction the buyer authorized;
 - whether payment genuinely succeeded;
-- what happens when payment, fulfilment, or refunds fail halfway through.
+- how to recover when payment or merchant fulfilment fails halfway through;
+- how later cancellation, return, refund, and reorder actions remain tied to the original transaction.
 
-Most existing merchant systems were not designed for this.
+At the same time, most existing merchant systems were not designed to be consumed directly by AI agents.
 
-Agentic Commerce Gateway adds that missing layer.
-
----
-
-## What We Are Building
-
-The system has two major sides.
-
-### Merchant Agentization Gateway
-
-An existing merchant can expose its commerce stack through API/OpenAPI, catalogue data, policies, and Razorpay Test Mode configuration.
-
-The gateway:
-
-- maps merchant APIs into normalized commerce capabilities;
-- extracts and structures merchant policies;
-- requires merchant approval before AI-generated mappings become authoritative;
-- runs capability-specific contract tests;
-- produces a versioned Agent Commerce Manifest;
-- marks capabilities as `READY`, `BLOCKED`, or `UNTESTED`.
-
-The merchant does not need to rebuild their storefront or backend.
+Agentic Commerce Gateway bridges those two sides.
 
 ---
 
-### Safe AI Buyer
+# Two-Agent Architecture
 
-The buyer can use natural language or voice to express a commerce goal.
+P0 contains exactly two agents.
+
+## 1. Merchant Agentization Agent
+
+The merchant starts one high-level goal:
+
+> **Agentize my store.**
+
+The agent then works through the merchant's available commerce interfaces and determines which capabilities can safely become usable by AI buyers.
+
+Internally, capabilities are still isolated for testing, evidence, and readiness, but the merchant does not have to manually onboard them one at a time.
+
+The agent can:
+
+- inspect OpenAPI specifications and schemas;
+- inspect catalogue structure;
+- inspect merchant policies;
+- identify candidate commerce operations;
+- propose normalized capability mappings;
+- select and run bounded contract tests;
+- observe failures;
+- diagnose mapping problems;
+- propose safe revisions;
+- retest revised mappings;
+- request merchant clarification when business meaning cannot safely be inferred;
+- request merchant approval where merchant authority is required.
+
+Example:
+
+    Goal: Agentize merchant
+            ↓
+    inspect APIs / schemas / policies
+            ↓
+    identify GET_QUOTE candidate
+            ↓
+    test mapping
+            ↓
+    MONEY_UNIT_MISMATCH
+            ↓
+    diagnose rupees vs paise
+            ↓
+    propose safe transformation
+            ↓
+    retest
+            ↓
+    PASS
+            ↓
+    continue to remaining capabilities
+
+The AI agent can propose and reason.
+
+It cannot declare itself `READY`.
+
+A deterministic readiness reducer evaluates version-bound evidence and publishes capabilities as:
+
+- `READY`
+- `BLOCKED`
+- `UNTESTED`
+
+The final output is a versioned **Agent Commerce Manifest** plus an agent-readable catalogue, policy layer, and verified commerce capability contracts.
+
+### What if the merchant does not expose a required capability?
+
+The system does not fabricate one.
+
+For example:
+
+    SEARCH_PRODUCTS      READY
+    GET_QUOTE            READY
+    GET_AVAILABILITY     READY
+    PLACE_ORDER          BLOCKED
+    RETURN_ITEM          BLOCKED
+
+If no trustworthy machine-accessible order interface exists, the gateway reports the exact capability gap and the minimum adapter/API boundary the merchant would need to expose.
+
+The goal is not to claim that every legacy website can become safely transactable with zero engineering.
+
+The goal is to eliminate the repetitive discovery, mapping, testing, repair, and certification work wherever usable merchant interfaces exist — while precisely identifying what is missing when they do not.
+
+---
+
+## 2. Safe AI Buyer
+
+The Safe AI Buyer operates only over merchant capabilities that have passed the Agentization Gateway.
+
+A buyer performs a one-time onboarding flow with:
+
+- buyer identity;
+- recipient/contact information;
+- saved delivery addresses;
+- supported merchant-account links;
+- persistent commerce history.
+
+For supported merchants, account linking is a one-time operation. The normal architecture does not depend on guest checkout or repeatedly logging into merchant websites.
+
+After onboarding, the buyer can express goals through natural language or voice.
 
 Example:
 
 > “500 ke andar do logon ke liye high-protein vegetarian snacks order karo, peanuts bilkul nahi.”
 
-The canonical flow is:
+The purchase flow is:
 
     Voice / Text
         ↓
     Sarvam Saaras v3
         ↓
-    Language + Ambiguity Gate
+    Language Gate
         ↓
     Gemini Intent Compiler
         ↓
-    Merchant Discovery
+    READY Merchant Discovery
         ↓
     Hybrid Product Retrieval
         ↓
@@ -75,35 +150,49 @@ The canonical flow is:
         ↓
     Candidate Cart
         ↓
+    Authoritative Quote + Availability
+        ↓
+    Address / Serviceability Validation
+        ↓
     Deterministic Hard-Constraint Verification
         ↓
-    Immutable Transaction Proposal
+    Immutable TransactionProposal
         ↓
     Reversibility / Action-Risk Engine
         ↓
-    Proposal-Bound Authorization
+    Proposal-Bound AuthorizationDecision
         ↓
     Deterministic Execution Gate
+        ↓
+    Exactly-One Execution
         ↓
     Razorpay Test Mode Checkout
         ↓
     Verified Payment Evidence
         ↓
-    Merchant Fulfilment
+    Transactional Outbox
+        ↓
+    Idempotent Merchant Fulfilment
         ↓
     Persistent Commerce Thread
 
-The same thread can later support cancellation, return, refund, reorder, and bounded AutoBuy workflows.
+The same thread is designed to later support cancellation, return, refund, reorder, and bounded AutoBuy workflows.
 
 ---
 
-## Bounded Agentic Commerce
+# Bounded Agentic Commerce
 
-The AI does not receive unrestricted authority to transact.
+The AI never receives unrestricted transaction authority.
 
-Human involvement depends on both **uncertainty** and the **cost of being wrong**.
+Human involvement depends on both:
 
-Every action resolves to one of:
+**uncertainty**
+
+and
+
+**the cost of being wrong.**
+
+The deterministic action-risk layer resolves actions to:
 
 - `AUTO_EXECUTE`
 - `CLARIFY`
@@ -112,15 +201,15 @@ Every action resolves to one of:
 
 `AUTO_EXECUTE` does **not** mean silently charging the customer.
 
-In P0, it means the system may proceed without another application-level confirmation and automatically open Razorpay Checkout. The customer still authorizes the actual payment inside Razorpay.
+For P0 it means another application-level confirmation can be skipped. The customer still authorizes the actual payment through Razorpay Standard Checkout.
 
 ---
 
-## Deterministic Money Path
+# Deterministic Money Path
 
-Every money action is represented by an immutable `TransactionProposal`.
+Every money action begins with an immutable `TransactionProposal`.
 
-Material proposal fields are serialized canonically and hashed:
+Material transaction fields are serialized canonically and hashed:
 
     material transaction fields
             ↓
@@ -130,78 +219,105 @@ Material proposal fields are serialized canonically and hashed:
             ↓
        proposal_hash
 
-Any material change creates a new proposal.
+Material changes create a new proposal.
 
-User authorization is separately represented by an immutable `AuthorizationDecision` bound to:
+This includes changes to things such as:
 
-- the authenticated actor;
-- the exact proposal ID;
-- the exact proposal hash;
-- the exact action type;
-- an expiry.
+- merchant;
+- product or variant;
+- quantity;
+- price;
+- currency;
+- quote;
+- constraint evidence;
+- policy snapshot;
+- fulfilment/serviceability evidence.
 
-A previous approval can never silently authorize a changed transaction.
+Authorization is represented separately by an immutable `AuthorizationDecision` bound to:
+
+- the authenticated buyer;
+- authenticated session context;
+- exact proposal ID;
+- exact proposal hash;
+- exact action type;
+- expiry.
+
+A previous approval therefore cannot silently authorize a modified transaction.
 
 ---
 
-## Payment Reliability
+# Payment Reliability
 
-The payment control plane is designed around explicit invariants:
+The Razorpay Test payment control plane is built around explicit invariants:
 
-- exactly one Execution per TransactionProposal;
+- exactly one `Execution` per `TransactionProposal`;
 - at most one Razorpay Order per Execution;
-- duplicate requests cannot create duplicate executions;
-- payment retries reuse the same valid Razorpay Order;
-- uncertain outcomes are reconciled before retrying;
-- browser callbacks are never treated as financial truth;
-- successful payment requires verified provider evidence;
+- stable payment initiation identity across retries;
+- uncertain provider outcomes are reconciled before creating anything new;
+- browser callbacks are evidence, never financial truth;
+- webhook signatures are verified;
+- provider evidence is persisted durably;
+- duplicate and out-of-order webhooks are idempotent;
 - `payment.status = captured` and `order.status = paid` are both required;
-- duplicate and out-of-order webhooks are handled idempotently;
-- late authorization/capture has an explicit reconciliation path;
-- post-payment merchant fulfilment is durable through a PostgreSQL transactional outbox;
-- refunds use stable idempotency keys and database-enforced refundable-amount bounds.
+- amount, currency, order, merchant/configuration, and execution identities must match;
+- late capture has an explicit reconciliation path;
+- confirmed payment and merchant fulfilment remain separate states;
+- payment confirmation and durable fulfilment work are committed atomically using a PostgreSQL transactional outbox;
+- merchant finalization uses a stable operation ID across retries.
+
+This allows the system to safely represent:
+
+    PAYMENT_CONFIRMED
+    +
+    FULFILLMENT_PENDING
+
+instead of incorrectly retrying the payment when the merchant temporarily fails after a successful charge.
 
 ---
 
-## AI Responsibility Boundary
+# AI Responsibility Boundary
 
-Different AI systems are used for different jobs.
-
-### Sarvam AI
+## Sarvam AI
 
 **Saaras v3** owns:
 
 - speech-to-text;
 - Indian-language transcription;
 - code-mixed speech;
-- language detection when required.
+- language metadata.
 
-### Gemini
+## Gemini
 
 Gemini owns:
 
 - intent compilation;
-- structured reasoning;
 - ambiguity handling;
-- RAG reasoning;
-- merchant API/policy interpretation;
-- onboarding intelligence.
+- structured reasoning;
+- retrieval reasoning;
+- merchant API interpretation;
+- policy interpretation;
+- Merchant Agentization Agent planning;
+- failure diagnosis;
+- mapping revision proposals.
 
 Gemini does **not** control:
 
-- payment truth;
-- authorization;
-- transaction state;
-- refunds;
-- execution invariants.
+- merchant capability readiness;
+- merchant approval;
+- unrestricted network execution;
+- financial truth;
+- transaction authorization;
+- execution invariants;
+- payment-state transitions;
+- refunds.
 
-All AI outputs cross validated structured boundaries before entering deterministic application logic.
+AI outputs cross validated structured boundaries before deterministic application logic can act on them.
 
 ---
 
-## Product Grounding
+# Product Grounding
 
-The buyer does not rely on an LLM's memory for commerce facts.
+The Safe AI Buyer does not rely on an LLM's memory for commerce facts.
 
 Product retrieval combines:
 
@@ -209,23 +325,33 @@ Product retrieval combines:
 - PostgreSQL Full-Text Search;
 - `pg_trgm`;
 - dense embeddings;
-- metadata filters;
-- reranking;
+- metadata filtering;
+- deterministic reranking;
 - explicit no-match handling.
 
-Real food-product enrichment uses **Open Food Facts**.
+Real food enrichment uses **Open Food Facts**.
 
-Hard identity fields such as brand, model, SKU, variant, storage, size, colour, GTIN, and barcode cannot be overridden by semantic similarity.
+Hard product identity fields cannot be overridden by semantic similarity.
+
+Examples include:
+
+- brand;
+- model;
+- SKU;
+- variant;
+- size;
+- colour;
+- GTIN/barcode.
 
 For safety-critical facts:
 
-> **Missing or conflicting evidence becomes `UNKNOWN`, not `PASS`.**
+> **Missing or conflicting evidence becomes `UNKNOWN`, never `PASS`.**
 
 ---
 
-## Security and Tenant Isolation
+# Security and Tenant Isolation
 
-The backend uses Spring Security with explicit identity, role, and ownership boundaries.
+The backend uses Spring Security with explicit identity, role, tenant, and authority boundaries.
 
 Canonical roles:
 
@@ -234,47 +360,48 @@ Canonical roles:
 - `PLATFORM_ADMIN`
 - `SYSTEM`
 
-Merchant-scoped data is tenant-bound.
+A `MERCHANT_ADMIN` role alone does not grant access to every merchant. The actor must also have the correct merchant relationship.
 
-A merchant admin role alone does not grant access to every merchant; the actor must also have the appropriate merchant relationship.
+Authentication, RBAC, tenant ownership, transaction authorization, and payment truth are deliberately separate layers.
 
-Authentication, RBAC, tenant ownership, and proposal-bound payment authorization remain separate security layers.
+Merchant network access is also bounded through approved endpoints, DNS/IP validation, runtime revalidation, redirect rejection, and SSRF protections.
 
 ---
 
-## Architecture
+# Architecture
 
-The backend is intentionally a **modular monolith**, not a microservice collection.
+The backend is intentionally a **modular monolith**.
 
     Next.js Web
         ↓
-    Java 25 + Spring Boot
+    Java 25 / Spring Boot
         ↓
-    ┌─────────────────────────────┐
-    │ Identity                    │
-    │ Agentization                │
-    │ Catalogue / Retrieval       │
-    │ Intent                      │
-    │ Commerce                    │
-    │ Risk                        │
-    │ Authorization               │
-    │ Payment                     │
-    │ Lifecycle                   │
-    │ Audit                       │
-    │ Transactional Outbox        │
-    └─────────────────────────────┘
+    ┌──────────────────────────────┐
+    │ Identity                     │
+    │ Merchant Agentization        │
+    │ Policy / Readiness           │
+    │ Catalogue / Retrieval        │
+    │ Buyer Intent                 │
+    │ Commerce                     │
+    │ Risk                         │
+    │ Authorization                │
+    │ Payment / Reconciliation     │
+    │ Lifecycle                    │
+    │ Audit                        │
+    │ Transactional Outbox         │
+    └──────────────────────────────┘
         ↓
     PostgreSQL 17
         ↓
     Razorpay / Gemini / Sarvam / Merchant APIs
 
-PostgreSQL remains the authoritative store for commerce state, authorization, payments, refunds, audit records, and durable background work.
+PostgreSQL remains authoritative for durable commerce state, capability evidence, authorization, payment truth, audit records, and background work.
 
-No LangChain or free-form agent framework controls the financial state machine.
+No free-form agent framework controls the financial state machine.
 
 ---
 
-## Tech Stack
+# Tech Stack
 
 ### Backend
 
@@ -286,7 +413,8 @@ No LangChain or free-form agent framework controls the financial state machine.
 - PostgreSQL 17
 - pgvector
 - pg_trgm
-- Spring Actuator + Micrometer
+- Spring Actuator
+- Micrometer
 - PostgreSQL transactional outbox
 
 ### Web
@@ -306,26 +434,66 @@ No LangChain or free-form agent framework controls the financial state machine.
 ### Payments
 
 - Razorpay Test Mode
-- Standard Checkout
 - Orders API
-- Webhooks
-- Payment reconciliation
-- Refund APIs
+- Standard Checkout
+- signed callbacks
+- signed webhooks
+- payment reconciliation
 
 ### Testing
 
-- JUnit
+- JUnit 5
 - Spring Boot Test
 - Testcontainers
-- real PostgreSQL integration tests
-- property/concurrency tests
-- Playwright
+- PostgreSQL integration tests
+- concurrency tests
+- failure-injection scenarios
+- WireMock / deterministic provider fixtures
 
 ---
 
-## Deployment
+# Current Implementation Status
 
-The evaluator-facing application is designed to work with the developer machine completely offline.
+The backend is currently implemented through the payment and merchant-finalization control plane.
+
+Completed foundations include:
+
+- tenant-aware identity and authentication;
+- durable Merchant Agentization Agent state;
+- bounded tool execution;
+- hardened merchant endpoint execution and SSRF protection;
+- autonomous test → diagnose → revise → retest loops;
+- merchant clarification and approval;
+- deterministic capability readiness;
+- Agent Commerce Manifest;
+- versioned catalogue and Open Food Facts enrichment;
+- hybrid PostgreSQL retrieval;
+- Safe AI Buyer thread and intent compiler;
+- grounded candidate carts;
+- authoritative quotes;
+- hard-constraint certificates;
+- immutable transaction proposals;
+- deterministic reversibility decisions;
+- proposal-bound authorization;
+- exactly-once execution reservation;
+- Razorpay Test payment control plane;
+- signed callback/webhook verification;
+- payment reconciliation;
+- deterministic captured+paid payment reducer;
+- PostgreSQL transactional outbox;
+- idempotent merchant `PLACE_ORDER` finalization.
+
+Current backend verification:
+
+> **139 tests — 0 failures — 0 errors**
+
+Remaining P0 work includes buyer fulfilment/account-link onboarding, post-purchase lifecycle, web/voice product surfaces, deployment, and final evaluation/demo hardening.
+
+---
+
+# Deployment Target
+
+The evaluator-facing application is designed to run with the developer machine completely offline.
 
     Evaluator
         ↓
@@ -338,81 +506,101 @@ The evaluator-facing application is designed to work with the developer machine 
     Supabase
     PostgreSQL
 
-CI/CD is handled through GitHub Actions.
+CI/CD uses GitHub Actions.
 
-Local Docker and Testcontainers remain development and correctness-testing environments, not dependencies of the live application.
-
-The Buildathon deployment targets zero platform spend using available free tiers and Test Mode infrastructure.
+Local Docker and Testcontainers are development and correctness-testing environments, not runtime dependencies of the deployed product.
 
 ---
 
-## Evaluation
+# Evaluation
 
-Evaluation is treated as part of the product, not an afterthought.
-
-The project includes dedicated evaluation tracks for:
+The final evaluation suite covers:
 
 - multilingual intent understanding;
-- product retrieval and no-match detection;
-- deterministic constraint enforcement;
-- merchant agentization accuracy;
-- reversibility and human-interruption quality;
-- payment reliability and concurrency;
+- product retrieval and no-match behavior;
+- hard-constraint enforcement;
+- merchant agentization;
+- capability readiness;
+- reversibility and interruption decisions;
+- payment reliability;
+- concurrency;
+- recovery from partial failures;
 - end-to-end commerce journeys.
 
-Failure testing includes scenarios such as:
+Important failure scenarios include:
 
 - duplicate execution requests;
 - duplicate/out-of-order webhooks;
-- payment failure followed by late capture;
-- stale price or stock;
+- late payment capture;
+- stale quote or stock;
 - unknown allergen evidence;
-- incorrect product variant;
+- incorrect product identity;
 - lost Razorpay Order responses;
-- merchant fulfilment failure after payment;
-- crashes before durable work is dispatched;
-- concurrent refund requests;
-- malicious merchant API endpoints.
+- merchant failure after captured payment;
+- transactional-outbox recovery;
+- malicious merchant endpoints.
 
 ---
 
-## Demo Journey
+# Canonical Demo
 
-The canonical Buildathon demo demonstrates four things:
+## 1. Agentize a Merchant
 
-### 1. Agentize a Merchant
+A merchant begins with ordinary APIs, catalogue data, and policies.
 
-Connect an existing merchant API and policy documents, approve AI-proposed mappings, run contract tests, and make commerce capabilities Agent Ready.
+The Merchant Agentization Agent is given the goal:
 
-### 2. AI Buyer
+> **Make this merchant Agent Ready.**
 
-Use multilingual voice input, compile it into structured intent, retrieve grounded products, verify hard constraints, generate an immutable proposal, authorize it, and complete payment through Razorpay Test Mode.
+It inspects interfaces, proposes capability mappings, runs deterministic tests, intentionally encounters a quote money-unit mismatch, diagnoses rupees vs paise, proposes a safe mapping revision, retests successfully, escalates one genuine business ambiguity to the merchant, and continues.
 
-### 3. Graceful Failure
+Only the deterministic readiness reducer can publish the final Agent Commerce Manifest.
 
-Simulate a captured payment followed by temporary merchant fulfilment failure and show that the system does not create another charge or order, while the transactional outbox safely recovers or compensates.
+## 2. Safe AI Buyer
 
-### 4. Post-Purchase Lifecycle
+The buyer asks:
 
-Reopen the same commerce thread and perform a bounded return/refund using the historical policy snapshot and stable refund idempotency.
+> “500 ke andar do logon ke liye high-protein vegetarian snacks order karo, peanuts bilkul nahi.”
+
+The system performs multilingual intent understanding, READY merchant discovery, grounded retrieval, exact identity checks, authoritative quoting, hard-constraint validation, proposal creation, authorization, deterministic execution gating, and Razorpay Test Checkout.
+
+## 3. Graceful Failure
+
+Payment becomes captured and the Razorpay Order becomes paid.
+
+Merchant fulfilment temporarily fails.
+
+The system demonstrates:
+
+- no duplicate charge;
+- no duplicate Razorpay Order;
+- payment remains confirmed;
+- fulfilment remains pending;
+- durable outbox retry;
+- stable merchant operation identity;
+- eventual successful fulfilment.
+
+## 4. Post-Purchase Lifecycle
+
+The same commerce thread is later used for bounded cancellation, return, refund, or reorder actions using historical transaction and policy evidence.
 
 ---
 
-## Repository
+# Repository
 
     apps/
       backend/        Java / Spring Boot control plane
-      web/            Buyer, merchant and platform web surfaces
+      web/            Buyer and merchant web surfaces
       buyer_flutter/  P1 native buyer
 
-    contracts/        OpenAPI and JSON Schema contracts
+    contracts/        OpenAPI / JSON Schema contracts
     evaluation/       Evaluation datasets and harnesses
-    infra/            Local development infrastructure
-    docs/             Architecture, payments, failure and demo documentation
+    infra/            Local/deployment infrastructure
+    docs/             Architecture and operational documentation
 
 ---
 
-## Project Documentation
+# Project Documentation
 
 - [Project Specification](PROJECT_SPEC.md)
 - [Architecture](docs/architecture.md)
@@ -426,11 +614,11 @@ Reopen the same commerce thread and perform a bounded return/refund using the hi
 
 ---
 
-## Buildathon
+# Buildathon
 
 **Razorpay Buildathon 2026**  
 **Track 01 — AI Growth & Agentic Commerce**
 
 The goal is not merely to build an AI shopping assistant.
 
-The goal is to prove that an existing merchant can become safely transactable by AI while preserving deterministic authority, payment correctness, reversibility, auditability, and real end-to-end execution.
+The goal is to demonstrate that an existing merchant can be made safely usable by AI buyers while preserving deterministic authority, capability verification, payment correctness, auditability, reversibility, and real end-to-end execution.
