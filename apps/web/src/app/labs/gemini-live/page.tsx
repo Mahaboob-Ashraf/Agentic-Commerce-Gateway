@@ -3,8 +3,8 @@ import { notFound } from "next/navigation";
 import { GeminiLiveLab } from "./gemini-live-lab";
 
 export const metadata: Metadata = {
-  title: "Gemini Live lab · Agentic Commerce Gateway",
-  description: "Developer-only Gemini 2.5 Live asynchronous function-calling POC",
+  title: "Gemini Live A/B lab · Agentic Commerce Gateway",
+  description: "Developer-only Gemini 2.5 versus 3.1 Live voice-hardening POC",
 };
 
 export default function GeminiLiveLabPage() {

@@ -41,8 +41,12 @@ public class CandidateCartService {
         var lines=material.putArray("items");var line=lines.addObject();line.put("productId",item.productId().toString());line.put("merchantSku",item.merchantSku());line.put("variant",item.variant());line.put("quantity",item.quantity());material.set("alternatives",alternatives);
         return repository.createCart(thread,intent,selected.merchant(),List.of(item),List.copyOf(evidence),alternatives,canonical.hash(material));}
     private static SearchRequest request(CompiledIntent i){StringBuilder q=new StringBuilder();if(i.categoryRequest()!=null)q.append(i.categoryRequest());
-        if(i.softPreferences()!=null&&i.softPreferences().contains("HIGH_PROTEIN"))q.append(" high protein");if(q.isEmpty())q.append(i.exactVariant()!=null?i.exactVariant():"food");
-        return new SearchRequest(q.toString().strip(),i.exactMerchantSku(),i.exactGtin(),null,i.exactVariant(),null,null,
+        if(i.exactBrand()!=null)q.append(' ').append(i.exactBrand());if(i.exactVariant()!=null)q.append(' ').append(i.exactVariant());
+        if(i.exactSizeStorage()!=null)q.append(' ').append(i.exactSizeStorage());if(i.exactColour()!=null)q.append(' ').append(i.exactColour());
+        if(i.softPreferences()!=null&&i.softPreferences().contains("HIGH_PROTEIN"))q.append(" high protein");
+        if(q.isEmpty()&&i.goal()==IntentGoal.PURCHASE_FOOD)q.append("food");
+        if(q.isEmpty())q.append(i.exactMerchantSku()!=null?i.exactMerchantSku():i.exactGtin());
+        return new SearchRequest(q.toString().strip(),i.exactMerchantSku(),i.exactGtin(),i.exactBrand(),i.exactVariant(),i.exactSizeStorage(),i.exactColour(),
                 i.categoryRequest(),null,i.budgetAmountMinor(),i.vegetarian(),i.prohibitedAllergen()==null?null:i.prohibitedAllergen().toLowerCase(java.util.Locale.ROOT),20);}
     public record MerchantResult(MerchantCandidate merchant,SearchResponse response){}
     public record MerchantSearch(List<MerchantResult> results){public List<String> evidenceReferences(){return results.stream().flatMap(r->r.response().evidence().stream()).distinct().limit(64).toList();}}

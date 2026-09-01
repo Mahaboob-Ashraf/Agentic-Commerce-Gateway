@@ -1,0 +1,104 @@
+{
+  "products": [
+    {
+      "merchantSku": "SYN-GROCERY-CHANA-200",
+      "gtin": "8909000000001",
+      "brand": "Synthetic Harvest",
+      "canonicalName": "High Protein Roasted Chana",
+      "variant": "Masala",
+      "sizeStorage": "200 g",
+      "colour": "Golden",
+      "category": "Snacks",
+      "description": "Synthetic vegetarian high-protein roasted chickpea snack.",
+      "priceMinor": 19900,
+      "currency": "INR",
+      "stockQuantity": 40,
+      "availability": "IN_STOCK",
+      "sourceRecordId": "synthetic-grocery-chana-200",
+      "sourceVersion": "demo-grocery-v1",
+      "observedAt": "2026-08-15T00:00:00Z",
+      "facts": [
+        {"type":"VEGETARIAN","value":true,"sourceVersion":"demo-grocery-v1","observedAt":"2026-08-15T00:00:00Z","expiresAt":"2027-08-15T00:00:00Z"},
+        {"type":"ALLERGEN","value":{"allergen":"peanut","status":"ABSENT"},"sourceVersion":"demo-grocery-v1","observedAt":"2026-08-15T00:00:00Z","expiresAt":"2027-08-15T00:00:00Z"},
+        {"type":"PROTEIN","value":20.0,"sourceVersion":"demo-grocery-v1","observedAt":"2026-08-15T00:00:00Z","expiresAt":"2027-08-15T00:00:00Z"},
+        {"type":"NUTRITION","value":{"basis":"100g","energyKcal":380,"proteinGrams":20},"sourceVersion":"demo-grocery-v1","observedAt":"2026-08-15T00:00:00Z","expiresAt":"2027-08-15T00:00:00Z"},
+        {"type":"IMAGE","value":"/demo/products/roasted-chana.svg","sourceVersion":"demo-grocery-v1","observedAt":"2026-08-15T00:00:00Z"},
+        {"type":"RATING","value":4.6,"sourceVersion":"demo-grocery-v1","observedAt":"2026-08-15T00:00:00Z"},
+        {"type":"REVIEW_COUNT","value":184,"sourceVersion":"demo-grocery-v1","observedAt":"2026-08-15T00:00:00Z"}
+      ]
+    },
+    {
+      "merchantSku": "SYN-GROCERY-MANGO-SHAKE-250",
+      "gtin": "8909000000002",
+      "brand": "Synthetic Sips",
+      "canonicalName": "Mango Milkshake",
+      "variant": "Mango",
+      "sizeStorage": "250 ml",
+      "colour": "Yellow",
+      "category": "Milkshake",
+      "description": "Synthetic ready-to-drink mango milkshake.",
+      "priceMinor": 12900,
+      "currency": "INR",
+      "stockQuantity": 25,
+      "availability": "IN_STOCK",
+      "sourceRecordId": "synthetic-grocery-mango-shake-250",
+      "sourceVersion": "demo-grocery-v1",
+      "observedAt": "2026-08-15T00:00:00Z",
+      "facts": [
+        {"type":"VEGETARIAN","value":true,"sourceVersion":"demo-grocery-v1","observedAt":"2026-08-15T00:00:00Z","expiresAt":"2027-08-15T00:00:00Z"},
+        {"type":"ALLERGEN","value":{"allergen":"peanut","status":"ABSENT"},"sourceVersion":"demo-grocery-v1","observedAt":"2026-08-15T00:00:00Z","expiresAt":"2027-08-15T00:00:00Z"},
+        {"type":"NUTRITION","value":{"basis":"250ml","energyKcal":210,"proteinGrams":7},"sourceVersion":"demo-grocery-v1","observedAt":"2026-08-15T00:00:00Z","expiresAt":"2027-08-15T00:00:00Z"},
+        {"type":"IMAGE","value":"https://assets.example.test/demo/mango-milkshake.png","sourceVersion":"demo-grocery-v1","observedAt":"2026-08-15T00:00:00Z"},
+        {"type":"RATING","value":4.4,"sourceVersion":"demo-grocery-v1","observedAt":"2026-08-15T00:00:00Z"},
+        {"type":"REVIEW_COUNT","value":96,"sourceVersion":"demo-grocery-v1","observedAt":"2026-08-15T00:00:00Z"}
+      ]
+    },
+    {
+      "merchantSku": "SYN-GROCERY-LENTIL-100",
+      "gtin": "8909000000003",
+      "brand": "Synthetic Harvest",
+      "canonicalName": "Protein Lentil Bites",
+      "variant": "Herb",
+      "sizeStorage": "100 g",
+      "colour": "Brown",
+      "category": "Snacks",
+      "description": "Synthetic vegetarian lentil snack without a peanut absence declaration.",
+      "priceMinor": 14900,
+      "currency": "INR",
+      "stockQuantity": 18,
+      "availability": "IN_STOCK",
+      "sourceRecordId": "synthetic-grocery-lentil-100",
+      "sourceVersion": "demo-grocery-v1",
+      "observedAt": "2026-08-15T00:00:00Z",
+      "facts": [
+        {"type":"VEGETARIAN","value":true,"sourceVersion":"demo-grocery-v1","observedAt":"2026-08-15T00:00:00Z","expiresAt":"2027-08-15T00:00:00Z"},
+        {"type":"PROTEIN","value":18.0,"sourceVersion":"demo-grocery-v1","observedAt":"2026-08-15T00:00:00Z","expiresAt":"2027-08-15T00:00:00Z"},
+        {"type":"IMAGE","value":"/demo/products/lentil-bites.svg","sourceVersion":"demo-grocery-v1","observedAt":"2026-08-15T00:00:00Z"}
+      ]
+    },
+    {
+      "merchantSku": "SYN-GROCERY-OATS-500",
+      "gtin": "8909000000004",
+      "brand": "Synthetic Grains",
+      "canonicalName": "Wholegrain Rolled Oats",
+      "variant": "Plain",
+      "sizeStorage": "500 g",
+      "colour": "Beige",
+      "category": "Breakfast",
+      "description": "Synthetic wholegrain breakfast oats.",
+      "priceMinor": 18900,
+      "currency": "INR",
+      "stockQuantity": 30,
+      "availability": "IN_STOCK",
+      "sourceRecordId": "synthetic-grocery-oats-500",
+      "sourceVersion": "demo-grocery-v1",
+      "observedAt": "2026-08-15T00:00:00Z",
+      "facts": [
+        {"type":"VEGETARIAN","value":true,"sourceVersion":"demo-grocery-v1","observedAt":"2026-08-15T00:00:00Z","expiresAt":"2027-08-15T00:00:00Z"},
+        {"type":"IMAGE","value":"/demo/products/oats.svg","sourceVersion":"demo-grocery-v1","observedAt":"2026-08-15T00:00:00Z"},
+        {"type":"RATING","value":4.2,"sourceVersion":"demo-grocery-v1","observedAt":"2026-08-15T00:00:00Z"},
+        {"type":"REVIEW_COUNT","value":51,"sourceVersion":"demo-grocery-v1","observedAt":"2026-08-15T00:00:00Z"}
+      ]
+    }
+  ]
+}

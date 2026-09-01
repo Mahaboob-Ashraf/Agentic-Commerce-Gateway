@@ -11,9 +11,12 @@ import dev.agenticcommerce.gateway.commerce.TransactionModels.AvailabilityRefres
 import dev.agenticcommerce.gateway.commerce.TransactionModels.EvidenceOutcome;
 import dev.agenticcommerce.gateway.commerce.TransactionModels.ServiceabilityEvidence;
 import java.time.Instant;
+import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
+import java.util.function.Function;
 import org.springframework.stereotype.Service;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.ObjectNode;
@@ -48,6 +51,13 @@ public class ConstraintCertificateService {
                     return state==AllergenState.PRESENT?ConstraintOutcome.FAIL:state==AllergenState.ABSENT?ConstraintOutcome.PASS:ConstraintOutcome.UNKNOWN;}).toList();
             ObjectNode req=mapper.createObjectNode().put("allergen",intent.compiled().prohibitedAllergen()).put("requirement","PROHIBITED");
             results.add(result("ALLERGEN_"+intent.compiled().prohibitedAllergen(),ConstraintType.SAFETY_COMPLIANCE,req,reduce(outcomes),true,productRefs(cart,"allergen"),now));}
+        addIdentity(results,cart,"CATEGORY",intent.compiled().categoryRequest(),Product::category,now);
+        addIdentity(results,cart,"MERCHANT_SKU",intent.compiled().exactMerchantSku(),Product::merchantSku,now);
+        addIdentity(results,cart,"GTIN",intent.compiled().exactGtin(),Product::gtin,now);
+        addIdentity(results,cart,"BRAND",intent.compiled().exactBrand(),Product::brand,now);
+        addIdentity(results,cart,"VARIANT",intent.compiled().exactVariant(),Product::variant,now);
+        addIdentity(results,cart,"SIZE_STORAGE",intent.compiled().exactSizeStorage(),Product::sizeStorage,now);
+        addIdentity(results,cart,"COLOUR",intent.compiled().exactColour(),Product::colour,now);
         List<ConstraintOutcome> identities=cart.items().stream().map(i->{IdentityOutcome identity=catalogues.latestIdentity(cart.merchantId(),cart.catalogueVersionId(),i.productId());
             return identity==IdentityOutcome.EXACT?ConstraintOutcome.PASS:identity==IdentityOutcome.CONFLICT?ConstraintOutcome.UNKNOWN:ConstraintOutcome.UNKNOWN;}).toList();
         results.add(result("EXACT_IDENTITY",ConstraintType.MERCHANT_PRODUCT,mapper.createObjectNode().put("required","EXACT"),reduce(identities),false,productRefs(cart,"identity"),now));
@@ -70,6 +80,12 @@ public class ConstraintCertificateService {
                 executable?serviceability.serviceabilityEvidenceId():null,executable?serviceability.evidenceHash():null,
                 executable,freshness,refs,overall,canonical.hash(material),now,results);}
     private ConstraintResult result(String key,ConstraintType type,ObjectNode requirement,ConstraintOutcome outcome,boolean safety,List<String> refs,Instant at){return new ConstraintResult(null,key,type,requirement,outcome,safety,refs,at);}
+    private void addIdentity(List<ConstraintResult> results,CandidateCart cart,String key,String requested,Function<Product,String> field,Instant now){if(requested==null||requested.isBlank())return;
+        List<ConstraintOutcome> outcomes=cart.items().stream().map(item->catalogues.findProduct(cart.merchantId(),cart.catalogueVersionId(),item.productId())
+                .map(product->compare(requested,field.apply(product))).orElse(ConstraintOutcome.UNKNOWN)).toList();
+        results.add(result(key,ConstraintType.MERCHANT_PRODUCT,mapper.createObjectNode().put("required",requested),reduce(outcomes),false,productRefs(cart,key.toLowerCase(Locale.ROOT)),now));}
+    private static ConstraintOutcome compare(String required,String actual){if(actual==null||actual.isBlank())return ConstraintOutcome.UNKNOWN;return normalize(required).equals(normalize(actual))?ConstraintOutcome.PASS:ConstraintOutcome.FAIL;}
+    private static String normalize(String value){return Normalizer.normalize(value,Normalizer.Form.NFKC).toLowerCase(Locale.ROOT).replaceAll("[^\\p{L}\\p{N}]+"," ").strip();}
     private static ConstraintOutcome gate(GateOutcome value){return value==GateOutcome.PASS?ConstraintOutcome.PASS:value==GateOutcome.FAIL?ConstraintOutcome.FAIL:ConstraintOutcome.UNKNOWN;}
     private static ConstraintOutcome outcome(EvidenceOutcome value){return value==EvidenceOutcome.PASS?ConstraintOutcome.PASS:value==EvidenceOutcome.FAIL?ConstraintOutcome.FAIL:ConstraintOutcome.UNKNOWN;}
     private static ConstraintOutcome reduce(List<ConstraintOutcome> values){if(values.stream().anyMatch(v->v==ConstraintOutcome.FAIL))return ConstraintOutcome.FAIL;if(values.stream().anyMatch(v->v==ConstraintOutcome.UNKNOWN))return ConstraintOutcome.UNKNOWN;return ConstraintOutcome.PASS;}

@@ -5,6 +5,8 @@ import static dev.agenticcommerce.gateway.catalogue.CatalogueModels.*;
 import dev.agenticcommerce.gateway.agentization.service.AgentizationException;
 import dev.agenticcommerce.gateway.agentization.service.CanonicalJsonService;
 import dev.agenticcommerce.gateway.identity.service.MerchantAdministrationAccessService;
+import java.math.BigDecimal;
+import java.net.URI;
 import java.text.Normalizer;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -28,6 +30,9 @@ import tools.jackson.databind.node.ObjectNode;
 @Service
 public class CatalogueService {
     public static final int MAX_ROWS = 5_000;
+    private static final int MAX_FACTS = 32;
+    private static final Set<String> MERCHANT_FACT_TYPES = Set.of("INGREDIENTS","ALLERGEN","VEGETARIAN",
+            "DIET","NUTRITION","PROTEIN","IMAGE","BARCODE","BRAND","SPECIFICATION","RATING","REVIEW_COUNT");
     private static final Pattern GTIN = Pattern.compile("[0-9]{8,14}");
     private final CatalogueRepository repository;
     private final CatalogueProvider catalogueProvider;
@@ -51,7 +56,7 @@ public class CatalogueService {
         CatalogueVersion draft=repository.createVersion(merchantId,actorId,normalizedFormat,sourceHash);
         List<ProductInput> rows=parse(normalizedFormat,payload);
         if(rows.size()>MAX_ROWS)throw invalid("CATALOGUE_TOO_MANY_ROWS","Catalogue exceeds 5000 rows");
-        List<RowRejection> rejections=new ArrayList<>();List<Product> accepted=new ArrayList<>();
+        List<RowRejection> rejections=new ArrayList<>();List<Product> accepted=new ArrayList<>();List<ObjectNode> acceptedMaterial=new ArrayList<>();
         Set<String> skus=new LinkedHashSet<>(),gtins=new LinkedHashSet<>();int enriched=0,unresolved=0;
         for(int i=0;i<rows.size();i++){
             ProductInput input;
@@ -62,8 +67,10 @@ public class CatalogueService {
             ObjectNode merchantMatch=mapper.createObjectNode().put("merchantSku",input.merchantSku());
             if(input.gtin()!=null)merchantMatch.put("gtin",input.gtin());
             String merchantResolutionHash=canonical.hash(merchantMatch);
-            repository.insertResolution(merchantId,draft.id(),product.id(),"MERCHANT",input.sourceRecordId(),
+            var merchantResolution=repository.insertResolution(merchantId,draft.id(),product.id(),"MERCHANT",input.sourceRecordId(),
                     IdentityOutcome.EXACT,merchantMatch,mapper.createObjectNode(),merchantResolutionHash);
+            persistMerchantFacts(merchantId,draft.id(),product,merchantResolution.id(),input);
+            acceptedMaterial.add(contentHashMaterial(product,input.facts()));
             boolean productEnriched=false;
             if(input.gtin()!=null){
                 try{
@@ -84,8 +91,8 @@ public class CatalogueService {
             }catch(RuntimeException failure){repository.insertEmbedding(merchantId,draft.id(),product.id(),inputHash,null,safeFailure(failure));}
         }
         if(accepted.isEmpty())throw invalid("CATALOGUE_HAS_NO_VALID_PRODUCTS","No valid catalogue row can be published");
-        ArrayNode content=mapper.createArrayNode();accepted.stream().sorted(java.util.Comparator.comparing(Product::merchantSku))
-                .forEach(p->content.add(contentHashMaterial(p)));
+        ArrayNode content=mapper.createArrayNode();acceptedMaterial.stream()
+                .sorted(java.util.Comparator.comparing(n->n.path("merchantSku").asText())).forEach(content::add);
         String contentHash=canonical.hash(content);ObjectNode evidence=mapper.createObjectNode();
         evidence.put("sourceHash",sourceHash).put("contentHash",contentHash).put("normalizerVersion","catalogue-v1")
                 .put("embeddingModel",EmbeddingProvider.MODEL).put("embeddingDimensions",768);
@@ -122,13 +129,65 @@ public class CatalogueService {
         String currency=bounded(p.currency(),3,false,"currency");if(currency!=null&&!currency.toUpperCase(Locale.ROOT).matches("[A-Z]{3}"))throw new IllegalArgumentException("currency must be an ISO-style 3-letter code");
         if(p.priceMinor()!=null&&p.priceMinor()<0)throw new IllegalArgumentException("priceMinor cannot be negative");
         if(p.stockQuantity()!=null&&p.stockQuantity()<0)throw new IllegalArgumentException("stockQuantity cannot be negative");
+        Instant observed=p.observedAt()==null?Instant.now():p.observedAt();
+        List<MerchantFactInput> facts=normalizeFacts(p.facts(),observed);
         return new ProductInput(sku,gtin,bounded(p.brand(),256,false,"brand"),name,bounded(p.variant(),256,false,"variant"),
                 bounded(p.sizeStorage(),128,false,"sizeStorage"),bounded(p.colour(),128,false,"colour"),bounded(p.category(),256,false,"category"),
                 bounded(p.description(),4000,false,"description"),p.active()==null?true:p.active(),
                 bounded(p.sourceRecordId()==null?"row-"+row:p.sourceRecordId(),256,true,"sourceRecordId"),p.priceMinor(),
                 currency==null?null:currency.toUpperCase(Locale.ROOT),p.stockQuantity(),p.availability()==null?Availability.UNKNOWN:p.availability(),
                 bounded(p.observationSource()==null?"CATALOGUE_UPLOAD":p.observationSource(),128,true,"observationSource"),
-                bounded(p.sourceVersion(),128,false,"sourceVersion"),p.observedAt()==null?Instant.now():p.observedAt());
+                bounded(p.sourceVersion(),128,false,"sourceVersion"),observed,facts);
+    }
+
+    private List<MerchantFactInput> normalizeFacts(List<MerchantFactInput> facts,Instant productObserved){
+        if(facts==null)return List.of();if(facts.size()>MAX_FACTS)throw new IllegalArgumentException("facts exceeds 32 entries");
+        List<MerchantFactInput> normalized=new ArrayList<>();
+        for(MerchantFactInput fact:facts){if(fact==null||fact.type()==null||fact.value()==null)throw new IllegalArgumentException("fact type and value are required");
+            String type=fact.type().strip().toUpperCase(Locale.ROOT);if(!MERCHANT_FACT_TYPES.contains(type))throw new IllegalArgumentException("unsupported merchant fact type");
+            JsonNode value=fact.value().deepCopy();validateFact(type,value);Instant observed=fact.observedAt()==null?productObserved:fact.observedAt();
+            if(fact.expiresAt()!=null&&!fact.expiresAt().isAfter(observed))throw new IllegalArgumentException("fact expiry must be after observation");
+            normalized.add(new MerchantFactInput(type,value,bounded(fact.sourceVersion(),128,false,"fact.sourceVersion"),observed,fact.expiresAt()));}
+        return List.copyOf(normalized);
+    }
+
+    private void validateFact(String type,JsonNode value){
+        if(value.toString().length()>8_000)throw new IllegalArgumentException("fact value exceeds 8000 characters");
+        validateBoundedJson(value,0);
+        switch(type){
+            case "ALLERGEN"->{if(!value.isObject()||value.size()!=2||!value.has("allergen")||!value.has("status"))throw new IllegalArgumentException("ALLERGEN requires allergen and status");
+                String allergen=bounded(value.path("allergen").asText(null),64,true,"allergen");String status=value.path("status").asText("").toUpperCase(Locale.ROOT);
+                if(!Set.of("PRESENT","ABSENT").contains(status))throw new IllegalArgumentException("allergen status must be PRESENT or ABSENT");
+                ((ObjectNode)value).put("allergen",normalizeText(allergen)).put("status",status);}
+            case "VEGETARIAN"->{if(!value.isBoolean())throw new IllegalArgumentException("VEGETARIAN must be boolean");}
+            case "RATING"->{if(!value.isNumber()||value.decimalValue().compareTo(BigDecimal.ZERO)<0||value.decimalValue().compareTo(new BigDecimal("5.0"))>0)throw new IllegalArgumentException("RATING must be between 0 and 5");}
+            case "REVIEW_COUNT"->{if(!value.isIntegralNumber()||value.longValue()<0||value.longValue()>1_000_000_000L)throw new IllegalArgumentException("REVIEW_COUNT must be a bounded non-negative integer");}
+            case "SPECIFICATION"->{if(!value.isObject()||value.isEmpty()||value.size()>32)throw new IllegalArgumentException("SPECIFICATION must be a non-empty scalar object with at most 32 fields");
+                value.properties().forEach(entry->{if(entry.getKey().isBlank()||entry.getKey().length()>64||!entry.getKey().matches("[A-Za-z][A-Za-z0-9_.-]{0,63}"))throw new IllegalArgumentException("SPECIFICATION key is invalid");
+                    JsonNode scalar=entry.getValue();if(!(scalar.isTextual()||scalar.isNumber()||scalar.isBoolean()||scalar.isNull()))throw new IllegalArgumentException("SPECIFICATION values must be scalar");});}
+            case "IMAGE"->{if(!value.isTextual())throw new IllegalArgumentException("IMAGE must be a URL or same-origin path");String image=value.asText();
+                if(image.length()>2048||image.startsWith("//")||!(image.startsWith("/")||validHttps(image)))throw new IllegalArgumentException("IMAGE must use HTTPS or a same-origin path");}
+            case "BARCODE"->{if(!value.isTextual()||!GTIN.matcher(value.asText()).matches())throw new IllegalArgumentException("BARCODE must contain 8 to 14 digits");}
+            case "BRAND"->{if(!value.isTextual()||value.asText().isBlank()||value.asText().length()>256)throw new IllegalArgumentException("BRAND must be bounded text");}
+            default->{ }
+        }
+    }
+
+    private static void validateBoundedJson(JsonNode value,int depth){
+        if(depth>2)throw new IllegalArgumentException("fact object depth exceeds 2");
+        if(value.isObject()){if(value.size()>32)throw new IllegalArgumentException("fact object exceeds 32 fields");value.properties().forEach(e->{if(e.getKey().isBlank()||e.getKey().length()>64)throw new IllegalArgumentException("fact key is invalid");validateBoundedJson(e.getValue(),depth+1);});return;}
+        if(value.isArray()){if(value.size()>32)throw new IllegalArgumentException("fact array exceeds 32 entries");value.forEach(v->validateBoundedJson(v,depth+1));return;}
+        if(value.isTextual()){String text=value.asText();String lower=text.toLowerCase(Locale.ROOT);if(text.length()>512||text.indexOf('<')>=0||text.indexOf('>')>=0||lower.contains("javascript:")||lower.contains("data:")||lower.contains("ignore previous")||lower.contains("system prompt")||lower.contains("eval(")||lower.contains("function("))throw new IllegalArgumentException("fact text is unsafe or exceeds 512 characters");}
+        if(value.isNumber()&&value.decimalValue().abs().compareTo(new BigDecimal("1000000000000"))>0)throw new IllegalArgumentException("fact number is outside bounds");
+    }
+
+    private static boolean validHttps(String value){try{URI uri=URI.create(value);return "https".equalsIgnoreCase(uri.getScheme())&&uri.getHost()!=null&&uri.getUserInfo()==null;}catch(IllegalArgumentException e){return false;}}
+
+    private void persistMerchantFacts(UUID merchantId,UUID versionId,Product product,UUID resolutionId,ProductInput input){int index=0;
+        for(MerchantFactInput fact:input.facts()){ObjectNode material=mapper.createObjectNode();material.put("merchantId",merchantId.toString()).put("catalogueVersionId",versionId.toString()).put("productId",product.id().toString()).put("type",fact.type());material.set("value",fact.value());material.put("sourceRecordId",input.sourceRecordId());material.put("sourceVersion",fact.sourceVersion()==null?input.sourceVersion():fact.sourceVersion());material.put("observedAt",fact.observedAt().toString());if(fact.expiresAt()==null)material.putNull("expiresAt");else material.put("expiresAt",fact.expiresAt().toString());
+            repository.insertFact(merchantId,versionId,product.id(),resolutionId,fact.type(),fact.value(),"MERCHANT",
+                    input.sourceRecordId()+"#fact-"+(++index),fact.sourceVersion()==null?input.sourceVersion():fact.sourceVersion(),
+                    "PRIMARY","ACTIVE",fact.observedAt(),fact.expiresAt(),canonical.hash(material));}
     }
 
     private Resolution resolve(Product p,CatalogueProvider.ExternalProduct x){
@@ -193,14 +252,14 @@ public class CatalogueService {
     private static String bounded(String value,int max,boolean required,String field){if(value==null||value.isBlank()){if(required)throw new IllegalArgumentException(field+" is required");return null;}String v=value.strip();if(v.length()>max)throw new IllegalArgumentException(field+" exceeds "+max+" characters");return v;}
     static String normalizeText(String value){if(value==null)return "";return Normalizer.normalize(value,Normalizer.Form.NFKC).toLowerCase(Locale.ROOT).replaceAll("[^\\p{L}\\p{N}]+"," ").strip();}
     private static String embeddingInput(Product p){return String.join(" | ",List.of(p.canonicalName(),p.brand()==null?"":p.brand(),p.variant()==null?"":p.variant(),p.sizeStorage()==null?"":p.sizeStorage(),p.category()==null?"":p.category(),p.description()==null?"":p.description()));}
-    private ObjectNode contentHashMaterial(Product p){ObjectNode value=mapper.createObjectNode();
+    private ObjectNode contentHashMaterial(Product p,List<MerchantFactInput> facts){ObjectNode value=mapper.createObjectNode();
         value.put("merchantSku",p.merchantSku());value.put("gtin",p.gtin());value.put("brand",p.brand());
         value.put("canonicalName",p.canonicalName());value.put("normalizedName",p.normalizedName());
         value.put("variant",p.variant());value.put("sizeStorage",p.sizeStorage());value.put("colour",p.colour());
         value.put("category",p.category());value.put("description",p.description());value.put("active",p.active());
         value.put("sourceRecordId",p.sourceRecordId());if(p.priceMinor()==null)value.putNull("priceMinor");else value.put("priceMinor",p.priceMinor());
         value.put("currency",p.currency());if(p.stockQuantity()==null)value.putNull("stockQuantity");else value.put("stockQuantity",p.stockQuantity());
-        value.put("availability",p.availability().name());return value;}
+        value.put("availability",p.availability().name());value.set("facts",mapper.valueToTree(facts));return value;}
     private static String safeFailure(RuntimeException failure){String n=failure.getMessage()==null?failure.getClass().getSimpleName():failure.getMessage();return n.replaceAll("[^A-Za-z0-9_-]","_").substring(0,Math.min(n.length(),120));}
     private static AgentizationException invalid(String code,String message){return new AgentizationException(code,HttpStatus.UNPROCESSABLE_ENTITY,message==null?code:message);}
     private record Resolution(IdentityOutcome outcome,ObjectNode matched,ObjectNode conflicts,String hash){}

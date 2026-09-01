@@ -24,7 +24,10 @@ public final class CatalogueModels {
             String variant, String sizeStorage, String colour, String category, String description,
             Boolean active, String sourceRecordId, Long priceMinor, String currency,
             Long stockQuantity, Availability availability, String observationSource,
-            String sourceVersion, Instant observedAt) {}
+            String sourceVersion, Instant observedAt, List<MerchantFactInput> facts) {}
+
+    public record MerchantFactInput(String type, JsonNode value, String sourceVersion,
+            Instant observedAt, Instant expiresAt) {}
 
     public record Product(UUID id, UUID merchantId, UUID catalogueVersionId, String merchantSku,
             String gtin, String brand, String canonicalName, String normalizedName, String variant,

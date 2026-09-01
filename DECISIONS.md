@@ -2,6 +2,13 @@
 
 These accepted bootstrap ADRs record locked architectural decisions, not implementation claims.
 
+## Change-control precedence
+
+The Master Project Source-of-Truth PDF remains the baseline architecture and specification. For a
+decision accepted after that PDF was finalized, an explicit entry in this file overrides only the
+conflicting statements it identifies; it does not weaken the PDF's authority elsewhere. `CONTEXT.md`
+records current implementation/project state. ADR-024 is an approved post-PDF override under this rule.
+
 ## ADR-001 — Java 25 and Spring Boot 4.1.1
 
 - **Decision:** Use Java 25 and Spring Boot 4.1.1 for the backend.
@@ -349,3 +356,50 @@ These accepted bootstrap ADRs record locked architectural decisions, not impleme
   non-ready target without changing already-ready capability evidence.
 - **Effect on Buildathon demo:** Merchant agentization appears as one coherent objective rather than a sequence of
   manual capability setup screens, without weakening the existing readiness reducer.
+
+## ADR-024 — 2026-09-01 — Gemini 3.1 Live is the P0 conversational front door
+
+- **Status and precedence:** Accepted post-PDF change control. This entry supersedes ADR-007 and any older PDF,
+  specification, roadmap, or architecture statement that requires `Sarvam STT → transcript → Gemini` for P0 voice;
+  those statements remain historical and are superseded only for this explicitly changed decision.
+- **Decision:** Target `gemini-3.1-flash-live-preview` behind a replaceable Live adapter/configuration boundary for
+  P0 microphone input, native audio output, multilingual conversation/language switching, server VAD, interruption,
+  acknowledgement/clarification, bounded `start_commerce_request(...)` invocation, and grounded spoken presentation.
+  No Sarvam dependency is required in the P0 runtime. `gemini-2.5-flash-native-audio-preview-12-2025` remains an
+  evaluated comparison/fallback experiment; its temporary lab-only `NON_BLOCKING` mode does not shape P0 architecture.
+- **Agent and authority boundary:** The two commerce agents remain Merchant Agentization Agent and Safe AI Buyer.
+  Gemini Live is an interaction layer around Safe AI Buyer, not a third commerce agent. It owns no catalogue,
+  capability-readiness, product-identity, price, stock, serviceability, safety, proposal, risk, authorization, payment,
+  refund, or lifecycle truth; deterministic application logic, Java commerce services, and PostgreSQL retain authority.
+- **Application-managed async commerce:** The model speaks a short acknowledgement and requests
+  `start_commerce_request(query)`. After the pre-call acknowledgement audio drains, the app starts durable commerce,
+  returns a bounded `STARTED`/request ID promptly, continues work outside Live, and injects structured authoritative
+  results into the active session. Gemini may explain only those supplied results and never executes purchases or
+  establishes financial truth.
+- **Acknowledgement and audio:** The acknowledgement barrier captures a monotonic PCM playback watermark at function
+  receipt and waits only for that pre-call prefix—not later audio or global generation completion. Browser capture uses
+  `getUserMedia` with requested echo cancellation/noise suppression/automatic gain control plus an AudioWorklet that
+  sends PCM16/16 kHz. Playback uses an AudioWorklet for buffered 24 kHz Gemini PCM, prebuffering, depth/underrun metrics,
+  and interruption flush. Server VAD alone owns speech boundaries; client RMS is telemetry; `ScriptProcessorNode` is out.
+  This watermark rule is the accepted fix for the observed `ACKNOWLEDGEMENT_AUDIO_NOT_COMPLETED` failure.
+- **Session health and recovery:** Primary latency is `SERVER_USER_SPEECH_END → FIRST_MODEL_AUDIO_PLAYBACK`, excluding
+  intentional commerce-job time. Current P0 controls are `HEALTHY` at ≤5 s, `SLOW` after one eligible turn >5 s, and
+  `DEGRADED` after one >10 s or two consecutive >5 s. Safe recovery closes the session, mints a fresh constrained token,
+  creates fresh Live state, and seeds compact deterministic state only—no transcript/audio replay or session resumption.
+  Automatic rotation is forbidden during user speech, acknowledgement drain, model audio, an undelivered commerce job,
+  or pending authoritative result. These are engineering controls, not SLA guarantees.
+- **Evidence and rationale:** Manual 3.1 evaluation showed fast healthy-session responses; strong Hindi, Hinglish,
+  English, Telugu, and Urdu with natural switching/interruption; application-managed calls and waiting; and grounded
+  narration. When synthetic results returned protein snacks for milkshake, shoes, or biryani requests, 3.1 identified
+  the mismatch rather than fabricating the requested category, and it declined to invent absent ratings/reviews. One
+  session degraded to roughly 10–30 s while a fresh session stayed fast across many multilingual turns and commerce
+  calls. No single provider, context, browser, or language-switching root cause is established, and reliability is not
+  claimed perfect. Gemini 2.5 showed worse progressive latency and a less attractive overall experience in evaluation.
+- **Voice-selection requirement:** A small curated set of Gemini-native Live voices with short previews and a persisted
+  buyer preference is `P0 desired / implementation pending provider verification`. `speechConfig`/`voiceConfig` support
+  exists at the provider surface, but 3.1 voice selection is unverified in this application. Voice changes presentation
+  only. If 3.1 does not reliably honor selection, retain one stable Gemini voice and defer the selector rather than add
+  an external TTS/Sarvam dependency that compromises native audio or latency.
+- **Consequences:** Future P0 voice work and Task 012 must use this boundary, preserve ephemeral constrained sessions and
+  grounded structured-result injection, and keep commerce truth model-independent so a future Live model can replace
+  the preview model without redesigning financial or deterministic authority.

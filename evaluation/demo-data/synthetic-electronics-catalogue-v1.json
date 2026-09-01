@@ -1,0 +1,98 @@
+{
+  "products": [
+    {
+      "merchantSku": "SYN-ELEC-SONIC-A1-BLK",
+      "gtin": "8909001000001",
+      "brand": "Synthetic Sonic",
+      "canonicalName": "Sonic A1 Wireless Earphones",
+      "variant": "A1",
+      "sizeStorage": "Standard",
+      "colour": "Black",
+      "category": "Earphones",
+      "description": "Synthetic black wireless earphones with active noise cancellation.",
+      "priceMinor": 449900,
+      "currency": "INR",
+      "stockQuantity": 14,
+      "availability": "IN_STOCK",
+      "sourceRecordId": "synthetic-elec-sonic-a1-black",
+      "sourceVersion": "demo-electronics-v1",
+      "observedAt": "2026-08-15T00:00:00Z",
+      "facts": [
+        {"type":"SPECIFICATION","value":{"batteryHours":40,"bluetooth":"5.3","anc":true},"sourceVersion":"demo-electronics-v1","observedAt":"2026-08-15T00:00:00Z","expiresAt":"2027-08-15T00:00:00Z"},
+        {"type":"IMAGE","value":"/demo/products/sonic-a1-black.svg","sourceVersion":"demo-electronics-v1","observedAt":"2026-08-15T00:00:00Z"},
+        {"type":"RATING","value":4.7,"sourceVersion":"demo-electronics-v1","observedAt":"2026-08-15T00:00:00Z"},
+        {"type":"REVIEW_COUNT","value":321,"sourceVersion":"demo-electronics-v1","observedAt":"2026-08-15T00:00:00Z"}
+      ]
+    },
+    {
+      "merchantSku": "SYN-ELEC-SONIC-A1-WHT",
+      "gtin": "8909001000002",
+      "brand": "Synthetic Sonic",
+      "canonicalName": "Sonic A1 Wireless Earphones",
+      "variant": "A1",
+      "sizeStorage": "Standard",
+      "colour": "White",
+      "category": "Earphones",
+      "description": "Synthetic white wireless earphones.",
+      "priceMinor": 439900,
+      "currency": "INR",
+      "stockQuantity": 11,
+      "availability": "IN_STOCK",
+      "sourceRecordId": "synthetic-elec-sonic-a1-white",
+      "sourceVersion": "demo-electronics-v1",
+      "observedAt": "2026-08-15T00:00:00Z",
+      "facts": [
+        {"type":"SPECIFICATION","value":{"batteryHours":36,"bluetooth":"5.3","anc":false},"sourceVersion":"demo-electronics-v1","observedAt":"2026-08-15T00:00:00Z","expiresAt":"2027-08-15T00:00:00Z"},
+        {"type":"IMAGE","value":"/demo/products/sonic-a1-white.svg","sourceVersion":"demo-electronics-v1","observedAt":"2026-08-15T00:00:00Z"}
+      ]
+    },
+    {
+      "merchantSku": "SYN-ELEC-PULSE-PRO-BLK",
+      "gtin": "8909001000003",
+      "brand": "Synthetic Pulse",
+      "canonicalName": "Pulse Pro Neckband Earphones",
+      "variant": "Pro",
+      "sizeStorage": "Standard",
+      "colour": "Black",
+      "category": "Earphones",
+      "description": "Synthetic black Bluetooth neckband earphones.",
+      "priceMinor": 299900,
+      "currency": "INR",
+      "stockQuantity": 22,
+      "availability": "IN_STOCK",
+      "sourceRecordId": "synthetic-elec-pulse-pro-black",
+      "sourceVersion": "demo-electronics-v1",
+      "observedAt": "2026-08-15T00:00:00Z",
+      "facts": [
+        {"type":"SPECIFICATION","value":{"batteryHours":28,"bluetooth":"5.2","anc":false},"sourceVersion":"demo-electronics-v1","observedAt":"2026-08-15T00:00:00Z","expiresAt":"2027-08-15T00:00:00Z"},
+        {"type":"IMAGE","value":"https://assets.example.test/demo/pulse-pro-black.png","sourceVersion":"demo-electronics-v1","observedAt":"2026-08-15T00:00:00Z"},
+        {"type":"RATING","value":4.3,"sourceVersion":"demo-electronics-v1","observedAt":"2026-08-15T00:00:00Z"},
+        {"type":"REVIEW_COUNT","value":142,"sourceVersion":"demo-electronics-v1","observedAt":"2026-08-15T00:00:00Z"}
+      ]
+    },
+    {
+      "merchantSku": "SYN-ELEC-STUDIO-H2-BLU",
+      "gtin": "8909001000004",
+      "brand": "Synthetic Studio",
+      "canonicalName": "Studio H2 Over-Ear Headphones",
+      "variant": "H2",
+      "sizeStorage": "Over Ear",
+      "colour": "Blue",
+      "category": "Headphones",
+      "description": "Synthetic blue over-ear Bluetooth headphones.",
+      "priceMinor": 479900,
+      "currency": "INR",
+      "stockQuantity": 8,
+      "availability": "IN_STOCK",
+      "sourceRecordId": "synthetic-elec-studio-h2-blue",
+      "sourceVersion": "demo-electronics-v1",
+      "observedAt": "2026-08-15T00:00:00Z",
+      "facts": [
+        {"type":"SPECIFICATION","value":{"batteryHours":50,"bluetooth":"5.3","anc":true},"sourceVersion":"demo-electronics-v1","observedAt":"2026-08-15T00:00:00Z","expiresAt":"2027-08-15T00:00:00Z"},
+        {"type":"IMAGE","value":"/demo/products/studio-h2-blue.svg","sourceVersion":"demo-electronics-v1","observedAt":"2026-08-15T00:00:00Z"},
+        {"type":"RATING","value":4.5,"sourceVersion":"demo-electronics-v1","observedAt":"2026-08-15T00:00:00Z"},
+        {"type":"REVIEW_COUNT","value":88,"sourceVersion":"demo-electronics-v1","observedAt":"2026-08-15T00:00:00Z"}
+      ]
+    }
+  ]
+}

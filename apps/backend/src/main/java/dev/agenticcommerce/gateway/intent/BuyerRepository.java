@@ -54,18 +54,19 @@ public class BuyerRepository {
     public BuyerIntent createIntent(CommerceThread thread,ThreadMessage source,CompiledIntent value,String outputHash,String intentHash){
         return jdbc.sql("""
                 INSERT INTO buyer_intent(thread_id,buyer_actor_id,intent_version,source_message_id,goal,
-                  category_request,budget_amount_minor,currency,exact_merchant_sku,exact_gtin,exact_variant,
+                  category_request,budget_amount_minor,currency,exact_merchant_sku,exact_gtin,exact_brand,exact_variant,exact_size_storage,exact_colour,
                   vegetarian,prohibited_allergen,quantity,people,substitution_policy,delivery_hint,
                   soft_preferences,material_fields,ambiguity_state,clarification_question,compiler_provider,
                   compiler_model,model_output_hash,intent_hash)
                 VALUES(:thread,:buyer,(SELECT COALESCE(MAX(intent_version),0)+1 FROM buyer_intent WHERE thread_id=:thread),:message,:goal,
-                  :category,:budget,:currency,:sku,:gtin,:variant,:vegetarian,:allergen,:quantity,:people,:substitution,:delivery,
+                  :category,:budget,:currency,:sku,:gtin,:brand,:variant,:size,:colour,:vegetarian,:allergen,:quantity,:people,:substitution,:delivery,
                   CAST(:preferences AS jsonb),CAST(:fields AS jsonb),:ambiguity,:question,:provider,:model,:outputHash,:intentHash)
                 RETURNING *
                 """).param("thread",thread.threadId()).param("buyer",thread.buyerActorId()).param("message",source.messageId())
                 .param("goal",value.goal().name()).param("category",value.categoryRequest()).param("budget",value.budgetAmountMinor())
                 .param("currency",value.currency()).param("sku",value.exactMerchantSku()).param("gtin",value.exactGtin())
-                .param("variant",value.exactVariant()).param("vegetarian",value.vegetarian()).param("allergen",value.prohibitedAllergen())
+                .param("brand",value.exactBrand()).param("variant",value.exactVariant()).param("size",value.exactSizeStorage()).param("colour",value.exactColour())
+                .param("vegetarian",value.vegetarian()).param("allergen",value.prohibitedAllergen())
                 .param("quantity",value.quantity()).param("people",value.people()).param("substitution",value.substitutionPolicy().name())
                 .param("delivery",value.deliveryHint()).param("preferences",mapper.writeValueAsString(value.softPreferences()))
                 .param("fields",mapper.writeValueAsString(value.materialFields())).param("ambiguity",value.ambiguityState().name())
@@ -276,7 +277,8 @@ public class BuyerRepository {
     private ThreadMessage message(ResultSet rs,int n)throws SQLException{return new ThreadMessage(rs.getObject("message_id",UUID.class),rs.getObject("thread_id",UUID.class),rs.getObject("buyer_actor_id",UUID.class),
             rs.getInt("message_number"),rs.getString("input_source"),rs.getString("normalized_text"),rs.getString("content_hash").strip(),instant(rs,"created_at"));}
     private BuyerIntent intent(ResultSet rs,int n)throws SQLException{CompiledIntent compiled=new CompiledIntent(IntentGoal.valueOf(rs.getString("goal")),rs.getString("category_request"),(Long)rs.getObject("budget_amount_minor"),
-            rs.getString("currency"),(String)rs.getObject("exact_merchant_sku"),(String)rs.getObject("exact_gtin"),(String)rs.getObject("exact_variant"),(Boolean)rs.getObject("vegetarian"),
+            rs.getString("currency"),(String)rs.getObject("exact_merchant_sku"),(String)rs.getObject("exact_gtin"),(String)rs.getObject("exact_brand"),(String)rs.getObject("exact_variant"),
+            (String)rs.getObject("exact_size_storage"),(String)rs.getObject("exact_colour"),(Boolean)rs.getObject("vegetarian"),
             rs.getString("prohibited_allergen"),(Integer)rs.getObject("quantity"),(Integer)rs.getObject("people"),SubstitutionPolicy.valueOf(rs.getString("substitution_policy")),
             rs.getString("delivery_hint"),strings(rs.getString("soft_preferences")),mapper.readValue(rs.getString("material_fields"),new TypeReference<List<MaterialField>>(){}),
             AmbiguityState.valueOf(rs.getString("ambiguity_state")),rs.getString("clarification_question"),rs.getString("compiler_provider"),rs.getString("compiler_model"));

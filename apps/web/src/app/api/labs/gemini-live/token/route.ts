@@ -4,7 +4,12 @@ import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { GoogleGenAI } from "@google/genai";
 import { NextResponse } from "next/server";
-import { GEMINI_LIVE_CONFIG, GEMINI_LIVE_MODEL } from "@/lib/gemini-live/config";
+import {
+  buildGeminiLiveTokenConstraintConfig,
+  isGeminiLiveAsyncMode,
+  isGeminiLiveModel,
+  normalizeSessionOptions,
+} from "@/lib/gemini-live/config";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -56,14 +61,46 @@ export async function POST(request: Request): Promise<NextResponse> {
     return failure("GEMINI_API_KEY_MISSING", 503);
   }
 
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return failure("INVALID_LIVE_SESSION_OPTIONS", 400);
+  }
+  if (!body || typeof body !== "object") {
+    return failure("INVALID_LIVE_SESSION_OPTIONS", 400);
+  }
+  const candidate = body as Record<string, unknown>;
+  if (
+    !isGeminiLiveModel(candidate.model) ||
+    !isGeminiLiveAsyncMode(candidate.asyncMode) ||
+    typeof candidate.proactiveAudio !== "boolean"
+  ) {
+    return failure("UNSUPPORTED_LIVE_SESSION_OPTIONS", 400);
+  }
+  if (candidate.proactiveAudio) {
+    return failure("UNSUPPORTED_MODEL_CONFIGURATION", 400);
+  }
+  if (
+    candidate.model === "gemini-3.1-flash-live-preview" &&
+    candidate.asyncMode !== "APP_MANAGED"
+  ) {
+    return failure("UNSUPPORTED_MODEL_CONFIGURATION", 400);
+  }
+  const options = normalizeSessionOptions({
+    model: candidate.model,
+    asyncMode: candidate.asyncMode,
+    proactiveAudio: candidate.proactiveAudio,
+  });
+
   try {
     const client = new GoogleGenAI({ apiKey, apiVersion: "v1beta" });
     const token = await client.authTokens.create({
       config: {
         uses: 1,
         liveConnectConstraints: {
-          model: GEMINI_LIVE_MODEL,
-          config: GEMINI_LIVE_CONFIG,
+          model: options.model,
+          config: buildGeminiLiveTokenConstraintConfig(options),
         },
       },
     });
@@ -73,7 +110,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     }
 
     return NextResponse.json(
-      { token: token.name, model: GEMINI_LIVE_MODEL },
+      { token: token.name, ...options },
       { headers: { "Cache-Control": "no-store, private", Pragma: "no-cache" } },
     );
   } catch (error) {

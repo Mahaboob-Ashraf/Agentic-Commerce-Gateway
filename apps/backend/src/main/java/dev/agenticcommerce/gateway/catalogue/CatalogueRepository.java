@@ -155,12 +155,22 @@ public class CatalogueRepository {
 
     public List<FactValue> facts(UUID merchantId,UUID versionId,UUID productId,String type) {
         return jdbc.sql("""
-                SELECT normalized_value::text,authority_tier,resolution_state,observed_at,expires_at,source
+                SELECT external_fact_id,fact_type,normalized_value::text,authority_tier,resolution_state,observed_at,expires_at,
+                  source,source_record_id,source_version,fact_hash
                 FROM product_external_fact WHERE merchant_id=:m AND catalogue_version_id=:v AND product_id=:p AND fact_type=:type
                 ORDER BY CASE authority_tier WHEN 'PRIMARY' THEN 0 ELSE 1 END,observed_at DESC
                 """).param("m",merchantId).param("v",versionId).param("p",productId).param("type",type)
-                .query((rs,n)->new FactValue(mapper.readTree(rs.getString(1)),rs.getString(2),rs.getString(3),
-                        rs.getObject(4,OffsetDateTime.class).toInstant(),rs.getObject(5,OffsetDateTime.class)==null?null:rs.getObject(5,OffsetDateTime.class).toInstant(),rs.getString(6))).list();
+                .query(this::fact).list();
+    }
+
+    public List<FactValue> factsForProduct(UUID merchantId,UUID versionId,UUID productId) {
+        return jdbc.sql("""
+                SELECT external_fact_id,fact_type,normalized_value::text,authority_tier,resolution_state,observed_at,expires_at,
+                  source,source_record_id,source_version,fact_hash
+                FROM product_external_fact WHERE merchant_id=:m AND catalogue_version_id=:v AND product_id=:p
+                ORDER BY fact_type,CASE authority_tier WHEN 'PRIMARY' THEN 0 ELSE 1 END,observed_at DESC,external_fact_id
+                LIMIT 128
+                """).param("m",merchantId).param("v",versionId).param("p",productId).query(this::fact).list();
     }
 
     public IdentityOutcome latestIdentity(UUID merchantId,UUID versionId,UUID productId) {
@@ -230,10 +240,15 @@ public class CatalogueRepository {
             rs.getInt("accepted_count"),rs.getInt("rejected_count"),rs.getInt("enriched_count"),rs.getInt("unresolved_count"),
             mapper.readTree(rs.getString("evidence")),rs.getObject("created_at",OffsetDateTime.class).toInstant(),
             rs.getObject("published_at",OffsetDateTime.class)==null?null:rs.getObject("published_at",OffsetDateTime.class).toInstant());}
+    private FactValue fact(ResultSet rs,int n)throws SQLException{return new FactValue(rs.getObject("external_fact_id",UUID.class),rs.getString("fact_type"),
+            mapper.readTree(rs.getString("normalized_value")),rs.getString("authority_tier"),rs.getString("resolution_state"),
+            rs.getObject("observed_at",OffsetDateTime.class).toInstant(),rs.getObject("expires_at",OffsetDateTime.class)==null?null:rs.getObject("expires_at",OffsetDateTime.class).toInstant(),
+            rs.getString("source"),rs.getString("source_record_id"),rs.getString("source_version"),rs.getString("fact_hash").strip());}
     private static String vector(List<Float> values){if(values.size()!=768)throw new IllegalArgumentException("Vector must have 768 dimensions");return values.toString();}
     private static OffsetDateTime utc(Instant value){return value==null?null:value.atOffset(ZoneOffset.UTC);}
 
     public record ScoredProduct(Product product,double exact,double fts,double trigram,double vector){}
     public record VectorScore(UUID productId,double score){}
-    public record FactValue(JsonNode value,String authority,String state,Instant observedAt,Instant expiresAt,String source){}
+    public record FactValue(UUID factId,String type,JsonNode value,String authority,String state,Instant observedAt,
+            Instant expiresAt,String source,String sourceRecordId,String sourceVersion,String factHash){}
 }

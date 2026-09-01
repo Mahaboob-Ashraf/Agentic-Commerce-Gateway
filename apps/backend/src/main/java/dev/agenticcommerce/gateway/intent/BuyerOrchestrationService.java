@@ -24,7 +24,8 @@ public class BuyerOrchestrationService {
             AuthoritativeQuoteService quotes,ConstraintCertificateService constraints,BuyerDecisionProvider decisions,CanonicalJsonService canonical){
         this.threads=threads;this.repository=repository;this.states=states;this.compiler=compiler;this.discoveryService=discoveryService;
         this.carts=carts;this.quotes=quotes;this.constraints=constraints;this.decisions=decisions;this.canonical=canonical;}
-    @Transactional public AdvanceResult advance(UUID buyerId,UUID threadId){CommerceThread before=threads.requireForUpdate(buyerId,threadId);guard(before);
+    @Transactional public AdvanceResult advance(UUID buyerId,UUID threadId){return advanceWithinRequest(buyerId,threadId);}
+    AdvanceResult advanceWithinRequest(UUID buyerId,UUID threadId){CommerceThread before=threads.requireForUpdate(buyerId,threadId);guard(before);
         BuyerIntent intent=repository.latestIntent(buyerId,threadId).orElse(null);MerchantDiscovery discovery=intent==null?null:repository.latestDiscovery(buyerId,threadId,intent.intentId()).orElse(null);
         BuyerAgentAction latest=repository.latestAction(buyerId,threadId).orElse(null);BuyerTool expected=expected(before,intent,discovery,latest);
         List<String> contextRefs=contextRefs(before,intent,discovery);NextBuyerAction selected=decision(before.state(),expected,contextRefs);

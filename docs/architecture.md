@@ -14,9 +14,19 @@ Backend packages are `identity`, `agentization`, `catalogue`, `intent`, `commerc
 them must follow domain authority rather than bypassing state gates.
 
 External capabilities are isolated by `MerchantAdapter`, `CatalogueProvider`, `EmbeddingProvider`,
-`SpeechProvider`, `LLMProvider`, and `PaymentProvider`. Sarvam will own raw voice/STT/language,
-Gemini will own reasoning/intent/RAG/onboarding intelligence, and Razorpay will own provider payment
-operations. None owns financial truth; validated application logic and PostgreSQL do.
+`SpeechProvider`, `LLMProvider`, and `PaymentProvider`. Under the approved post-PDF ADR-024 override,
+`gemini-3.1-flash-live-preview` is the replaceable P0 realtime conversational front door; the former
+Sarvam STT-first P0 path is superseded and Sarvam is not a runtime dependency. Gemini Live handles native
+audio, multilingual interaction, server VAD, interruption, bounded commerce invocation, and grounded
+presentation around Safe AI Buyer. It is not a third commerce agent. Gemini backend models may own bounded
+reasoning/intent/RAG/onboarding proposals, and Razorpay owns provider payment operations. None owns
+financial or deterministic commerce truth; validated application logic and PostgreSQL do.
+
+Long-running commerce is application-managed: Live acknowledges, requests a bounded start, and receives
+structured authoritative results later. The acknowledgement gate drains a pre-function PCM playback
+watermark. AudioWorklets own 16 kHz PCM16 capture and buffered 24 kHz playback; server VAD is authoritative
+and client RMS is telemetry only. Deterministic health controls may replace a degraded Live session with a
+fresh constrained session at a safe boundary, seeding compact state without resumption or history replay.
 
 Critical persistence will use Spring JDBC/JdbcClient and explicit SQL. Schema evolution always uses
 Flyway. PostgreSQL-specific behavior is tested with Testcontainers. The P0 durable-work design is a

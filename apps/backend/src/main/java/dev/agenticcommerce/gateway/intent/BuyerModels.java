@@ -18,7 +18,7 @@ public final class BuyerModels {
         BUILD_CANDIDATE_CART, GET_QUOTE, VERIFY_CONSTRAINTS
     }
     public enum ActionOutcome { SUCCESS, FAILURE, DENIED, WAITING }
-    public enum IntentGoal { PURCHASE_FOOD }
+    public enum IntentGoal { PURCHASE_PRODUCT, PURCHASE_FOOD }
     public enum ConstraintClassification { HARD, HARD_SAFETY, SOFT }
     public enum AmbiguityState { CLEAR, AMBIGUOUS }
     public enum SubstitutionPolicy { ALLOW, PROHIBIT, UNKNOWN }
@@ -31,11 +31,24 @@ public final class BuyerModels {
             EvidenceSpan evidence, BigDecimal modelSignal, AmbiguityState ambiguity) {}
 
     public record CompiledIntent(IntentGoal goal, String categoryRequest, Long budgetAmountMinor,
-            String currency, String exactMerchantSku, String exactGtin, String exactVariant,
+            String currency, String exactMerchantSku, String exactGtin, String exactBrand,
+            String exactVariant, String exactSizeStorage, String exactColour,
             Boolean vegetarian, String prohibitedAllergen, Integer quantity, Integer people,
             SubstitutionPolicy substitutionPolicy, String deliveryHint, List<String> softPreferences,
             List<MaterialField> materialFields, AmbiguityState ambiguityState,
-            String clarificationQuestion, String provider, String model) {}
+            String clarificationQuestion, String provider, String model) {
+        public CompiledIntent(IntentGoal goal, String categoryRequest, Long budgetAmountMinor,
+                String currency, String exactMerchantSku, String exactGtin, String exactVariant,
+                Boolean vegetarian, String prohibitedAllergen, Integer quantity, Integer people,
+                SubstitutionPolicy substitutionPolicy, String deliveryHint, List<String> softPreferences,
+                List<MaterialField> materialFields, AmbiguityState ambiguityState,
+                String clarificationQuestion, String provider, String model) {
+            this(goal, categoryRequest, budgetAmountMinor, currency, exactMerchantSku, exactGtin,
+                    null, exactVariant, null, null, vegetarian, prohibitedAllergen, quantity, people,
+                    substitutionPolicy, deliveryHint, softPreferences, materialFields, ambiguityState,
+                    clarificationQuestion, provider, model);
+        }
+    }
 
     public record CommerceThread(UUID threadId, UUID buyerActorId, String title, BuyerState state,
             Integer currentIntentVersion, Integer currentCartVersion, UUID currentQuoteId,

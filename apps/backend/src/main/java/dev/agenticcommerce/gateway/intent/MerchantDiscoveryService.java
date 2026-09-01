@@ -13,7 +13,7 @@ public class MerchantDiscoveryService {
     private final BuyerRepository repository;private final CanonicalJsonService canonical;private final ObjectMapper mapper;
     public MerchantDiscoveryService(BuyerRepository repository,CanonicalJsonService canonical,ObjectMapper mapper){this.repository=repository;this.canonical=canonical;this.mapper=mapper;}
     public GateResult preRetrievalGate(BuyerIntent intent){CompiledIntent v=intent.compiled();
-        if(v.goal()!=IntentGoal.PURCHASE_FOOD)return new GateResult(false,"UNSUPPORTED_GOAL",false);
+        if(v.goal()!=IntentGoal.PURCHASE_PRODUCT&&v.goal()!=IntentGoal.PURCHASE_FOOD)return new GateResult(false,"UNSUPPORTED_GOAL",false);
         if(v.currency()!=null&&!"INR".equals(v.currency()))return new GateResult(false,"UNSUPPORTED_CURRENCY",false);
         if(v.ambiguityState()==AmbiguityState.AMBIGUOUS)return new GateResult(false,"CRITICAL_FIELD_AMBIGUOUS",true);
         if(v.prohibitedAllergen()!=null&&v.materialFields().stream().noneMatch(f->f.field().equalsIgnoreCase("ALLERGEN")&&f.classification()==ConstraintClassification.HARD_SAFETY&&f.ambiguity()==AmbiguityState.CLEAR))

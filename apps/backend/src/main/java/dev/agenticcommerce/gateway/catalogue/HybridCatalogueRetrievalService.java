@@ -67,7 +67,9 @@ public class HybridCatalogueRetrievalService {
     GateOutcome identityGate(UUID merchantId,UUID versionId,Product p,SearchRequest r){
         if(r.merchantSku()!=null&&!p.merchantSku().equalsIgnoreCase(r.merchantSku()))return GateOutcome.FAIL;
         if(r.gtin()!=null&&!r.gtin().equals(p.gtin()))return GateOutcome.FAIL;
-        if(mismatch(r.brand(),p.brand())||mismatch(r.variant(),p.variant())||mismatch(r.sizeStorage(),p.sizeStorage())||mismatch(r.colour(),p.colour()))return GateOutcome.FAIL;
+        if(mismatch(r.category(),p.category())||mismatch(r.brand(),p.brand())||mismatch(r.variant(),p.variant())||mismatch(r.sizeStorage(),p.sizeStorage())||mismatch(r.colour(),p.colour()))return GateOutcome.FAIL;
+        if(r.minimumPriceMinor()!=null&&(p.priceMinor()==null||p.priceMinor()<r.minimumPriceMinor()))return GateOutcome.FAIL;
+        if(r.maximumPriceMinor()!=null&&(p.priceMinor()==null||p.priceMinor()>r.maximumPriceMinor()))return GateOutcome.FAIL;
         if(r.merchantSku()==null&&r.gtin()==null)return repository.latestIdentity(merchantId,versionId,p.id())==IdentityOutcome.CONFLICT?GateOutcome.UNKNOWN:GateOutcome.PASS;
         return repository.latestIdentity(merchantId,versionId,p.id())==IdentityOutcome.CONFLICT?GateOutcome.FAIL:GateOutcome.PASS;
     }

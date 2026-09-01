@@ -40,8 +40,10 @@ remaining business modules are **NOT YET IMPLEMENTED**.
 `MerchantAdapter`, `CatalogueProvider`, `EmbeddingProvider`, `SpeechProvider`, `LLMProvider`, and
 `PaymentProvider` are **IMPLEMENTED** as deliberately minimal interfaces. Future canonical mappings
 are approved merchant operations, approved catalogue sources, Gemini `gemini-embedding-2` at 768
-dimensions, Sarvam Saaras v3 REST, Gemini `gemini-3.6-flash` via the official Java SDK, and explicit
-Razorpay Test Mode REST. Implementations and method contracts are **NOT YET IMPLEMENTED**.
+dimensions, a replaceable Gemini Live adapter/configuration boundary targeting
+`gemini-3.1-flash-live-preview` for P0 realtime voice, Gemini `gemini-3.6-flash` via the official Java
+SDK for backend reasoning, and explicit Razorpay Test Mode REST. Implementations and method contracts
+are **NOT YET IMPLEMENTED** except where later task context records completed bounded implementations.
 
 ## Data authority and financial invariants
 
@@ -70,9 +72,18 @@ bound authorization, and only then enters the execution gate. **NOT YET IMPLEMEN
 
 ## Voice boundary
 
-Sarvam owns raw audio/STT/language metadata. A deterministic Language Gate validates supported
-language and transcription confidence before Gemini sees normalized text. Audio or model output is
-never payment authority. **NOT YET IMPLEMENTED.**
+ADR-024 is the approved post-PDF P0 override: Gemini 3.1 Flash Live is the realtime conversational
+front door for microphone/native audio, multilingual switching, server VAD, interruption,
+acknowledgement/clarification, bounded commerce invocation, and grounded result narration. The former
+`Sarvam STT → transcript → Gemini` P0 path is superseded; no Sarvam runtime dependency is required.
+Gemini Live is an interaction layer around Safe AI Buyer, not a third commerce agent and never commerce,
+state, safety, authorization, payment, refund, or lifecycle authority.
+
+P0 commerce remains application-managed: Live acknowledges and invokes a bounded function, application
+code starts/continues the workflow outside the model, and only structured authoritative results return for
+grounded speech. Browser capture/playback uses AudioWorklets, server VAD owns speech boundaries, and
+health-based recovery creates a fresh constrained session with compact deterministic state. Selectable
+Gemini-native voice is **P0 desired / implementation pending provider verification** and grants no authority.
 
 ## RAG, exact product, and no-match
 

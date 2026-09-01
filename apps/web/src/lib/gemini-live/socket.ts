@@ -1,5 +1,3 @@
-import { GEMINI_LIVE_RAW_SETUP } from "./config";
-
 const LIVE_ENDPOINT =
   "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContentConstrained";
 const SETUP_TIMEOUT_MS = 12_000;
@@ -36,6 +34,7 @@ export interface LiveServerMessage {
   voiceActivity?: {
     voiceActivityType?: "ACTIVITY_START" | "ACTIVITY_END" | "TYPE_UNSPECIFIED";
   };
+  goAway?: { timeLeft?: string };
 }
 
 interface RealtimeInput {
@@ -43,11 +42,16 @@ interface RealtimeInput {
   audioStreamEnd?: boolean;
 }
 
-interface FunctionResponse {
+export interface FunctionResponse {
   id: string;
   name: string;
   response: Record<string, unknown>;
-  scheduling: "WHEN_IDLE";
+  scheduling?: "SILENT" | "WHEN_IDLE" | "INTERRUPT";
+}
+
+interface ClientContent {
+  turns: Array<{ role: "user"; parts: Array<{ text: string }> }>;
+  turnComplete: boolean;
 }
 
 interface LiveSocketCallbacks {
@@ -62,6 +66,7 @@ function parseServerMessage(value: string): LiveServerMessage {
     server_content?: LiveServerMessage["serverContent"];
     tool_call?: LiveServerMessage["toolCall"];
     tool_call_cancellation?: LiveServerMessage["toolCallCancellation"];
+    go_away?: LiveServerMessage["goAway"];
   };
   return {
     ...parsed,
@@ -69,6 +74,7 @@ function parseServerMessage(value: string): LiveServerMessage {
     serverContent: parsed.serverContent ?? parsed.server_content,
     toolCall: parsed.toolCall ?? parsed.tool_call,
     toolCallCancellation: parsed.toolCallCancellation ?? parsed.tool_call_cancellation,
+    goAway: parsed.goAway ?? parsed.go_away,
   };
 }
 
@@ -88,11 +94,13 @@ async function messageText(data: unknown): Promise<string> {
 export class GeminiLiveSocket {
   private established = false;
 
-  private constructor(
-    private readonly connection: WebSocket,
-  ) {}
+  private constructor(private readonly connection: WebSocket) {}
 
-  static connect(token: string, callbacks: LiveSocketCallbacks): Promise<GeminiLiveSocket> {
+  static connect(
+    token: string,
+    setup: Record<string, unknown>,
+    callbacks: LiveSocketCallbacks,
+  ): Promise<GeminiLiveSocket> {
     return new Promise((resolveConnection, rejectConnection) => {
       const endpoint = `${LIVE_ENDPOINT}?access_token=${encodeURIComponent(token)}`;
       const webSocket = new WebSocket(endpoint);
@@ -106,7 +114,7 @@ export class GeminiLiveSocket {
       }, SETUP_TIMEOUT_MS);
 
       webSocket.onopen = () => {
-        webSocket.send(JSON.stringify({ setup: GEMINI_LIVE_RAW_SETUP }));
+        webSocket.send(JSON.stringify({ setup }));
       };
       webSocket.onmessage = (event) => {
         messageChain = messageChain
@@ -147,12 +155,16 @@ export class GeminiLiveSocket {
     this.send({ toolResponse: { functionResponses } });
   }
 
-  close(): void {
+  sendClientContent(content: ClientContent): void {
+    this.send({ clientContent: content });
+  }
+
+  close(reason = "developer ended session"): void {
     if (
       this.connection.readyState === WebSocket.OPEN ||
       this.connection.readyState === WebSocket.CONNECTING
     ) {
-      this.connection.close(1000, "developer ended session");
+      this.connection.close(1000, reason.slice(0, 123));
     }
   }
 

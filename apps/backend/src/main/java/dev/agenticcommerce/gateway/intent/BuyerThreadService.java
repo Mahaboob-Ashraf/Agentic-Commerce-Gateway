@@ -33,6 +33,6 @@ public class BuyerThreadService {
     public MerchantQuote quote(UUID buyerId,UUID threadId){require(buyerId,threadId);return repository.currentQuote(buyerId,threadId).orElseThrow(()->new BuyerException("MERCHANT_QUOTE_NOT_FOUND",HttpStatus.NOT_FOUND,"Authoritative merchant quote was not found"));}
     public ConstraintCertificate certificate(UUID buyerId,UUID threadId){require(buyerId,threadId);return repository.currentCertificate(buyerId,threadId).orElseThrow(()->new BuyerException("CONSTRAINT_CERTIFICATE_NOT_FOUND",HttpStatus.NOT_FOUND,"Constraint certificate was not found"));}
     public List<BuyerAgentAction> actions(UUID buyerId,UUID threadId){require(buyerId,threadId);return repository.actions(buyerId,threadId);}
-    private static String normalize(String value){if(value==null)throw new BuyerException("BUYER_INPUT_REQUIRED",HttpStatus.BAD_REQUEST,"Typed input is required");String text=value.strip().replaceAll("\\s+"," ");
+    static String normalize(String value){if(value==null)throw new BuyerException("BUYER_INPUT_REQUIRED",HttpStatus.BAD_REQUEST,"Typed input is required");String text=value.strip().replaceAll("\\s+"," ");
         if(text.isEmpty()||text.length()>4000)throw new BuyerException("BUYER_INPUT_INVALID",HttpStatus.BAD_REQUEST,"Typed input must contain 1 to 4000 characters");return text;}
 }
