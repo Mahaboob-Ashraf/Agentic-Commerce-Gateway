@@ -16,6 +16,8 @@ import dev.agenticcommerce.gateway.identity.model.*;
 import dev.agenticcommerce.gateway.identity.persistence.*;
 import dev.agenticcommerce.gateway.intent.*;
 import dev.agenticcommerce.gateway.payment.*;
+import dev.agenticcommerce.gateway.onboarding.*;
+import static dev.agenticcommerce.gateway.onboarding.OnboardingModels.*;
 import dev.agenticcommerce.gateway.risk.*;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -67,6 +69,7 @@ class Task010PaymentControlIntegrationTest {
     @Autowired ObjectMapper mapper;
     @Autowired TestPaymentProvider provider;
     @Autowired TestMerchantGateway merchantGateway;
+    @Autowired OnboardingService onboarding;
 
     @BeforeEach
     void clear() {
@@ -325,7 +328,7 @@ class Task010PaymentControlIntegrationTest {
                 """).param("merchant", ready.merchantId()).query(String.class).single()).isEqualTo("UNTESTED");
     }
 
-    private Ready confirmed(String key) {
+    protected Ready confirmed(String key) {
         Ready ready = ready(key);
         PaymentStateView pending = payments.initiate(ready.buyerId(), ready.threadId(), ready.proposalId());
         payments.callback(ready.buyerId(), ready.threadId(), ready.proposalId(),
@@ -339,7 +342,7 @@ class Task010PaymentControlIntegrationTest {
         return ready;
     }
 
-    private Ready ready(String key) {
+    protected Ready ready(String key) {
         Fixture fixture = fixture(key);
         CommerceThread thread = threads.create(fixture.buyer().id(), canonicalText());
         for (int step = 0; step < 6; step++) buyer.advance(fixture.buyer().id(), thread.threadId());
@@ -359,11 +362,12 @@ class Task010PaymentControlIntegrationTest {
                 proposal.proposalId(), execution.executionId());
     }
 
-    private Fixture fixture(String key) {
+    protected Fixture fixture(String key) {
         Merchant merchant = merchants.create("payment-" + key, "Payment " + key);
         ApplicationActor admin = actors.create(key + "-payment-admin@test", PlatformRole.MERCHANT_ADMIN);
         memberships.create(merchant.id(), admin.id());
         ApplicationActor buyerActor = actors.create(key + "-payment-buyer@test", PlatformRole.BUYER);
+        onboard(buyerActor,merchant,key);
         CatalogueVersion version = catalogues.ingest(admin.id(), merchant.id(), "JSON", cataloguePayload()).version();
         List<Product> products = catalogueRepository.products(merchant.id(), version.id(), 20);
         UUID safe = products.stream().filter(value -> value.merchantSku().equals("SAFE-CHANA"))
@@ -379,7 +383,15 @@ class Task010PaymentControlIntegrationTest {
         return publishReady(merchant, admin, buyerActor, version);
     }
 
-    private Fixture publishReady(
+    protected void onboard(ApplicationActor buyerActor,Merchant merchant,String key){
+        onboarding.updateProfile(buyerActor.id(),new ProfileInput("Buyer "+key,"+919900000001",key+"@buyer.test"));
+        var address=onboarding.addAddress(buyerActor.id(),new AddressInput("HOME","Buyer "+key,"+919900000001",
+                "1 Demo Street",null,"Demo Locality","Bengaluru","Karnataka","560001"));
+        onboarding.selectAddress(buyerActor.id(),address.id());
+        onboarding.link(buyerActor.id(),new LinkRequest(merchant.id(),"demo-user","demo-password"));
+    }
+
+    protected Fixture publishReady(
             Merchant merchant, ApplicationActor admin, ApplicationActor buyerActor, CatalogueVersion version) {
         UUID endpoint = jdbc.sql("""
                 INSERT INTO merchant_approved_endpoint(
@@ -534,7 +546,7 @@ class Task010PaymentControlIntegrationTest {
         @Bean @Primary TestMerchantGateway merchantFinalizationGateway() { return new TestMerchantGateway(); }
     }
 
-    static final class TestPaymentProvider implements PaymentProvider {
+    static class TestPaymentProvider implements PaymentProvider {
         final AtomicInteger createCalls = new AtomicInteger();
         final Map<String, ProviderOrder> receipts = new ConcurrentHashMap<>();
         volatile boolean loseCreateResponse;
@@ -545,12 +557,17 @@ class Task010PaymentControlIntegrationTest {
         volatile boolean paymentCaptured;
         volatile String orderStatus = "created";
         volatile long orderAmountPaid;
+        volatile String refundStatus="pending";
+        volatile String refundId="rfnd_test";
+        final AtomicInteger refundCalls=new AtomicInteger();
+        volatile CreateRefundCommand lastRefundCommand;
 
         void reset() {
             createCalls.set(0); receipts.clear(); loseCreateResponse = false;
             rejectCreate = false; findFails = false;
             paymentId = "pay_default"; paymentStatus = "authorized"; paymentCaptured = false;
             orderStatus = "created"; orderAmountPaid = 0;
+            refundStatus="pending";refundId="rfnd_test";refundCalls.set(0);lastRefundCommand=null;
         }
         @Override public ProviderOrder createOrder(CreateOrderCommand command) {
             createCalls.incrementAndGet();
@@ -576,6 +593,9 @@ class Task010PaymentControlIntegrationTest {
                     PaymentProviderException.Category.CONNECTION_FAILURE, false, "lookup failed", null);
             return Optional.ofNullable(receipts.get(receipt));
         }
+        @Override public ProviderRefund createRefund(CreateRefundCommand command){refundCalls.incrementAndGet();lastRefundCommand=command;
+            return new ProviderRefund(refundId,command.providerPaymentId(),command.amountMinor(),command.currency(),refundStatus,Instant.now(),"acct_test",hash("refund-"+refundId+"-"+refundStatus));}
+        @Override public ProviderRefund fetchRefund(String payment,String refund){return new ProviderRefund(refund,payment,36_000,"INR",refundStatus,Instant.now(),"acct_test",hash("refund-"+refund+"-"+refundStatus));}
         @Override public boolean verifyCheckoutSignature(String orderId, String paymentId, String signature) {
             return "a".repeat(64).equals(signature);
         }

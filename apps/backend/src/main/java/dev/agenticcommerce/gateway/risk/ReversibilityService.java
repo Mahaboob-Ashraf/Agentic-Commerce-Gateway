@@ -11,6 +11,7 @@ import dev.agenticcommerce.gateway.commerce.TransactionProposalCanonicalizer;
 import dev.agenticcommerce.gateway.intent.BuyerRepository;
 import dev.agenticcommerce.gateway.intent.BuyerStateMachine;
 import dev.agenticcommerce.gateway.intent.BuyerThreadService;
+import dev.agenticcommerce.gateway.onboarding.OnboardingService;
 import java.time.Instant;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
@@ -30,12 +31,14 @@ public class ReversibilityService {
     private final CanonicalJsonService canonical;
     private final ObjectMapper mapper;
     private final AuthorizationService authorization;
+    private final OnboardingService onboarding;
 
     public ReversibilityService(
             TransactionAuthorityRepository repository, BuyerRepository buyers,
             BuyerThreadService threads, BuyerStateMachine states, ReversibilityEngine engine,
             TransactionAuthorityPolicy policy, TransactionProposalCanonicalizer canonicalizer,
-            CanonicalJsonService canonical, ObjectMapper mapper, AuthorizationService authorization) {
+            CanonicalJsonService canonical, ObjectMapper mapper, AuthorizationService authorization,
+            OnboardingService onboarding) {
         this.repository = repository;
         this.buyers = buyers;
         this.threads = threads;
@@ -46,6 +49,7 @@ public class ReversibilityService {
         this.canonical = canonical;
         this.mapper = mapper;
         this.authorization = authorization;
+        this.onboarding=onboarding;
     }
 
     @Transactional
@@ -102,9 +106,11 @@ public class ReversibilityService {
         BuyerIntent intent = buyers.latestIntent(proposal.buyerActorId(), proposal.threadId()).orElseThrow();
         MerchantAuthorityContext authority = repository.currentMerchantAuthority(proposal.merchantId())
                 .orElse(null);
-        var recomputed = canonicalizer.canonicalize(proposal);
-        boolean valid = recomputed.hash().equals(proposal.proposalHash())
-                && canonical.hash(proposal.canonicalMaterial()).equals(proposal.proposalHash())
+        // Task 011 extends the persisted canonical material with the immutable fulfilment/link binding.
+        // The complete stored material is the hash authority; the legacy purchase-only canonicalizer
+        // intentionally cannot reconstruct those V011 fields from the V009 proposal record alone.
+        boolean valid = canonical.hash(proposal.canonicalMaterial()).equals(proposal.proposalHash())
+                && onboarding.validProposalBinding(proposal)
                 && repository.latestAuthorityRefresh(proposal.buyerActorId(), proposal.threadId())
                         .map(refresh -> refresh.authorityRefreshId().equals(proposal.authorityRefreshId())
                                 && refresh.constraintCertificate().certificateId().equals(

@@ -3,6 +3,8 @@ package dev.agenticcommerce.gateway.payment;
 import static dev.agenticcommerce.gateway.payment.PaymentModels.*;
 
 import dev.agenticcommerce.gateway.agentization.service.CanonicalJsonService;
+import dev.agenticcommerce.gateway.lifecycle.RefundService;
+import dev.agenticcommerce.gateway.lifecycle.LifecycleException;
 import java.time.Instant;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -18,15 +20,17 @@ public class RazorpayWebhookService {
     private final PaymentEvidenceReducer reducer;
     private final CanonicalJsonService canonical;
     private final ObjectMapper mapper;
+    private final RefundService refunds;
 
     public RazorpayWebhookService(
             PaymentProvider provider, PaymentRepository repository, PaymentEvidenceReducer reducer,
-            CanonicalJsonService canonical, ObjectMapper mapper) {
+            CanonicalJsonService canonical, ObjectMapper mapper, RefundService refunds) {
         this.provider = provider;
         this.repository = repository;
         this.reducer = reducer;
         this.canonical = canonical;
         this.mapper = mapper;
+        this.refunds = refunds;
     }
 
     @Transactional
@@ -51,6 +55,30 @@ public class RazorpayWebhookService {
         Instant now = Instant.now();
         if (!repository.insertWebhook(configuration, eventId, eventType, signatureHash, bodyHash, rawBody, now))
             return new WebhookResult(true, true, eventId, "ALREADY_PROCESSED");
+
+        JsonNode refundNode = root.path("payload").path("refund").path("entity");
+        if (hasObject(refundNode)) {
+            String account = text(root,"account_id");
+            if(account!=null&&!configuration.providerAccountReference().equals(account)){
+                repository.completeWebhook(configuration.id(),eventId,"PROVIDER_ACCOUNT_MISMATCH",now);
+                return new WebhookResult(true,false,eventId,"REJECTED_ACCOUNT_MISMATCH");
+            }
+            long amount=refundNode.path("amount").asLong(-1);
+            try {
+                boolean accepted=amount>=0&&refunds.ingestWebhook(new RefundService.JsonNodeRefund(
+                        required(refundNode,"id"),required(refundNode,"payment_id"),amount,
+                        required(refundNode,"currency"),required(refundNode,"status"),providerInstant(refundNode),
+                        configuration.providerAccountReference(),canonical.hash(refundNode)),eventId);
+                repository.completeWebhook(configuration.id(),eventId,accepted?null:"EXPECTED_REFUND_NOT_FOUND",now);
+                return new WebhookResult(true,false,eventId,accepted?"PROCESSED":"REJECTED_UNBOUND_EVENT");
+            } catch (IllegalArgumentException invalid) {
+                repository.completeWebhook(configuration.id(),eventId,"NORMALIZATION_FAILED",now);
+                return new WebhookResult(true,false,eventId,"REJECTED_NORMALIZATION_FAILED");
+            } catch (LifecycleException mismatch) {
+                repository.completeWebhook(configuration.id(),eventId,mismatch.code(),now);
+                return new WebhookResult(true,false,eventId,"REJECTED_REFUND_EVIDENCE_MISMATCH");
+            }
+        }
 
         JsonNode paymentNode = root.path("payload").path("payment").path("entity");
         JsonNode orderNode = root.path("payload").path("order").path("entity");

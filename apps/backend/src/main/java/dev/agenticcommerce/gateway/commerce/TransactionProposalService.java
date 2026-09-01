@@ -7,6 +7,9 @@ import dev.agenticcommerce.gateway.intent.BuyerRepository;
 import dev.agenticcommerce.gateway.intent.BuyerStateMachine;
 import dev.agenticcommerce.gateway.intent.BuyerThreadService;
 import dev.agenticcommerce.gateway.risk.TransactionAuthorityPolicy;
+import dev.agenticcommerce.gateway.agentization.service.CanonicalJsonService;
+import dev.agenticcommerce.gateway.onboarding.OnboardingModels.PurchaseFulfilmentAuthority;
+import dev.agenticcommerce.gateway.onboarding.OnboardingService;
 import java.time.Instant;
 import java.util.Comparator;
 import java.util.List;
@@ -23,17 +26,22 @@ public class TransactionProposalService {
     private final TransactionAuthorityRepository repository;
     private final TransactionProposalCanonicalizer canonicalizer;
     private final TransactionAuthorityPolicy policy;
+    private final OnboardingService onboarding;
+    private final CanonicalJsonService canonical;
 
     public TransactionProposalService(
             BuyerThreadService threads, BuyerRepository buyers, BuyerStateMachine states,
             TransactionAuthorityRepository repository,
-            TransactionProposalCanonicalizer canonicalizer, TransactionAuthorityPolicy policy) {
+            TransactionProposalCanonicalizer canonicalizer, TransactionAuthorityPolicy policy,
+            OnboardingService onboarding, CanonicalJsonService canonical) {
         this.threads = threads;
         this.buyers = buyers;
         this.states = states;
         this.repository = repository;
         this.canonicalizer = canonicalizer;
         this.policy = policy;
+        this.onboarding = onboarding;
+        this.canonical = canonical;
     }
 
     @Transactional
@@ -49,6 +57,7 @@ public class TransactionProposalService {
         AuthorityRefresh refresh = repository.latestAuthorityRefresh(buyerId, threadId)
                 .orElseThrow(() -> conflict("AUTHORITATIVE_REFRESH_REQUIRED",
                         "Authoritative refresh is required before proposal creation"));
+        PurchaseFulfilmentAuthority fulfilment = onboarding.requireAuthority(refresh.authorityRefreshId());
         TransactionProposal existing = repository.proposalForRefresh(buyerId,
                 refresh.authorityRefreshId()).orElse(null);
         if (existing != null) return existing;
@@ -77,9 +86,22 @@ public class TransactionProposalService {
                 cart.catalogueVersionId(), ActionType.PURCHASE, quote.subtotalMinor(), quote.taxMinor(),
                 quote.feesMinor(), quote.deliveryMinor(), quote.finalAmountMinor(), quote.currency(),
                 quote.expiresAt(), proposalExpiry, lines);
-        var canonical = canonicalizer.canonicalize(draft);
+        var baseCanonical = canonicalizer.canonicalize(draft);
+        var material = (tools.jackson.databind.node.ObjectNode) baseCanonical.material().deepCopy();
+        var authority = material.putObject("fulfilmentAuthority");
+        authority.put("bindingHash", fulfilment.bindingHash());
+        authority.put("snapshotId", fulfilment.snapshot().id().toString());
+        authority.put("snapshotHash", fulfilment.snapshot().snapshotHash());
+        authority.put("addressId", fulfilment.snapshot().addressId().toString());
+        authority.put("addressVersion", fulfilment.snapshot().addressVersion());
+        authority.put("deliveryOption", fulfilment.snapshot().deliveryOption());
+        authority.put("merchantAccountLinkId", fulfilment.snapshot().linkId().toString());
+        authority.put("merchantAccountLinkVersion", fulfilment.snapshot().linkVersion());
+        authority.put("merchantAccountLinkHash", fulfilment.snapshot().linkHash());
         states.require(thread.state(), BuyerState.TRANSACTION_PROPOSED);
-        return repository.createProposal(draft, canonical.material(), canonical.hash());
+        TransactionProposal created = repository.createProposal(draft, material, canonical.hash(material));
+        onboarding.bindProposal(created.proposalId(), fulfilment);
+        return created;
     }
 
     public TransactionProposal current(UUID buyerId, UUID threadId) {

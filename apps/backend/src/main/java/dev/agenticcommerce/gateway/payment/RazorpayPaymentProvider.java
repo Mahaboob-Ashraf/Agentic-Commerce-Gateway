@@ -104,6 +104,29 @@ public class RazorpayPaymentProvider implements PaymentProvider {
         }
     }
 
+    @Override public ProviderRefund createRefund(CreateRefundCommand command) {
+        requireApiConfiguration();
+        JsonNode node = exchange("POST", "/v1/payments/" + segment(command.providerPaymentId()) + "/refund",
+                command.canonicalRequestBody(), true, command.idempotencyKey());
+        return refund(node, command.currency());
+    }
+
+    @Override public ProviderRefund fetchRefund(String paymentId, String refundId) {
+        requireApiConfiguration();
+        return refund(exchange("GET", "/v1/payments/" + segment(paymentId) + "/refunds/" + segment(refundId),
+                null, false), null);
+    }
+
+    private ProviderRefund refund(JsonNode node, String expectedCurrency) {
+        try {
+            String currency = node.path("currency").asText(expectedCurrency == null ? "INR" : expectedCurrency);
+            return new ProviderRefund(required(node,"id"),required(node,"payment_id"),positive(node,"amount"),
+                    currency,required(node,"status"),Instant.now(),accountReference,canonical.hash(node));
+        } catch (RuntimeException malformed) {
+            throw provider(MALFORMED_RESPONSE,false,"Malformed Razorpay refund response",malformed);
+        }
+    }
+
     private ProviderOrder order(JsonNode node) {
         try {
             long created = node.path("created_at").asLong(0);
@@ -117,10 +140,14 @@ public class RazorpayPaymentProvider implements PaymentProvider {
     }
 
     private JsonNode exchange(String method, String path, byte[] body, boolean creation) {
+        return exchange(method,path,body,creation,null);
+    }
+    private JsonNode exchange(String method, String path, byte[] body, boolean creation, String refundIdempotency) {
         HttpRequest.Builder request = HttpRequest.newBuilder(URI.create(apiBase + path))
                 .timeout(requestTimeout).header("Accept", "application/json")
                 .header("Authorization", "Basic " + Base64.getEncoder().encodeToString(
                         (keyId + ":" + keySecret).getBytes(StandardCharsets.UTF_8)));
+        if (refundIdempotency != null) request.header("X-Refund-Idempotency", refundIdempotency);
         if (body == null) request.GET();
         else request.header("Content-Type", "application/json")
                 .method(method, HttpRequest.BodyPublishers.ofByteArray(body));

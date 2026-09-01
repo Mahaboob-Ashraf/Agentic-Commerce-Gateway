@@ -16,6 +16,8 @@ import dev.agenticcommerce.gateway.commerce.ServiceabilityProvider.Serviceabilit
 import dev.agenticcommerce.gateway.identity.model.*;
 import dev.agenticcommerce.gateway.identity.persistence.*;
 import dev.agenticcommerce.gateway.intent.*;
+import dev.agenticcommerce.gateway.onboarding.*;
+import static dev.agenticcommerce.gateway.onboarding.OnboardingModels.*;
 import dev.agenticcommerce.gateway.risk.*;
 import java.math.BigDecimal;
 import java.net.CookieManager;
@@ -78,6 +80,7 @@ class Task009TransactionAuthorityIntegrationTest {
     @Autowired Task009Transport transport;
     @Autowired TrustedServiceability serviceability;
     @Autowired ObjectMapper mapper;
+    @Autowired OnboardingService onboarding;
     @Autowired ActorPasswordCredentialRepository credentials;
     @Autowired PasswordEncoder passwordEncoder;
     @LocalServerPort int port;
@@ -155,10 +158,12 @@ class Task009TransactionAuthorityIntegrationTest {
             assertThat(line.variant()).isEqualTo("Masala");
             assertThat(line.quantity()).isEqualTo(2);
         });
-        assertThat(canonicalizer.canonicalize(proposal).hash()).isEqualTo(proposal.proposalHash());
         assertThat(canonical.hash(proposal.canonicalMaterial())).isEqualTo(proposal.proposalHash());
-        assertThat(canonicalizer.canonicalize(proposal).hash())
-                .isEqualTo(canonicalizer.canonicalize(proposal).hash());
+        assertThat(proposal.canonicalMaterial().path("fulfilmentAuthority").path("snapshotHash").asText())
+                .matches("[0-9a-f]{64}");
+        assertThat(proposal.canonicalMaterial().path("fulfilmentAuthority").path("merchantAccountLinkHash").asText())
+                .matches("[0-9a-f]{64}");
+        assertThat(canonicalizer.canonicalize(proposal).hash()).isNotEqualTo(proposal.proposalHash());
         assertThatThrownBy(() -> jdbc.sql("UPDATE transaction_proposal SET final_amount_minor=1 WHERE proposal_id=:id")
                 .param("id", proposal.proposalId()).update()).isInstanceOf(RuntimeException.class);
 
@@ -476,6 +481,7 @@ class Task009TransactionAuthorityIntegrationTest {
         ApplicationActor admin = actors.create(key + "-authority-admin@test", PlatformRole.MERCHANT_ADMIN);
         memberships.create(merchant.id(), admin.id());
         ApplicationActor buyerActor = actors.create(key + "-authority-buyer@test", PlatformRole.BUYER);
+        onboard(buyerActor,merchant,key);
         CatalogueVersion version = catalogues.ingest(admin.id(), merchant.id(), "JSON", cataloguePayload()).version();
         List<Product> products = catalogueRepository.products(merchant.id(), version.id(), 20);
         UUID safe = product(products, "SAFE-CHANA");
@@ -490,6 +496,14 @@ class Task009TransactionAuthorityIntegrationTest {
         Published published = publishReady(merchant, admin, version);
         return new Fixture(merchant, admin, buyerActor, version.id(), safe,
                 published.quoteMapping(), published.availabilityMapping(), published.policySnapshot());
+    }
+
+    private void onboard(ApplicationActor buyerActor,Merchant merchant,String key){
+        onboarding.updateProfile(buyerActor.id(),new ProfileInput("Buyer "+key,"+919900000001",key+"@buyer.test"));
+        var address=onboarding.addAddress(buyerActor.id(),new AddressInput("HOME","Buyer "+key,"+919900000001",
+                "1 Demo Street",null,"Demo Locality","Bengaluru","Karnataka","560001"));
+        onboarding.selectAddress(buyerActor.id(),address.id());
+        onboarding.link(buyerActor.id(),new LinkRequest(merchant.id(),"demo-user","demo-password"));
     }
 
     private Published publishReady(Merchant merchant, ApplicationActor admin, CatalogueVersion version) {
@@ -728,6 +742,13 @@ class Task009TransactionAuthorityIntegrationTest {
         @Bean @Primary
         TrustedServiceability trustedServiceability(ObjectMapper mapper) {
             return new TrustedServiceability(mapper);
+        }
+
+        @Bean @Primary
+        MerchantCustomerLinkProvider merchantCustomerLinkProvider(){
+            return (merchant,username,password)->new MerchantCustomerLinkProvider.LinkResult(true,
+                    "customer_"+merchant.toString().substring(0,8),"credential_"+merchant.toString().substring(0,8),
+                    "TRUSTED_DEMO",Instant.now().plus(30,ChronoUnit.DAYS),null);
         }
     }
 

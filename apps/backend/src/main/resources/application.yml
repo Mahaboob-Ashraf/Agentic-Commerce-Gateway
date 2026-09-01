@@ -56,6 +56,12 @@ buyer:
     api-key: ${GEMINI_API_KEY:}
     model: ${GEMINI_MODEL:gemini-3.6-flash}
 
+merchant-link:
+  demo:
+    enabled: ${MERCHANT_LINK_DEMO_ENABLED:false}
+    username: ${MERCHANT_LINK_DEMO_USERNAME:}
+    password: ${MERCHANT_LINK_DEMO_PASSWORD:}
+
 commerce:
   transaction-authority:
     auto-execute-maximum-amount-minor: ${AUTO_EXECUTE_MAX_AMOUNT_MINOR:25000}

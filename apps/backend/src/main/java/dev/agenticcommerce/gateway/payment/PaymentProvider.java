@@ -8,6 +8,14 @@ public interface PaymentProvider {
     ProviderOrder createOrder(CreateOrderCommand command);
     ProviderOrder fetchOrder(String providerOrderId);
     ProviderPayment fetchPayment(String providerPaymentId);
+    default ProviderRefund createRefund(CreateRefundCommand command) {
+        throw new PaymentProviderException(PaymentProviderException.Category.AUTHENTICATION_OR_CONFIGURATION,
+                false, "Refund provider operation is unavailable", null);
+    }
+    default ProviderRefund fetchRefund(String providerPaymentId, String providerRefundId) {
+        throw new PaymentProviderException(PaymentProviderException.Category.AUTHENTICATION_OR_CONFIGURATION,
+                false, "Refund provider operation is unavailable", null);
+    }
 
     /** Razorpay does not guarantee lookup by receipt; fakes may implement this for lost-response tests. */
     default Optional<ProviderOrder> findOrderByReceipt(String receipt) { return Optional.empty(); }
@@ -26,4 +34,8 @@ public interface PaymentProvider {
     record ProviderPayment(
             String id, String orderId, long amountMinor, String currency, String status,
             boolean captured, Instant observedAt, String accountReference, String evidenceHash) {}
+    record CreateRefundCommand(String providerPaymentId, long amountMinor, String currency,
+            String idempotencyKey, byte[] canonicalRequestBody) {}
+    record ProviderRefund(String id, String paymentId, long amountMinor, String currency,
+            String status, Instant observedAt, String accountReference, String evidenceHash) {}
 }

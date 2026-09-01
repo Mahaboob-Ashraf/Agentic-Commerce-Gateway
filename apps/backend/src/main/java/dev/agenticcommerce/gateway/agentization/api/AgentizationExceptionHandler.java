@@ -6,7 +6,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-@RestControllerAdvice(assignableTypes = AgentizationApiController.class)
+@RestControllerAdvice(assignableTypes = {AgentizationApiController.class,AgentizationGoalApiController.class})
 public class AgentizationExceptionHandler {
 
     @ExceptionHandler(AgentizationException.class)

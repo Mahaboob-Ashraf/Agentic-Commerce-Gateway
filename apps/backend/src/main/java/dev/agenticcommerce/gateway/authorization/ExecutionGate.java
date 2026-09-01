@@ -11,6 +11,7 @@ import dev.agenticcommerce.gateway.commerce.TransactionAuthorityRepository;
 import dev.agenticcommerce.gateway.commerce.TransactionProposalCanonicalizer;
 import dev.agenticcommerce.gateway.intent.BuyerRepository;
 import dev.agenticcommerce.gateway.intent.BuyerThreadService;
+import dev.agenticcommerce.gateway.onboarding.OnboardingService;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -30,12 +31,13 @@ public class ExecutionGate {
     private final TransactionProposalCanonicalizer canonicalizer;
     private final CanonicalJsonService canonical;
     private final ObjectMapper mapper;
+    private final OnboardingService onboarding;
 
     public ExecutionGate(
             TransactionAuthorityRepository repository, BuyerRepository buyers,
             CatalogueRepository catalogues,
             BuyerThreadService threads, TransactionProposalCanonicalizer canonicalizer,
-            CanonicalJsonService canonical, ObjectMapper mapper) {
+            CanonicalJsonService canonical, ObjectMapper mapper,OnboardingService onboarding) {
         this.repository = repository;
         this.buyers = buyers;
         this.catalogues = catalogues;
@@ -43,6 +45,7 @@ public class ExecutionGate {
         this.canonicalizer = canonicalizer;
         this.canonical = canonical;
         this.mapper = mapper;
+        this.onboarding=onboarding;
     }
 
     @Transactional
@@ -64,9 +67,8 @@ public class ExecutionGate {
                 || !proposal.quoteRecordId().equals(thread.currentQuoteId())) return deny(
                 buyerId, sessionBindingHash, proposal, null,
                 "AUTHORITATIVE_EVIDENCE_NOT_CURRENT", refs);
-        var recomputed = canonicalizer.canonicalize(proposal);
-        if (!recomputed.hash().equals(proposal.proposalHash())
-                || !canonical.hash(proposal.canonicalMaterial()).equals(proposal.proposalHash())) return deny(
+        if (!canonical.hash(proposal.canonicalMaterial()).equals(proposal.proposalHash())
+                || !onboarding.validProposalBinding(proposal)) return deny(
                 buyerId, sessionBindingHash, proposal, null, "PROPOSAL_HASH_MISMATCH", refs);
         AuthorizationDecision authorization = repository.authorizationForProposal(buyerId, proposalId)
                 .orElse(null);

@@ -12,7 +12,8 @@ public interface ServiceabilityProvider {
 
     record ServiceabilityRequest(
             UUID merchantId, UUID threadId, UUID cartId, String cartHash,
-            String deliveryHint, Instant requestedAt) {}
+            UUID fulfilmentSnapshotId, String fulfilmentSnapshotHash, String postalCode,
+            String city, String deliveryOption, String deliveryHint, Instant requestedAt) {}
 
     record ServiceabilityResult(
             EvidenceOutcome outcome, ServiceabilitySource sourceType,

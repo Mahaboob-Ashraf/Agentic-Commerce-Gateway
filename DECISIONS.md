@@ -240,3 +240,112 @@ These accepted bootstrap ADRs record locked architectural decisions, not impleme
   ingestion, late capture, atomic outbox creation, `SKIP LOCKED`, retry recovery, and honest readiness.
 - **Effect on Buildathon demo:** A lost merchant response visibly remains payment-confirmed and fulfilment-pending,
   then retries without a second execution, provider order, charge, or merchant order.
+
+## ADR-018 - Direct merchant-account linking is normal P0 purchase authority
+
+- **Decision:** Require each buyer to link a supported merchant account through a typed merchant-specific
+  provider boundary before purchase or lifecycle execution. Persist only opaque customer/delegated credential
+  references and versioned link hashes; do not provide a guest-checkout branch or store merchant passwords.
+- **Why:** Merchant customer identity is required for real fulfilment and post-purchase actions, while generic
+  password automation would violate the gateway's authority and privacy boundaries.
+- **Alternatives considered:** Guest checkout, generic browser/password automation, raw delegated-token storage,
+  and sending merchant credentials through Gemini or arbitrary HTTP tools.
+- **Tradeoffs:** Unsupported merchants cannot transact in P0, and each real merchant needs OAuth, delegated-token,
+  customer-session, or another legitimate adapter.
+- **Effect on correctness:** Purchase and lifecycle gates fail closed on missing, expired, revoked, wrong-owner,
+  or wrong-version links, while the original merchant customer identity remains explainable.
+- **Effect on testing:** Trusted synthetic exchange tests can prove valid/invalid linking, owner isolation,
+  revocation, opaque persistence, and absence of raw passwords from durable evidence.
+- **Effect on Buildathon demo:** One onboarding step establishes reusable merchant identity without claiming
+  unsafe generic password automation.
+
+## ADR-019 - Immutable fulfilment snapshots are purchase material
+
+- **Decision:** Create an immutable fulfilment snapshot for each authority refresh and bind its exact recipient,
+  contact, structured address/version, delivery option, and merchant-link ID/version/hash into serviceability,
+  quote, TransactionProposal canonical material, and PLACE_ORDER finalization.
+- **Why:** Editing a saved address or relinking an account must not rewrite historical delivery authority or leave
+  an authorization valid for materially different fulfilment.
+- **Alternatives considered:** Referencing only a mutable default address, city-level serviceability, storing an
+  address string outside the proposal hash, and mutating an existing proposal after selection changes.
+- **Tradeoffs:** Each purchase refresh creates more immutable evidence and requires fresh downstream authority
+  whenever address, delivery option, or link material changes.
+- **Effect on correctness:** Historical orders remain explainable; exact-address UNKNOWN fails closed; any
+  fulfilment change yields a new proposal hash and requires fresh authorization.
+- **Effect on testing:** PostgreSQL tests cover snapshot immutability, exact binding, revoked links, serviceability,
+  canonical hash changes, and normalized PLACE_ORDER fulfilment input.
+- **Effect on Buildathon demo:** The merchant receives an exact deliverable identity rather than a generic-city
+  promise, while delegated credentials remain server-side.
+
+## ADR-020 - Lifecycle authority is separate and P0 return/refund scope is full-order only
+
+- **Decision:** Compile post-purchase messages into buyer-owned typed lifecycle intents, evaluate the original
+  approved policy snapshot, and require separate immutable lifecycle proposals and action/session-bound
+  authorizations. P0 supports full-order return and full refund only; partial return/refund and replacement remain
+  typed unsupported/P1 outcomes.
+- **Why:** Purchase consent cannot authorize cancellation, return, or refund, and partial-money allocation adds
+  policy, tax, fee, inventory, and concurrency semantics outside P0.
+- **Alternatives considered:** Reusing purchase authorization, applying today's policy silently, allowing model IDs
+  to select orders, and coercing partial requests into unrecorded partial or full effects.
+- **Tradeoffs:** Lifecycle actions add their own evidence/proposal/authorization sequence and conservative UNKNOWN
+  outcomes; the P0 user must explicitly confirm full-order scope.
+- **Effect on correctness:** Ownership, historical policy, current merchant state/readiness, exact action, proposal
+  hash, session, expiry, and link authority are checked before one durable effect.
+- **Effect on testing:** Tests cover typed partial-return rejection, immutable lifecycle proposals, stable cancel
+  identity, full return transitions, separate refund state, and owner-bound order resolution.
+- **Effect on Buildathon demo:** A completed purchase can be safely tracked, cancelled, returned, and refunded
+  without implying unsupported reverse-logistics or partial-refund behavior.
+
+## ADR-021 - PostgreSQL refund ledger and stable provider idempotency own refund safety
+
+- **Decision:** Derive full refund amount server-side from captured payment truth, serialize reservations under a
+  PostgreSQL ledger-row lock, create exactly one RefundExecution per immutable proposal, and reuse one stable
+  Razorpay idempotency key plus identical canonical request bytes through the transactional outbox and reconciliation.
+- **Why:** Timeouts, retries, duplicate requests, and concurrent proposals must never over-refund or create a second
+  provider effect; a successful HTTP response is not final refund truth.
+- **Alternatives considered:** Client-supplied refund amounts, JVM locking, new idempotency keys per retry,
+  marking create-response success as refunded, and best-effort non-durable retry work.
+- **Tradeoffs:** Refunds carry explicit uncertain/pending/manual-review states, immutable provider evidence, a
+  persisted retry budget, and provider reconciliation work.
+- **Effect on correctness:** Reserved plus completed value cannot exceed captured refundable value; only exact
+  configuration/payment/refund/amount/currency evidence with provider status `processed` establishes `REFUNDED`.
+- **Effect on testing:** Real PostgreSQL concurrency proves one full reservation; adapter/outbox tests verify stable
+  identity/body, pending reduction, exact reconciliation, and fail-closed evidence mismatch.
+- **Effect on Buildathon demo:** A lost or pending refund response is safely visible and recoverable without a
+  duplicate refund or premature success claim.
+
+## ADR-022 - AutoBuy P0 is versioned plan authority with explicit triggers only
+
+- **Decision:** Store owner-scoped, versioned AutoBuy plans bound to merchant link, selected address, product/category
+  constraints, exact-substitution rules, safety constraints, and maximum paise. Evaluate only an authenticated
+  explicit trigger ID; create fresh purchase authority every time and stop at customer-authorized Razorpay Checkout.
+- **Why:** A plan is a constraint set, not reusable transaction authorization, and P0 has neither a scheduler nor a
+  mandate capable of unattended debit.
+- **Alternatives considered:** Cron/inventory triggers, reusing old proposals/evidence, silently substituting products,
+  treating the plan as payment consent, and simulating automatic payment success.
+- **Tradeoffs:** Plans pause frequently and machine-readably when any fresh link, address, identity, safety,
+  capability, availability, serviceability, policy, or price fact is invalid/FAIL/UNKNOWN.
+- **Effect on correctness:** Unique plan-plus-trigger evaluation prevents duplicate proposals; fresh deterministic
+  gates enforce plan bounds, and AUTO_EXECUTE skips only another application confirmation—not Razorpay authorization.
+- **Effect on testing:** Tests cover versioned plan creation, duplicate-trigger idempotency, price fail-closed pause,
+  persisted evaluation retrieval, no execution on block, and absence of a scheduled AutoBuy worker.
+- **Effect on Buildathon demo:** A buyer can explicitly demonstrate bounded repeat purchasing while the interface
+  truthfully states that Checkout still requires customer payment authorization.
+
+## ADR-023 - One merchant agentization goal owns isolated capability targets
+
+- **Decision:** Represent the merchant's top-level agentization request as one bounded goal containing the required
+  capability target set, while retaining separate runs, evidence, readiness evaluations, and reducer outcomes per
+  capability. One advance starts or progresses at most one target run.
+- **Why:** Merchants should not manually bootstrap every capability, but aggregate convenience must not let evidence
+  from GET_QUOTE or another target certify PURCHASE, lifecycle, or refund readiness.
+- **Alternatives considered:** Manual run creation for every capability, one monolithic cross-capability run, and
+  aggregate readiness inferred from partial evidence.
+- **Tradeoffs:** The goal service coordinates more target state and may stop an individual target for clarification
+  while independently ready targets remain usable.
+- **Effect on correctness:** Capability evidence and deterministic READY authority stay isolated, bounded, and
+  inspectable even though progression begins from one merchant-level goal.
+- **Effect on testing:** PostgreSQL tests verify one goal creates the complete target set and advances only one
+  non-ready target without changing already-ready capability evidence.
+- **Effect on Buildathon demo:** Merchant agentization appears as one coherent objective rather than a sequence of
+  manual capability setup screens, without weakening the existing readiness reducer.

@@ -4,6 +4,7 @@ import static dev.agenticcommerce.gateway.commerce.TransactionModels.*;
 import static dev.agenticcommerce.gateway.intent.BuyerModels.*;
 
 import dev.agenticcommerce.gateway.intent.BuyerRepository;
+import dev.agenticcommerce.gateway.onboarding.OnboardingModels.FulfilmentSnapshot;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
@@ -126,14 +127,17 @@ public class TransactionAuthorityRepository {
     public ServiceabilityEvidence createServiceability(
             CandidateCart cart, MerchantAuthorityContext context, EvidenceOutcome outcome,
             ServiceabilitySource source, String sourceReference, String locationReferenceHash,
-            String reasonCode, Instant observedAt, Instant expiresAt, String evidenceHash) {
+            String reasonCode, Instant observedAt, Instant expiresAt, String evidenceHash,
+            FulfilmentSnapshot snapshot) {
         return jdbc.sql("""
                 INSERT INTO authoritative_serviceability_evidence(
                     thread_id,buyer_actor_id,merchant_id,cart_id,cart_version,cart_hash,
                     manifest_id,manifest_version,outcome,source_type,source_reference,
-                    location_reference_hash,reason_code,observed_at,expires_at,evidence_hash)
+                    location_reference_hash,reason_code,observed_at,expires_at,evidence_hash,
+                    fulfilment_snapshot_id,fulfilment_snapshot_hash,delivery_option)
                 VALUES(:thread,:buyer,:merchant,:cart,:cartVersion,:cartHash,:manifest,:manifestVersion,
-                    :outcome,:source,:reference,:locationHash,:reason,:observed,:expires,:hash)
+                    :outcome,:source,:reference,:locationHash,:reason,:observed,:expires,:hash,
+                    :snapshot,:snapshotHash,:deliveryOption)
                 RETURNING *
                 """).param("thread", cart.threadId()).param("buyer", cart.buyerActorId())
                 .param("merchant", cart.merchantId()).param("cart", cart.cartId())
@@ -144,7 +148,9 @@ public class TransactionAuthorityRepository {
                 .param("reason", reasonCode)
                 .param("observed", utc(observedAt), Types.TIMESTAMP_WITH_TIMEZONE)
                 .param("expires", utc(expiresAt), Types.TIMESTAMP_WITH_TIMEZONE)
-                .param("hash", evidenceHash).query(this::serviceability).single();
+                .param("hash", evidenceHash).param("snapshot", snapshot.id())
+                .param("snapshotHash", snapshot.snapshotHash()).param("deliveryOption", snapshot.deliveryOption())
+                .query(this::serviceability).single();
     }
 
     public Optional<ServiceabilityEvidence> findServiceability(UUID evidenceId) {

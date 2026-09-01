@@ -5,6 +5,7 @@ import static dev.agenticcommerce.gateway.intent.BuyerModels.*;
 
 import dev.agenticcommerce.gateway.agentization.service.CanonicalJsonService;
 import dev.agenticcommerce.gateway.commerce.ServiceabilityProvider.ServiceabilityRequest;
+import dev.agenticcommerce.gateway.onboarding.OnboardingModels.FulfilmentSnapshot;
 import dev.agenticcommerce.gateway.risk.TransactionAuthorityPolicy;
 import java.time.Instant;
 import org.springframework.stereotype.Service;
@@ -29,11 +30,13 @@ public class AuthoritativeServiceabilityService {
     }
 
     public ServiceabilityEvidence refresh(
-            CandidateCart cart, BuyerIntent intent, MerchantAuthorityContext context) {
+            CandidateCart cart, BuyerIntent intent, MerchantAuthorityContext context,
+            FulfilmentSnapshot snapshot) {
         Instant now = Instant.now();
         var result = provider.evaluate(new ServiceabilityRequest(
                 cart.merchantId(), cart.threadId(), cart.cartId(), cart.cartHash(),
-                intent.compiled().deliveryHint(), now));
+                snapshot.id(), snapshot.snapshotHash(), snapshot.postalCode(), snapshot.city(),
+                snapshot.deliveryOption(), intent.compiled().deliveryHint(), now));
         EvidenceOutcome outcome = result == null || result.outcome() == null
                 ? EvidenceOutcome.UNKNOWN : result.outcome();
         ServiceabilitySource source = result == null || result.sourceType() == null
@@ -51,8 +54,9 @@ public class AuthoritativeServiceabilityService {
             reason = "SERVICEABILITY_EVIDENCE_INVALID_OR_STALE";
         }
         String location = result == null || result.locationReference() == null
-                ? "UNSPECIFIED" : bounded(result.locationReference(), 512);
-        String locationHash = canonical.hashText("serviceability-location-v1|" + location);
+                ? snapshot.postalCode() : bounded(result.locationReference(), 512);
+        String locationHash = canonical.hashText("serviceability-location-v2|" + snapshot.snapshotHash()
+                + "|" + snapshot.deliveryOption() + "|" + location);
         var material = mapper.createObjectNode();
         material.put("merchantId", cart.merchantId().toString());
         material.put("cartId", cart.cartId().toString());
@@ -63,13 +67,16 @@ public class AuthoritativeServiceabilityService {
         material.put("source", source.name());
         material.put("sourceReference", result == null ? null : bounded(result.sourceReference(), 256));
         material.put("locationReferenceHash", locationHash);
+        material.put("fulfilmentSnapshotId", snapshot.id().toString());
+        material.put("fulfilmentSnapshotHash", snapshot.snapshotHash());
+        material.put("deliveryOption", snapshot.deliveryOption());
         material.put("reasonCode", reason);
         material.put("observedAt", observed == null ? now.toString() : observed.toString());
         if (expires == null) material.putNull("expiresAt"); else material.put("expiresAt", expires.toString());
         if (result != null && result.evidence() != null) material.set("providerEvidence", result.evidence());
         return repository.createServiceability(cart, context, outcome, source,
                 result == null ? null : bounded(result.sourceReference(), 256), locationHash, reason,
-                observed == null ? now : observed, expires, canonical.hash(material));
+                observed == null ? now : observed, expires, canonical.hash(material), snapshot);
     }
 
     private static String bounded(String value, int maximum) {

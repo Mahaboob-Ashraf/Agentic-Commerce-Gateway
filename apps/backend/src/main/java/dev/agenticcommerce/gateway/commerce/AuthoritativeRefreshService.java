@@ -10,6 +10,8 @@ import dev.agenticcommerce.gateway.intent.AuthoritativeQuoteService;
 import dev.agenticcommerce.gateway.intent.BuyerRepository;
 import dev.agenticcommerce.gateway.intent.BuyerThreadService;
 import dev.agenticcommerce.gateway.intent.ConstraintCertificateService;
+import dev.agenticcommerce.gateway.onboarding.OnboardingModels.FulfilmentSnapshot;
+import dev.agenticcommerce.gateway.onboarding.OnboardingService;
 import dev.agenticcommerce.gateway.risk.TransactionAuthorityPolicy;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -33,6 +35,7 @@ public class AuthoritativeRefreshService {
     private final TransactionAuthorityPolicy policy;
     private final CanonicalJsonService canonical;
     private final ObjectMapper mapper;
+    private final OnboardingService onboarding;
 
     public AuthoritativeRefreshService(
             BuyerThreadService threads, BuyerRepository buyers, CatalogueRepository catalogues,
@@ -40,7 +43,7 @@ public class AuthoritativeRefreshService {
             AuthoritativeAvailabilityService availability,
             AuthoritativeServiceabilityService serviceability,
             ConstraintCertificateService constraints, TransactionAuthorityPolicy policy,
-            CanonicalJsonService canonical, ObjectMapper mapper) {
+            CanonicalJsonService canonical, ObjectMapper mapper, OnboardingService onboarding) {
         this.threads = threads;
         this.buyers = buyers;
         this.catalogues = catalogues;
@@ -52,6 +55,7 @@ public class AuthoritativeRefreshService {
         this.policy = policy;
         this.canonical = canonical;
         this.mapper = mapper;
+        this.onboarding = onboarding;
     }
 
     @Transactional
@@ -72,6 +76,7 @@ public class AuthoritativeRefreshService {
         MerchantAuthorityContext context = repository.currentMerchantAuthority(cart.merchantId())
                 .orElseThrow(() -> conflict("MERCHANT_MANIFEST_REQUIRED", "Current merchant manifest is required"));
         requirePolicyAndCatalogue(context, cart);
+        FulfilmentSnapshot fulfilment = onboarding.createSnapshot(buyerId, cart.merchantId(), "STANDARD");
         if (context.quoteCapability() == null || !context.quoteCapability().ready()) {
             throw conflict("GET_QUOTE_NOT_READY", "Current manifest does not advertise READY GET_QUOTE");
         }
@@ -80,7 +85,7 @@ public class AuthoritativeRefreshService {
                 ? currentQuote : quotes.quote(cart, merchant(cart, context));
         requireCompleteQuote(quote, cart);
         AvailabilityRefresh stock = availability.refresh(cart, context);
-        ServiceabilityEvidence delivery = serviceability.refresh(cart, intent, context);
+        ServiceabilityEvidence delivery = serviceability.refresh(cart, intent, context, fulfilment);
         ConstraintCertificate certificate = constraints.evaluateExecutable(
                 thread, intent, cart, quote, stock, delivery, context.policySnapshotId());
         EvidenceOutcome outcome = reduce(certificate, stock, delivery);
@@ -101,14 +106,20 @@ public class AuthoritativeRefreshService {
         material.put("quoteHash", quote.evidenceHash());
         material.put("availabilityHash", stock.evidenceHash());
         material.put("serviceabilityHash", delivery.evidenceHash());
+        material.put("fulfilmentSnapshotHash", fulfilment.snapshotHash());
+        material.put("merchantAccountLinkHash", fulfilment.linkHash());
+        material.put("deliveryOption", fulfilment.deliveryOption());
         material.put("constraintCertificateHash", certificate.certificateHash());
         material.put("manifestId", context.manifestId().toString());
         material.put("manifestVersion", context.manifestVersion());
         material.put("policySnapshotHash", context.policySnapshotHash());
         material.put("outcome", outcome.name());
         material.put("refreshedAt", now.toString());
-        return repository.createAuthorityRefresh(cart, quote, stock, delivery, certificate,
+        AuthorityRefresh created = repository.createAuthorityRefresh(cart, quote, stock, delivery, certificate,
                 context, outcome, List.copyOf(refs), canonical.hash(material), now);
+        onboarding.bindAuthority(created.authorityRefreshId(), buyerId, cart.merchantId(), cart.cartId(),
+                quote.quoteRecordId(), delivery.serviceabilityEvidenceId(), fulfilment);
+        return created;
     }
 
     public AuthorityRefresh current(UUID buyerId, UUID threadId) {

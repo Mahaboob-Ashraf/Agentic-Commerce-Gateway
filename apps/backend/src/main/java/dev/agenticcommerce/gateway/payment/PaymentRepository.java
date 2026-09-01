@@ -509,11 +509,16 @@ public class PaymentRepository {
                 .param("configuration", configurationId).param("event", eventId).update();
     }
 
-    public record OutboxItem(UUID id, UUID merchantId, UUID executionId, int attemptCount) {}
+    public record OutboxItem(UUID id, UUID merchantId, UUID executionId, UUID refundExecutionId,
+            String workType, int attemptCount) {}
     public record FinalizationWork(
             UUID id, UUID executionId, UUID proposalId, UUID merchantId, String merchantOperationId,
             String providerOrderId, String providerPaymentId, FulfillmentState state, int attemptCount) {}
     public record FinalizationHeader(long amountMinor, String currency, String proposalHash) {}
+    public record FinalizationFulfilment(String externalCustomerReference, String recipientName,
+            String phone, String addressLine1, String addressLine2, String locality, String city,
+            String state, String postalCode, String country, String deliveryOption,
+            String fulfilmentSnapshotHash, String merchantAccountLinkHash) {}
     public record FinalizationLine(
             int lineNumber, UUID productId, String merchantSku, String variant,
             int quantity, long unitAmountMinor, long lineAmountMinor) {}
@@ -531,11 +536,13 @@ public class PaymentRepository {
                 UPDATE transactional_outbox outbox SET status='PROCESSING',
                     attempt_count=attempt_count+1,lease_expires_at=:lease,last_error_code=NULL
                 FROM candidates WHERE outbox.outbox_id=candidates.outbox_id
-                RETURNING outbox.outbox_id,outbox.merchant_id,outbox.execution_id,outbox.attempt_count
+                RETURNING outbox.outbox_id,outbox.merchant_id,outbox.execution_id,
+                    outbox.refund_execution_id,outbox.work_type,outbox.attempt_count
                 """).param("now", utc(now), Types.TIMESTAMP_WITH_TIMEZONE).param("limit", limit)
                 .param("lease", utc(leaseExpiry), Types.TIMESTAMP_WITH_TIMEZONE)
                 .query((rs, row) -> new OutboxItem(rs.getObject("outbox_id", UUID.class),
                         rs.getObject("merchant_id", UUID.class), rs.getObject("execution_id", UUID.class),
+                        rs.getObject("refund_execution_id", UUID.class),rs.getString("work_type"),
                         rs.getInt("attempt_count"))).list();
     }
 
@@ -555,6 +562,23 @@ public class PaymentRepository {
                 """).param("proposal", proposalId).query((rs, row) -> new FinalizationHeader(
                         rs.getLong("final_amount_minor"), rs.getString("currency"),
                         rs.getString("proposal_hash").strip())).single();
+    }
+
+    public FinalizationFulfilment finalizationFulfilment(UUID proposalId) {
+        return jdbc.sql("""
+                SELECT snapshot.external_customer_reference,snapshot.recipient_name,snapshot.phone,
+                  snapshot.address_line_1,snapshot.address_line_2,snapshot.locality,snapshot.city,
+                  snapshot.state,snapshot.postal_code,snapshot.country,snapshot.delivery_option,
+                  snapshot.snapshot_hash,binding.merchant_account_link_hash
+                FROM transaction_proposal_fulfilment binding
+                JOIN fulfilment_snapshot snapshot ON snapshot.fulfilment_snapshot_id=binding.fulfilment_snapshot_id
+                WHERE binding.proposal_id=:proposal
+                """).param("proposal", proposalId).query((rs,row) -> new FinalizationFulfilment(
+                        rs.getString("external_customer_reference"),rs.getString("recipient_name"),rs.getString("phone"),
+                        rs.getString("address_line_1"),rs.getString("address_line_2"),rs.getString("locality"),
+                        rs.getString("city"),rs.getString("state"),rs.getString("postal_code"),rs.getString("country"),
+                        rs.getString("delivery_option"),rs.getString("snapshot_hash").strip(),
+                        rs.getString("merchant_account_link_hash").strip())).single();
     }
 
     public List<FinalizationLine> finalizationLines(UUID proposalId) {
@@ -598,6 +622,20 @@ public class PaymentRepository {
                     completed_at=:now WHERE merchant_finalization_id=:id AND attempt_number=:attempt
                 """).param("hash", responseHash).param("now", utc(now), Types.TIMESTAMP_WITH_TIMEZONE)
                 .param("id", work.id()).param("attempt", attempt).update();
+        jdbc.sql("""
+                INSERT INTO merchant_order_observation(execution_id,merchant_finalization_id,buyer_actor_id,
+                  merchant_id,merchant_order_id,external_customer_reference,status,source,source_reference,
+                  evidence_hash,observed_at)
+                SELECT finalization.execution_id,finalization.merchant_finalization_id,proposal.buyer_actor_id,
+                  finalization.merchant_id,:merchantOrder,snapshot.external_customer_reference,'PLACED',
+                  'MERCHANT_RESPONSE',finalization.merchant_operation_id,:hash,:now
+                FROM merchant_finalization finalization
+                JOIN transaction_proposal proposal ON proposal.proposal_id=finalization.proposal_id
+                JOIN transaction_proposal_fulfilment binding ON binding.proposal_id=proposal.proposal_id
+                JOIN fulfilment_snapshot snapshot ON snapshot.fulfilment_snapshot_id=binding.fulfilment_snapshot_id
+                WHERE finalization.merchant_finalization_id=:id ON CONFLICT DO NOTHING
+                """).param("merchantOrder",merchantOrderId).param("hash",responseHash)
+                .param("now",utc(now),Types.TIMESTAMP_WITH_TIMEZONE).param("id",work.id()).update();
     }
 
     public void failFinalization(

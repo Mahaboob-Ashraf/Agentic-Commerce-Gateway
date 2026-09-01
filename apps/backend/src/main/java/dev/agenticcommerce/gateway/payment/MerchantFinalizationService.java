@@ -44,6 +44,19 @@ public class MerchantFinalizationService {
             request.put("currency", header.currency());
             request.put("providerOrderId", work.providerOrderId());
             request.put("providerPaymentId", work.providerPaymentId());
+            var fulfilment = repository.finalizationFulfilment(work.proposalId());
+            request.put("merchantCustomerReference", fulfilment.externalCustomerReference());
+            request.put("recipientName", fulfilment.recipientName());
+            request.put("recipientPhone", fulfilment.phone());
+            request.put("deliveryOption", fulfilment.deliveryOption());
+            request.put("fulfilmentSnapshotHash", fulfilment.fulfilmentSnapshotHash());
+            request.put("merchantAccountLinkHash", fulfilment.merchantAccountLinkHash());
+            var address = request.putObject("deliveryAddress");
+            address.put("line1", fulfilment.addressLine1());
+            if (fulfilment.addressLine2() == null) address.putNull("line2"); else address.put("line2", fulfilment.addressLine2());
+            address.put("locality", fulfilment.locality()); address.put("city", fulfilment.city());
+            address.put("state", fulfilment.state()); address.put("postalCode", fulfilment.postalCode());
+            address.put("country", fulfilment.country());
             var lines = request.putArray("lineItems");
             for (var line : repository.finalizationLines(work.proposalId())) {
                 var value = lines.addObject();

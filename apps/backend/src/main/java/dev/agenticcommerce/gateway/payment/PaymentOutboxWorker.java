@@ -1,5 +1,6 @@
 package dev.agenticcommerce.gateway.payment;
 
+import dev.agenticcommerce.gateway.lifecycle.RefundService;
 import java.time.Instant;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -10,14 +11,16 @@ public class PaymentOutboxWorker {
     private final PaymentRepository repository;
     private final MerchantFinalizationService finalization;
     private final PaymentProvider provider;
+    private final RefundService refunds;
     private final int batchSize;
     private final long leaseSeconds;
 
     public PaymentOutboxWorker(
             PaymentRepository repository, MerchantFinalizationService finalization, PaymentProvider provider,
+            RefundService refunds,
             @Value("${payment.outbox.batch-size:10}") int batchSize,
             @Value("${payment.outbox.lease-seconds:60}") long leaseSeconds) {
-        this.repository = repository; this.finalization = finalization; this.provider = provider;
+        this.repository = repository; this.finalization = finalization; this.provider = provider; this.refunds=refunds;
         this.batchSize = batchSize; this.leaseSeconds = leaseSeconds;
     }
 
@@ -28,7 +31,8 @@ public class PaymentOutboxWorker {
         if (!provider.configured()) return;
         Instant now = Instant.now();
         for (var item : repository.claimOutbox(batchSize, now, now.plusSeconds(leaseSeconds))) {
-            finalization.process(item);
+            if ("FINALIZE_MERCHANT_ORDER".equals(item.workType())) finalization.process(item);
+            else refunds.process(item);
         }
     }
 }
