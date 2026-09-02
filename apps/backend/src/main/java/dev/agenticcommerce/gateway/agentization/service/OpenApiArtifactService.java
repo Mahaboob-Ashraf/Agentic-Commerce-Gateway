@@ -46,7 +46,24 @@ public class OpenApiArtifactService {
         return artifactRepository.findByMerchantAndId(merchantId, artifactId)
                 .orElseThrow(() -> new AgentizationException(
                         "OPENAPI_ARTIFACT_NOT_FOUND", HttpStatus.NOT_FOUND,
-                        "OpenAPI artifact was not found"));
+                "OpenAPI artifact was not found"));
+    }
+
+    @Transactional
+    public OpenApiArtifact registerOrReuse(
+            UUID merchantId, UUID endpointId, String artifactVersion, JsonNode document) {
+        endpointRepository.findByMerchantAndId(merchantId, endpointId)
+                .orElseThrow(() -> new AgentizationException(
+                        "APPROVED_ENDPOINT_NOT_FOUND", HttpStatus.NOT_FOUND,
+                        "Approved merchant endpoint was not found"));
+        validateDocument(document);
+        String normalizedVersion = requireBoundedText(artifactVersion, 64, "artifactVersion");
+        String canonical = canonicalJsonService.canonicalize(document);
+        String contentHash = canonicalJsonService.hashText(canonical);
+        return artifactRepository.findByApprovedContent(
+                        merchantId, endpointId, normalizedVersion, contentHash)
+                .orElseGet(() -> artifactRepository.create(
+                        merchantId, endpointId, normalizedVersion, contentHash, canonical));
     }
 
     private static void validateDocument(JsonNode document) {

@@ -50,6 +50,18 @@ public class MerchantRepository {
                 .optional();
     }
 
+    public Optional<Merchant> findByKey(String merchantKey) {
+        String canonicalKey = Objects.requireNonNull(merchantKey, "merchantKey")
+                .strip().toLowerCase(Locale.ROOT);
+        return jdbcClient.sql("""
+                        SELECT merchant_id, merchant_key, display_name, created_at
+                        FROM merchant WHERE merchant_key = :merchantKey
+                        """)
+                .param("merchantKey", canonicalKey)
+                .query(MerchantRepository::mapMerchant)
+                .optional();
+    }
+
     private static Merchant mapMerchant(ResultSet resultSet, int rowNumber) throws SQLException {
         return new Merchant(
                 resultSet.getObject("merchant_id", UUID.class),

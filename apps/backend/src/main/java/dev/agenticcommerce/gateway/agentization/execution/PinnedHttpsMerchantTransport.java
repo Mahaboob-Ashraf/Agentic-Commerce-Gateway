@@ -54,6 +54,7 @@ public class PinnedHttpsMerchantTransport implements MerchantTransport {
                 .build()) {
             HttpUriRequestBase httpRequest = new HttpUriRequestBase(request.method(), request.uri());
             httpRequest.setHeader("Accept", "application/json");
+            request.headers().forEach(httpRequest::setHeader);
             if (request.jsonBody().length > 0) {
                 httpRequest.setEntity(new ByteArrayEntity(request.jsonBody(), ContentType.APPLICATION_JSON));
             }

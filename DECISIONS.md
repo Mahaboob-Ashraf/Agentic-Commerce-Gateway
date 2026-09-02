@@ -403,3 +403,35 @@ records current implementation/project state. ADR-024 is an approved post-PDF ov
 - **Consequences:** Future P0 voice work and Task 012 must use this boundary, preserve ephemeral constrained sessions and
   grounded structured-result injection, and keep commerce truth model-independent so a future Live model can replace
   the preview model without redesigning financial or deterministic authority.
+
+## ADR-025 - Deterministic P0 merchants use the standard HTTP authority path
+
+- **Decision:** Host the bounded Amazing and FreshBasket operation surfaces inside the modular monolith, but expose and
+  agentize them as public HTTPS merchant endpoints. Keep catalogue inputs as checked-in provenance-bearing snapshots,
+  store inventory/order state in PostgreSQL, and run an explicit environment-gated bootstrap through existing domain
+  services. A newly published manifest carries each capability's latest independently evaluated state and advertises
+  it only when that latest state is READY; it does not infer readiness from the run that triggered publication. For
+  the P0 Cloud Run topology, deployment of the current build is a strict prerequisite to bootstrap:
+  `DEMO_MERCHANT_PUBLIC_BASE_URL` must identify that deployed public HTTPS service before the bootstrap agentizes its
+  `/api/demo-merchants/**` capabilities. Every demo route is machine-authenticated with a secret sourced only from
+  `DEMO_MERCHANT_API_SECRET`; approved endpoints retain only its opaque environment reference and the executor resolves
+  and transmits it at invocation time. A completion marker is authority evidence, so it is written only after exact
+  merchant/catalogue/link/mapping/READY counts and an empty blocker set have been verified.
+- **Why:** The remotely persistent P0 demo must be reproducible while exercising the same approved endpoint, mapping,
+  contract-test, readiness, buyer-link, and merchant executor boundaries used by an external merchant.
+- **Alternatives considered:** Runtime third-party catalogue calls, direct service invocation from the buyer, ad-hoc READY
+  inserts, a separate merchant service/database, and replacing prior READY capabilities with only the current run target.
+- **Tradeoffs:** The deployed application temporarily serves both gateway and demo-merchant roles, and richer production
+  conformance suites remain future work. Public demo routes must remain bounded and contain no payment authority. The
+  operator must deploy first and then run bootstrap against the deployment; localhost cannot be used as a bootstrap
+  shortcut because endpoint SSRF validation, contract tests, and readiness must observe a publicly reachable merchant.
+- **Effect on correctness:** Stable operation IDs plus canonical request hashes and PostgreSQL uniqueness prevent duplicate
+  merchant orders. Public callers without the machine credential cannot mutate demo inventory or order state. PLACE_ORDER
+  recomputes merchant-authoritative item prices and delivery, requires the final amount/currency from finalization, and
+  rejects drift before mutation. Capability evidence remains isolated, missing safety facts stay UNKNOWN, and
+  Razorpay/payment truth is unchanged.
+- **Effect on testing:** Testcontainers exercises snapshot ingestion, exact catalogue overlap, all seven HTTP contracts,
+  cumulative manifests, buyer links, persistent inventory/order idempotency, and zero bootstrap payment side effects.
+- **Effect on Buildathon demo:** A single Cloud Run deployment and Supabase database can demonstrate two meaningfully
+  different READY merchants without making buyer requests depend on live public product APIs. The completion log and
+  persisted bootstrap summary state the public base URL and deployment precondition used for the run.

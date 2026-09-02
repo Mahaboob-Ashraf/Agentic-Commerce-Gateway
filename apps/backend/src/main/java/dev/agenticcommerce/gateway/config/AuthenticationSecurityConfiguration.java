@@ -1,11 +1,13 @@
 package dev.agenticcommerce.gateway.config;
 
+import dev.agenticcommerce.gateway.demo.DemoMerchantApiAuthenticationFilter;
 import dev.agenticcommerce.gateway.identity.authentication.ApplicationActorUserDetailsService;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.List;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -17,6 +19,7 @@ import org.springframework.security.crypto.argon2.Argon2PasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.session.ChangeSessionIdAuthenticationStrategy;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.authentication.session.CompositeSessionAuthenticationStrategy;
 import org.springframework.security.web.authentication.session.SessionAuthenticationStrategy;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
@@ -65,13 +68,15 @@ public class AuthenticationSecurityConfiguration {
     SecurityFilterChain authenticationSecurityFilterChain(
             HttpSecurity http,
             SecurityContextRepository securityContextRepository,
-            HttpSessionCsrfTokenRepository csrfTokenRepository) throws Exception {
+            HttpSessionCsrfTokenRepository csrfTokenRepository,
+            DemoMerchantApiAuthenticationFilter demoMerchantApiAuthenticationFilter) throws Exception {
         return http
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/auth/csrf").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/payments/razorpay/webhook").permitAll()
+                        .requestMatchers("/api/demo-merchants/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/discovery/merchants/*/ready-capabilities").permitAll()
                         .requestMatchers("/api/discovery/merchants/*/catalogue/**").permitAll()
                         .requestMatchers("/api/auth/me", "/api/auth/logout").authenticated()
@@ -81,7 +86,8 @@ public class AuthenticationSecurityConfiguration {
                         .requestMatchers("/api/merchants/*/catalogue/**").hasRole("MERCHANT_ADMIN")
                         .anyRequest().denyAll())
                 .csrf(csrf -> csrf.csrfTokenRepository(csrfTokenRepository)
-                        .ignoringRequestMatchers("/api/payments/razorpay/webhook"))
+                        .ignoringRequestMatchers("/api/payments/razorpay/webhook", "/api/demo-merchants/**"))
+                .addFilterBefore(demoMerchantApiAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                 .securityContext(context -> context
                         .securityContextRepository(securityContextRepository)
                         .requireExplicitSave(true))
@@ -102,6 +108,14 @@ public class AuthenticationSecurityConfiguration {
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .formLogin(AbstractHttpConfigurer::disable)
                 .build();
+    }
+
+    @Bean
+    FilterRegistrationBean<DemoMerchantApiAuthenticationFilter> demoMerchantFilterRegistration(
+            DemoMerchantApiAuthenticationFilter filter) {
+        var registration = new FilterRegistrationBean<>(filter);
+        registration.setEnabled(false);
+        return registration;
     }
 
     private static void writeJsonError(HttpServletResponse response, int status, String error)

@@ -181,7 +181,13 @@ public class DeterministicReadinessService {
                     "Manifest reduction requires READY_CANDIDATE, approval-waiting, or completed state");
         }
         Map<ReadinessCapability,ReadinessEvaluation> evaluations=new EnumMap<>(ReadinessCapability.class);
-        for(ReadinessCapability capability:ReadinessCapability.values()) evaluations.put(capability,evaluatePersisted(run,capability));
+        ReadinessCapability targetCapability=ReadinessCapability.from(run.currentCapability());
+        for(ReadinessCapability capability:ReadinessCapability.values()) {
+            if(capability==targetCapability||capability==ReadinessCapability.PURCHASE)
+                evaluations.put(capability,evaluatePersisted(run,capability));
+            else evaluations.put(capability,authority.findLatestReadiness(merchantId,capability)
+                    .orElseGet(()->evaluatePersisted(run,capability)));
+        }
         List<ManifestCapability> entries=evaluations.values().stream().map(e -> new ManifestCapability(
                 e.capability(),e.readiness()==CapabilityReadiness.READY,e.readiness(),
                 e.readiness()==CapabilityReadiness.READY?e.mappingProposalId():null,e.readinessEvaluationId())).toList();

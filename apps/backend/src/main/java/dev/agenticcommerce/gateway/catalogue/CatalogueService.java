@@ -70,9 +70,10 @@ public class CatalogueService {
             var merchantResolution=repository.insertResolution(merchantId,draft.id(),product.id(),"MERCHANT",input.sourceRecordId(),
                     IdentityOutcome.EXACT,merchantMatch,mapper.createObjectNode(),merchantResolutionHash);
             persistMerchantFacts(merchantId,draft.id(),product,merchantResolution.id(),input);
-            acceptedMaterial.add(contentHashMaterial(product,input.facts()));
-            boolean productEnriched=false;
-            if(input.gtin()!=null){
+            persistMaterializedExternalEvidence(merchantId,draft.id(),product,input);
+            acceptedMaterial.add(contentHashMaterial(product,input));
+            boolean productEnriched=input.externalEvidence()!=null;
+            if(input.gtin()!=null&&input.externalEvidence()==null){
                 try{
                     var external=catalogueProvider.lookupExactBarcode(input.gtin());
                     if(external.isPresent()){
@@ -83,7 +84,7 @@ public class CatalogueService {
                         else unresolved++;
                     } else unresolved++;
                 }catch(RuntimeException ignored){unresolved++;}
-            }else unresolved++;
+            }else if(input.gtin()==null)unresolved++;
             if(productEnriched)enriched++;
             String embeddingInput=embeddingInput(product);String inputHash=canonical.hashText(embeddingInput);
             try{List<Float> values=embeddingProvider.embed(embeddingInput);if(values.size()!=EmbeddingProvider.OUTPUT_DIMENSIONS)throw new IllegalStateException("EMBEDDING_DIMENSION_MISMATCH");
@@ -131,13 +132,35 @@ public class CatalogueService {
         if(p.stockQuantity()!=null&&p.stockQuantity()<0)throw new IllegalArgumentException("stockQuantity cannot be negative");
         Instant observed=p.observedAt()==null?Instant.now():p.observedAt();
         List<MerchantFactInput> facts=normalizeFacts(p.facts(),observed);
+        ExternalEvidenceInput externalEvidence=normalizeExternalEvidence(p.externalEvidence(),observed,gtin);
         return new ProductInput(sku,gtin,bounded(p.brand(),256,false,"brand"),name,bounded(p.variant(),256,false,"variant"),
                 bounded(p.sizeStorage(),128,false,"sizeStorage"),bounded(p.colour(),128,false,"colour"),bounded(p.category(),256,false,"category"),
                 bounded(p.description(),4000,false,"description"),p.active()==null?true:p.active(),
                 bounded(p.sourceRecordId()==null?"row-"+row:p.sourceRecordId(),256,true,"sourceRecordId"),p.priceMinor(),
                 currency==null?null:currency.toUpperCase(Locale.ROOT),p.stockQuantity(),p.availability()==null?Availability.UNKNOWN:p.availability(),
                 bounded(p.observationSource()==null?"CATALOGUE_UPLOAD":p.observationSource(),128,true,"observationSource"),
-                bounded(p.sourceVersion(),128,false,"sourceVersion"),observed,facts);
+                bounded(p.sourceVersion(),128,false,"sourceVersion"),observed,facts,externalEvidence);
+    }
+
+    private ExternalEvidenceInput normalizeExternalEvidence(ExternalEvidenceInput evidence,Instant productObserved,String gtin){
+        if(evidence==null)return null;if(gtin==null)throw new IllegalArgumentException("materialized external evidence requires gtin");
+        String source=bounded(evidence.source(),32,true,"externalEvidence.source").toUpperCase(Locale.ROOT);
+        if(!"OPEN_FOOD_FACTS".equals(source))throw new IllegalArgumentException("only OPEN_FOOD_FACTS materialized evidence is supported");
+        String record=bounded(evidence.sourceRecordId(),256,true,"externalEvidence.sourceRecordId");
+        if(!gtin.equals(record))throw new IllegalArgumentException("Open Food Facts evidence must match the exact product gtin");
+        String version=bounded(evidence.sourceVersion(),128,true,"externalEvidence.sourceVersion");
+        Instant observed=evidence.observedAt()==null?productObserved:evidence.observedAt();
+        Instant expires=evidence.expiresAt()==null?observed.plus(180,ChronoUnit.DAYS):evidence.expiresAt();
+        if(!expires.isAfter(observed))throw new IllegalArgumentException("external evidence expiry must follow observation");
+        List<MerchantFactInput> facts=normalizeFacts(evidence.facts(),observed).stream().map(fact->{
+            if(!Set.of("BARCODE","BRAND","INGREDIENTS","ALLERGEN","NUTRITION","PROTEIN","IMAGE").contains(fact.type()))
+                throw new IllegalArgumentException("unsupported materialized Open Food Facts fact type");
+            if("ALLERGEN".equals(fact.type())&&!"PRESENT".equals(fact.value().path("status").asText()))
+                throw new IllegalArgumentException("external evidence cannot assert allergen absence");
+            return new MerchantFactInput(fact.type(),fact.value(),version,observed,expires);
+        }).toList();
+        if(facts.isEmpty())throw new IllegalArgumentException("materialized external evidence requires facts");
+        return new ExternalEvidenceInput(source,record,version,observed,expires,facts);
     }
 
     private List<MerchantFactInput> normalizeFacts(List<MerchantFactInput> facts,Instant productObserved){
@@ -188,6 +211,21 @@ public class CatalogueService {
             repository.insertFact(merchantId,versionId,product.id(),resolutionId,fact.type(),fact.value(),"MERCHANT",
                     input.sourceRecordId()+"#fact-"+(++index),fact.sourceVersion()==null?input.sourceVersion():fact.sourceVersion(),
                     "PRIMARY","ACTIVE",fact.observedAt(),fact.expiresAt(),canonical.hash(material));}
+    }
+
+    private void persistMaterializedExternalEvidence(UUID merchantId,UUID versionId,Product product,ProductInput input){
+        ExternalEvidenceInput evidence=input.externalEvidence();if(evidence==null)return;
+        ObjectNode matched=mapper.createObjectNode().put("barcode",product.gtin());ObjectNode resolutionMaterial=mapper.createObjectNode()
+                .put("productId",product.id().toString()).put("externalRecord",evidence.sourceRecordId()).put("outcome","EXACT");
+        resolutionMaterial.set("matched",matched);resolutionMaterial.set("conflicts",mapper.createObjectNode());
+        var resolution=repository.insertResolution(merchantId,versionId,product.id(),evidence.source(),evidence.sourceRecordId(),
+                IdentityOutcome.EXACT,matched,mapper.createObjectNode(),canonical.hash(resolutionMaterial));
+        for(MerchantFactInput fact:evidence.facts()){ObjectNode material=mapper.createObjectNode().put("type",fact.type());
+            material.set("value",fact.value());material.put("source",evidence.source()).put("sourceRecordId",evidence.sourceRecordId())
+                    .put("sourceVersion",evidence.sourceVersion());
+            repository.insertFact(merchantId,versionId,product.id(),resolution.id(),fact.type(),fact.value(),evidence.source(),
+                    evidence.sourceRecordId(),evidence.sourceVersion(),"SECONDARY","ACTIVE",
+                    evidence.observedAt(),evidence.expiresAt(),canonical.hash(material));}
     }
 
     private Resolution resolve(Product p,CatalogueProvider.ExternalProduct x){
@@ -252,14 +290,15 @@ public class CatalogueService {
     private static String bounded(String value,int max,boolean required,String field){if(value==null||value.isBlank()){if(required)throw new IllegalArgumentException(field+" is required");return null;}String v=value.strip();if(v.length()>max)throw new IllegalArgumentException(field+" exceeds "+max+" characters");return v;}
     static String normalizeText(String value){if(value==null)return "";return Normalizer.normalize(value,Normalizer.Form.NFKC).toLowerCase(Locale.ROOT).replaceAll("[^\\p{L}\\p{N}]+"," ").strip();}
     private static String embeddingInput(Product p){return String.join(" | ",List.of(p.canonicalName(),p.brand()==null?"":p.brand(),p.variant()==null?"":p.variant(),p.sizeStorage()==null?"":p.sizeStorage(),p.category()==null?"":p.category(),p.description()==null?"":p.description()));}
-    private ObjectNode contentHashMaterial(Product p,List<MerchantFactInput> facts){ObjectNode value=mapper.createObjectNode();
+    private ObjectNode contentHashMaterial(Product p,ProductInput input){ObjectNode value=mapper.createObjectNode();
         value.put("merchantSku",p.merchantSku());value.put("gtin",p.gtin());value.put("brand",p.brand());
         value.put("canonicalName",p.canonicalName());value.put("normalizedName",p.normalizedName());
         value.put("variant",p.variant());value.put("sizeStorage",p.sizeStorage());value.put("colour",p.colour());
         value.put("category",p.category());value.put("description",p.description());value.put("active",p.active());
         value.put("sourceRecordId",p.sourceRecordId());if(p.priceMinor()==null)value.putNull("priceMinor");else value.put("priceMinor",p.priceMinor());
         value.put("currency",p.currency());if(p.stockQuantity()==null)value.putNull("stockQuantity");else value.put("stockQuantity",p.stockQuantity());
-        value.put("availability",p.availability().name());value.set("facts",mapper.valueToTree(facts));return value;}
+        value.put("availability",p.availability().name());value.set("facts",mapper.valueToTree(input.facts()));
+        value.set("externalEvidence",mapper.valueToTree(input.externalEvidence()));return value;}
     private static String safeFailure(RuntimeException failure){String n=failure.getMessage()==null?failure.getClass().getSimpleName():failure.getMessage();return n.replaceAll("[^A-Za-z0-9_-]","_").substring(0,Math.min(n.length(),120));}
     private static AgentizationException invalid(String code,String message){return new AgentizationException(code,HttpStatus.UNPROCESSABLE_ENTITY,message==null?code:message);}
     private record Resolution(IdentityOutcome outcome,ObjectNode matched,ObjectNode conflicts,String hash){}

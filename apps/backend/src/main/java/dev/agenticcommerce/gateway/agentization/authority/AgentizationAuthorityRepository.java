@@ -281,6 +281,16 @@ public class AgentizationAuthorityRepository {
                 """).param("m", merchantId).param("r", runId).query(this::mapReadiness).list();
     }
 
+    public Optional<ReadinessEvaluation> findLatestReadiness(
+            UUID merchantId, ReadinessCapability capability) {
+        return jdbc.sql("""
+                SELECT * FROM capability_readiness_evaluation
+                WHERE merchant_id=:m AND capability=:c
+                ORDER BY evaluated_at DESC, readiness_evaluation_id DESC LIMIT 1
+                """).param("m",merchantId).param("c",capability.name())
+                .query(this::mapReadiness).optional();
+    }
+
     public AgentCommerceManifest createManifest(
             UUID merchantId, UUID runId, UUID snapshotId, UUID actorId, String hash,
             List<ManifestCapability> capabilities) {

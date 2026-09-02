@@ -69,7 +69,20 @@ public class PolicyAuthorityService {
     public List<ProposedPolicyRule> extract(UUID actorId, UUID merchantId, UUID documentId) {
         access.requireMerchantAdmin(actorId, merchantId);
         PolicyDocument document = requireDocument(merchantId, documentId);
-        PolicyExtractionProvider.PolicyExtractionResult extraction = extractor.extract(document);
+        return persistExtraction(document, extractor.extract(document));
+    }
+
+    /** Internal authority-preserving seam for explicit deterministic fixture bootstraps. */
+    @Transactional
+    public List<ProposedPolicyRule> recordBootstrapExtraction(
+            UUID actorId, UUID merchantId, UUID documentId,
+            PolicyExtractionProvider.PolicyExtractionResult extraction) {
+        access.requireMerchantAdmin(actorId, merchantId);
+        return persistExtraction(requireDocument(merchantId, documentId), extraction);
+    }
+
+    private List<ProposedPolicyRule> persistExtraction(
+            PolicyDocument document, PolicyExtractionProvider.PolicyExtractionResult extraction) {
         if (extraction == null || extraction.rules() == null || extraction.rules().isEmpty()
                 || extraction.rules().size() > MAX_EXTRACTED_RULES) {
             throw invalid("POLICY_EXTRACTION_INVALID", "Policy extraction must return one to 64 typed rules");
@@ -81,7 +94,7 @@ public class PolicyAuthorityService {
         for (ProposedPolicyRuleInput input : extraction.rules()) {
             validateRule(input);
             var material = mapper.createObjectNode();
-            material.put("documentId", documentId.toString()); material.put("documentVersion", document.documentVersion());
+            material.put("documentId", document.policyDocumentId().toString()); material.put("documentVersion", document.documentVersion());
             material.put("ruleVersion", version); material.put("ruleType", input.ruleType().name());
             material.put("sourceClause", input.sourceClause()); material.set("conditions", input.applicabilityConditions());
             material.set("outcome", input.outcomeEffect());

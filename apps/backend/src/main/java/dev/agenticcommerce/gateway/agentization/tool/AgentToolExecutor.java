@@ -14,7 +14,7 @@ import dev.agenticcommerce.gateway.agentization.persistence.CapabilityContractTe
 import dev.agenticcommerce.gateway.agentization.persistence.CapabilityMappingProposalRepository;
 import dev.agenticcommerce.gateway.agentization.service.AgentizationException;
 import dev.agenticcommerce.gateway.agentization.service.ExecutableMappingValidator;
-import dev.agenticcommerce.gateway.agentization.service.GetQuoteContractTestService;
+import dev.agenticcommerce.gateway.agentization.service.CanonicalCapabilityContractTestService;
 import dev.agenticcommerce.gateway.agentization.service.OpenApiArtifactService;
 import dev.agenticcommerce.gateway.catalogue.CatalogueService;
 import java.util.Locale;
@@ -33,7 +33,7 @@ public class AgentToolExecutor {
     private final CapabilityMappingProposalRepository mappingRepository;
     private final CapabilityContractTestRunRepository contractTestRepository;
     private final ExecutableMappingValidator mappingValidator;
-    private final GetQuoteContractTestService contractTestService;
+    private final CanonicalCapabilityContractTestService contractTestService;
     private final MerchantAuthorityService merchantAuthorityService;
     private final PolicyAuthorityService policyAuthorityService;
     private final CatalogueService catalogueService;
@@ -45,7 +45,7 @@ public class AgentToolExecutor {
             CapabilityMappingProposalRepository mappingRepository,
             CapabilityContractTestRunRepository contractTestRepository,
             ExecutableMappingValidator mappingValidator,
-            GetQuoteContractTestService contractTestService,
+            CanonicalCapabilityContractTestService contractTestService,
             MerchantAuthorityService merchantAuthorityService,
             PolicyAuthorityService policyAuthorityService,
             CatalogueService catalogueService,

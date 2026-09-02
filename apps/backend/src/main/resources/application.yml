@@ -89,3 +89,11 @@ payment:
     poll-delay-ms: ${PAYMENT_OUTBOX_POLL_DELAY_MS:1000}
   finalization:
     maximum-attempts: ${MERCHANT_FINALIZATION_MAXIMUM_ATTEMPTS:8}
+
+demo:
+  bootstrap:
+    enabled: ${DEMO_BOOTSTRAP_ENABLED:false}
+    public-base-url: ${DEMO_MERCHANT_PUBLIC_BASE_URL:}
+    buyer-identity: ${DEMO_BUYER_IDENTITY:}
+    buyer-password: ${DEMO_BUYER_PASSWORD:}
+    fixture-root: ${DEMO_FIXTURE_ROOT:../../evaluation/demo-data}

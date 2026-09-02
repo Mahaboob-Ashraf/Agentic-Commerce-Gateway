@@ -60,6 +60,25 @@ public class OpenApiArtifactRepository {
                 .optional();
     }
 
+    public Optional<OpenApiArtifact> findByApprovedContent(
+            UUID merchantId, UUID endpointId, String artifactVersion, String contentHash) {
+        return jdbcClient.sql("""
+                        SELECT artifact_id, merchant_id, endpoint_id, artifact_type,
+                               artifact_version, content_hash, document::text, created_at
+                        FROM openapi_artifact
+                        WHERE merchant_id = :merchantId
+                          AND endpoint_id = :endpointId
+                          AND artifact_version = :artifactVersion
+                          AND content_hash = :contentHash
+                        """)
+                .param("merchantId", merchantId)
+                .param("endpointId", endpointId)
+                .param("artifactVersion", artifactVersion)
+                .param("contentHash", contentHash)
+                .query(this::map)
+                .optional();
+    }
+
     private OpenApiArtifact map(ResultSet rs, int rowNumber) throws SQLException {
         return new OpenApiArtifact(
                 rs.getObject("artifact_id", UUID.class),

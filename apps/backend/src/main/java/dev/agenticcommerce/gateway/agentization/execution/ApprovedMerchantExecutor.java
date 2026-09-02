@@ -22,16 +22,19 @@ public class ApprovedMerchantExecutor {
     private final MerchantEndpointSafetyService safetyService;
     private final ExecutableMappingValidator mappingValidator;
     private final MerchantTransport transport;
+    private final MerchantCredentialProvider credentials;
 
     public ApprovedMerchantExecutor(
             ApprovedMerchantEndpointRepository endpointRepository,
             MerchantEndpointSafetyService safetyService,
             ExecutableMappingValidator mappingValidator,
-            MerchantTransport transport) {
+            MerchantTransport transport,
+            MerchantCredentialProvider credentials) {
         this.endpointRepository = endpointRepository;
         this.safetyService = safetyService;
         this.mappingValidator = mappingValidator;
         this.transport = transport;
+        this.credentials = credentials;
     }
 
     public MerchantTransportResponse execute(
@@ -49,9 +52,9 @@ public class ApprovedMerchantExecutor {
         mappingValidator.validate(mapping);
         var endpoint = endpointRepository.findByMerchantAndId(merchantId, mapping.endpointId())
                 .orElseThrow(() -> denied("ENDPOINT_NOT_APPROVED", "Endpoint is not approved"));
-        if (endpoint.credentialReference() != null) {
-            throw denied("ENDPOINT_CREDENTIAL_UNAVAILABLE", "Credential reference execution is not configured");
-        }
+        Map<String, String> headers = endpoint.credentialReference() == null
+                ? Map.of()
+                : credentialHeaders(endpoint.credentialReference());
         if (mode == null) {
             throw denied("EXECUTION_MODE_REQUIRED", "Execution mode is required");
         }
@@ -69,9 +72,15 @@ public class ApprovedMerchantExecutor {
                 target,
                 mapping.httpMethod(),
                 boundedBody,
+                headers,
                 mapping.connectTimeoutMs(),
                 mapping.requestTimeoutMs(),
                 mapping.maximumResponseBytes()));
+    }
+
+    private Map<String, String> credentialHeaders(String credentialReference) {
+        MerchantCredentialProvider.MerchantCredential credential = credentials.require(credentialReference);
+        return Map.of(credential.headerName(), credential.headerValue());
     }
 
     private static String bindPath(String template, Map<String, String> parameters) {

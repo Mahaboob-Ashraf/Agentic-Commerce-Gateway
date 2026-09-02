@@ -32,6 +32,13 @@ public class ApprovedMerchantEndpointService {
     @Transactional
     public ApprovedMerchantEndpoint registerAndApprove(
             UUID actorId, UUID merchantId, String baseUri, Set<String> methods, List<String> paths) {
+        return registerAndApprove(actorId, merchantId, baseUri, methods, paths, null);
+    }
+
+    @Transactional
+    public ApprovedMerchantEndpoint registerAndApprove(
+            UUID actorId, UUID merchantId, String baseUri, Set<String> methods, List<String> paths,
+            String credentialReference) {
         accessService.requireMerchantAdmin(actorId, merchantId);
         var resolution = safetyService.validateAndResolve(baseUri);
         Set<String> normalizedMethods = methods.stream()
@@ -54,14 +61,39 @@ public class ApprovedMerchantEndpointService {
                 normalizedMethods,
                 normalizedPaths,
                 resolution.addresses().stream().map(address -> address.getHostAddress()).toList(),
-                null);
+                validateCredentialReference(credentialReference));
     }
 
     public ApprovedMerchantEndpoint requireApproved(UUID merchantId, UUID endpointId) {
         return repository.findByMerchantAndId(merchantId, endpointId)
                 .orElseThrow(() -> new AgentizationException(
                         "APPROVED_ENDPOINT_NOT_FOUND", HttpStatus.NOT_FOUND,
-                        "Approved merchant endpoint was not found"));
+                "Approved merchant endpoint was not found"));
+    }
+
+    /** Reuses only the same approved endpoint identity and exact bounded execution scope. */
+    @Transactional
+    public ApprovedMerchantEndpoint registerOrReuseApproved(
+            UUID actorId, UUID merchantId, String baseUri, Set<String> methods, List<String> paths,
+            String credentialReference) {
+        accessService.requireMerchantAdmin(actorId, merchantId);
+        var resolution = safetyService.validateAndResolve(baseUri);
+        Set<String> normalizedMethods = methods.stream()
+                .map(method -> method.toUpperCase(Locale.ROOT))
+                .collect(Collectors.toUnmodifiableSet());
+        List<String> normalizedPaths = paths.stream().map(ApprovedMerchantEndpointService::validatePath).toList();
+        String normalizedCredential = validateCredentialReference(credentialReference);
+        var existing = repository.findApprovedByIdentity(
+                merchantId, resolution.baseUri().toString(), normalizedCredential);
+        if (existing.isPresent()
+                && existing.get().hostname().equals(resolution.hostname())
+                && existing.get().port() == resolution.port()
+                && existing.get().approvedMethods().equals(normalizedMethods)
+                && existing.get().approvedPathTemplates().equals(normalizedPaths)) {
+            return existing.get();
+        }
+        return registerAndApprove(
+                actorId, merchantId, baseUri, normalizedMethods, normalizedPaths, normalizedCredential);
     }
 
     private static String validatePath(String path) {
@@ -70,6 +102,15 @@ public class ApprovedMerchantEndpointService {
             throw invalid("ENDPOINT_PATH_SCOPE_INVALID", "Approved path template is invalid");
         }
         return path;
+    }
+
+    private static String validateCredentialReference(String reference) {
+        if (reference == null) return null;
+        String normalized = reference.strip();
+        if (normalized.isEmpty() || normalized.length() > 256) {
+            throw invalid("ENDPOINT_CREDENTIAL_REFERENCE_INVALID", "Credential reference is invalid");
+        }
+        return normalized;
     }
 
     private static AgentizationException invalid(String code, String message) {

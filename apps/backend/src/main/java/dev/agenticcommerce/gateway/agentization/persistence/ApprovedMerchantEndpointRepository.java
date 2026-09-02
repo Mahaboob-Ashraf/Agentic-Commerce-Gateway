@@ -107,6 +107,24 @@ public class ApprovedMerchantEndpointRepository {
                 .optional();
     }
 
+    public Optional<ApprovedMerchantEndpoint> findApprovedByIdentity(
+            UUID merchantId, String baseUri, String credentialReference) {
+        return jdbcClient.sql("""
+                        SELECT * FROM merchant_approved_endpoint
+                        WHERE merchant_id = :merchantId
+                          AND base_uri = :baseUri
+                          AND approval_status = 'APPROVED'
+                          AND credential_reference IS NOT DISTINCT FROM :credentialReference
+                        ORDER BY created_at DESC
+                        LIMIT 1
+                        """)
+                .param("merchantId", merchantId)
+                .param("baseUri", baseUri)
+                .param("credentialReference", credentialReference)
+                .query(this::map)
+                .optional();
+    }
+
     private ApprovedMerchantEndpoint map(ResultSet rs, int rowNumber) throws SQLException {
         OffsetDateTime approvedAt = rs.getObject("approved_at", OffsetDateTime.class);
         OffsetDateTime dnsValidatedAt = rs.getObject("dns_validated_at", OffsetDateTime.class);

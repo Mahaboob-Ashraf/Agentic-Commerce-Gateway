@@ -77,6 +77,33 @@ public class CapabilityContractTestRunRepository {
                 .single();
     }
 
+    public CapabilityContractTestRun createCompleted(
+            UUID merchantId, UUID runId, CapabilityMappingProposal mapping,
+            String testCaseId, int testVersion, Instant startedAt,
+            ContractTestOutcome outcome, String failureCode, JsonNode evidence,
+            String responseHash, String evidenceHash, String failureSignature) {
+        return jdbcClient.sql("""
+                        INSERT INTO capability_contract_test_run (
+                            merchant_id, agentization_run_id, mapping_proposal_id, capability,
+                            mapping_version, test_case_id, test_version, attempt_number,
+                            started_at, completed_at, outcome, failure_code, structured_evidence,
+                            response_hash, evidence_hash, failure_signature)
+                        VALUES (:merchantId,:runId,:mappingId,:capability,:mappingVersion,:testCaseId,:testVersion,
+                            (SELECT COALESCE(MAX(attempt_number),0)+1 FROM capability_contract_test_run
+                             WHERE agentization_run_id=:runId AND mapping_proposal_id=:mappingId AND test_case_id=:testCaseId),
+                            :startedAt,CURRENT_TIMESTAMP,:outcome,:failureCode,CAST(:evidence AS jsonb),
+                            :responseHash,:evidenceHash,:failureSignature) RETURNING *
+                        """)
+                .param("merchantId",merchantId).param("runId",runId)
+                .param("mappingId",mapping.mappingProposalId()).param("capability",mapping.capability().name())
+                .param("mappingVersion",mapping.mappingVersion()).param("testCaseId",testCaseId)
+                .param("testVersion",testVersion).param("startedAt",OffsetDateTime.ofInstant(startedAt,ZoneOffset.UTC))
+                .param("outcome",outcome.name()).param("failureCode",failureCode)
+                .param("evidence",objectMapper.writeValueAsString(evidence)).param("responseHash",responseHash)
+                .param("evidenceHash",evidenceHash).param("failureSignature",failureSignature)
+                .query(this::map).single();
+    }
+
     public List<CapabilityContractTestRun> findAllByMerchantAndRun(UUID merchantId, UUID runId) {
         return jdbcClient.sql("""
                         SELECT * FROM capability_contract_test_run
