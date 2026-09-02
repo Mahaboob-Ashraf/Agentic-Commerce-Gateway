@@ -45,7 +45,7 @@ class Task0126DemoCommerceIntegrationTest {
     private DemoMerchantModels.BootstrapSummary failedSummary;private int completionRowsAfterFailure;
 
     @BeforeAll void seed(){jdbc.sql("TRUNCATE TABLE merchant,application_actor CASCADE").update();
-        transport.failNext();failedSummary=bootstrap.bootstrap("https://merchant.example.test","evaluator@demo.invalid","not-a-tracked-demo-password",
+        transport.timeoutNext();failedSummary=bootstrap.bootstrap("https://merchant.example.test","evaluator@demo.invalid","not-a-tracked-demo-password",
                 Path.of("..","..","evaluation","demo-data"));
         completionRowsAfterFailure=jdbc.sql("SELECT count(*)::int FROM demo_bootstrap_completion").query(Integer.class).single();
         summary=bootstrap.bootstrap("https://merchant.example.test","evaluator@demo.invalid","not-a-tracked-demo-password",
@@ -53,7 +53,8 @@ class Task0126DemoCommerceIntegrationTest {
 
     @Test void failedBootstrapIsNotCompletedAndRerunRecoversWithoutDuplicatingValidAuthority(){var reused=bootstrap.bootstrap("https://merchant.example.test",
             "evaluator@demo.invalid","not-a-tracked-demo-password",Path.of("..","..","evaluation","demo-data"));
-        assertThat(failedSummary.reused()).isFalse();assertThat(failedSummary.blockers()).isNotEmpty();assertThat(completionRowsAfterFailure).isZero();
+        assertThat(failedSummary.reused()).isFalse();assertThat(failedSummary.blockers()).contains(
+                "amazing:SEARCH_PRODUCTS:MERCHANT_TIMEOUT","EXPECTED_14_READY_CAPABILITIES_ACTUAL_13");assertThat(completionRowsAfterFailure).isZero();
         assertThat(summary.reused()).isFalse();assertThat(summary.blockers()).isEmpty();assertThat(summary.merchants()).isEqualTo(2);
         assertThat(summary.merchantPublicBaseUrl()).isEqualTo("https://merchant.example.test");
         assertThat(summary.deploymentPrecondition()).isEqualTo(DemoBootstrapService.DEPLOYMENT_PRECONDITION);
@@ -65,6 +66,29 @@ class Task0126DemoCommerceIntegrationTest {
         assertThat(jdbc.sql("SELECT count(*)::int FROM openapi_artifact").query(Integer.class).single()).isEqualTo(2);
         assertThat(jdbc.sql("SELECT count(*)::int FROM capability_mapping_proposal").query(Integer.class).single()).isEqualTo(15);
         assertThat(jdbc.sql("SELECT count(*)::int FROM agent_commerce_manifest").query(Integer.class).single()).isEqualTo(14);}
+
+    @Test void demoSearchContractIsDeterministicWhileNormalSearchAndFailuresRemainReal(){
+        assertThat(jdbc.sql("SELECT request_timeout_ms FROM capability_mapping_proposal WHERE capability='SEARCH_PRODUCTS' ORDER BY created_at")
+                .query(Integer.class).list()).hasSize(3).containsOnly(5_000);
+        assertThat(jdbc.sql("SELECT request_timeout_ms FROM capability_mapping_proposal WHERE capability='GET_AVAILABILITY' ORDER BY created_at")
+                .query(Integer.class).list()).hasSize(2).containsOnly(5_000);
+        assertThat(transport.contractSearchObserved()).isTrue();
+        int versions=jdbc.sql("SELECT count(*)::int FROM catalogue_version").query(Integer.class).single();
+        var smoke=runtime.search("amazing",json("{\"query\":\"contract smoke test\",\"limit\":1,\"contractTest\":true}"));
+        assertThat(smoke.path("classification").asText()).isEqualTo("NO_TRUSTWORTHY_MATCH");
+        assertThat(smoke.path("catalogueVersion").asText()).isEqualTo("contract-test");
+        assertThat(smoke.path("matches").isEmpty()).isTrue();
+        assertThat(jdbc.sql("SELECT count(*)::int FROM catalogue_version").query(Integer.class).single()).isEqualTo(versions);
+        var normal=runtime.search("amazing",json("{\"query\":\"apple\",\"limit\":5}"));
+        assertThat(normal.path("classification").asText()).isNotEqualTo("NO_TRUSTWORTHY_MATCH");
+        assertThat(normal.path("catalogueVersion").asText()).isNotEqualTo("contract-test");
+        assertThat(jdbc.sql("""
+                SELECT count(*)::int FROM capability_mapping_proposal mapping
+                JOIN capability_contract_test_run test USING(merchant_id,mapping_proposal_id)
+                JOIN capability_readiness_evaluation ready ON ready.merchant_id=mapping.merchant_id
+                  AND ready.mapping_proposal_id=mapping.mapping_proposal_id
+                WHERE mapping.capability='SEARCH_PRODUCTS' AND test.failure_code='MERCHANT_TIMEOUT'
+                """).query(Integer.class).single()).isZero();}
 
     @Test void cataloguesHaveRequiredBreadthRichFactsAndBoundedOverlap(){assertThat(summary.amazingProducts()).isEqualTo(50);assertThat(summary.freshBasketProducts()).isEqualTo(30);
         assertThat(jdbc.sql("""
@@ -205,11 +229,13 @@ class Task0126DemoCommerceIntegrationTest {
         @Bean @Primary MerchantCredentialProvider credentials(){return reference->{assertThat(reference).isEqualTo(EnvironmentMerchantCredentialProvider.DEMO_CREDENTIAL_REFERENCE);
             return new MerchantCredentialProvider.MerchantCredential("Authorization","Bearer task-0126-test-secret");};}
         @Bean @Primary AuthenticatedFakeTransport transport(){return new AuthenticatedFakeTransport();}
-        static final class AuthenticatedFakeTransport implements MerchantTransport{private boolean failNext;private int authenticatedCalls;
-            void failNext(){failNext=true;}int authenticatedCalls(){return authenticatedCalls;}
+        static final class AuthenticatedFakeTransport implements MerchantTransport{private boolean failNext;private boolean timeoutNext;private boolean contractSearchObserved;private int authenticatedCalls;
+            void failNext(){failNext=true;}void timeoutNext(){timeoutNext=true;}boolean contractSearchObserved(){return contractSearchObserved;}int authenticatedCalls(){return authenticatedCalls;}
             @Override public MerchantTransportResponse execute(ValidatedEndpointResolution resolution,MerchantTransportRequest request){
             if(!"Bearer task-0126-test-secret".equals(request.headers().get("Authorization")))return new MerchantTransportResponse(401,"application/json","{}".getBytes(StandardCharsets.UTF_8));
-            authenticatedCalls++;if(failNext){failNext=false;return new MerchantTransportResponse(503,"application/json","{}".getBytes(StandardCharsets.UTF_8));}
+            if(request.uri().getPath().endsWith("/products/search"))contractSearchObserved=new String(request.jsonBody(),StandardCharsets.UTF_8).contains("\"contractTest\":true");
+            authenticatedCalls++;if(timeoutNext){timeoutNext=false;throw new MerchantExecutionException("MERCHANT_TIMEOUT","Injected demo search timeout");}
+            if(failNext){failNext=false;return new MerchantTransportResponse(503,"application/json","{}".getBytes(StandardCharsets.UTF_8));}
             String path=request.uri().getPath();String body;
             if(path.endsWith("/products/search"))body="{\"classification\":\"NO_TRUSTWORTHY_MATCH\",\"matches\":[],\"relatedAlternatives\":[]}";
             else if(path.endsWith("/availability"))body="{\"available\":true,\"availableQuantity\":10}";

@@ -44,7 +44,7 @@ public class CanonicalCapabilityContractTestService {
 
     private Request request(AgentizationRun run,CanonicalCapability capability){ObjectNode body=mapper.createObjectNode();Map<String,String> path=Map.of();
         switch(capability){
-            case SEARCH_PRODUCTS -> body.put("query","contract smoke test").put("limit",1);
+            case SEARCH_PRODUCTS -> body.put("query","contract smoke test").put("limit",1).put("contractTest",true);
             case GET_AVAILABILITY -> body.put("merchantId",run.merchantId().toString()).put("productId","demo-product").put("merchantSku","DEMO-SKU").put("requestedQuantity",1);
             case PLACE_ORDER -> body.put("merchantOperationId","contract-test-"+run.runId()).put("contractTest",true).putArray("lineItems").addObject().put("productId","demo-product").put("merchantSku","DEMO-SKU").put("quantity",1);
             case GET_ORDER_STATE,CANCEL_ORDER,RETURN_ITEM -> path=Map.of("orderId","contract-order");

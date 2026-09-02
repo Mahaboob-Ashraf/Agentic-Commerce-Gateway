@@ -28,7 +28,11 @@ public class DemoMerchantService {
             CanonicalJsonService canonical,ObjectMapper mapper){this.repository=repository;this.retrieval=retrieval;
         this.canonical=canonical;this.mapper=mapper;}
 
-    public JsonNode search(String key,JsonNode body){Profile p=profile(key);String query=text(body,"query",512,false);
+    public JsonNode search(String key,JsonNode body){Profile p=profile(key);
+        if(body.path("contractTest").asBoolean(false))return mapper.valueToTree(new SearchResponse(
+                MatchClassification.NO_TRUSTWORTHY_MATCH,List.of(),List.of(),false,"contract-test",
+                List.of("DETERMINISTIC_DEMO_CONTRACT_TEST")));
+        String query=text(body,"query",512,false);
         SearchRequest request=new SearchRequest(query,nullable(body,"merchantSku",128),nullable(body,"gtin",14),
                 nullable(body,"brand",256),nullable(body,"variant",256),nullable(body,"sizeStorage",128),
                 nullable(body,"colour",128),nullable(body,"category",256),number(body,"minimumPriceMinor"),
