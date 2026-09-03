@@ -20,6 +20,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.annotation.*;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.http.MediaType;
@@ -28,6 +29,7 @@ import org.springframework.web.context.WebApplicationContext;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
+import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
 @Testcontainers
@@ -228,22 +230,33 @@ class Task0126DemoCommerceIntegrationTest {
         @Bean @Primary MerchantDnsResolver dns()throws Exception{return h->List.of(InetAddress.getByName("93.184.216.34"));}
         @Bean @Primary MerchantCredentialProvider credentials(){return reference->{assertThat(reference).isEqualTo(EnvironmentMerchantCredentialProvider.DEMO_CREDENTIAL_REFERENCE);
             return new MerchantCredentialProvider.MerchantCredential("Authorization","Bearer task-0126-test-secret");};}
-        @Bean @Primary AuthenticatedFakeTransport transport(){return new AuthenticatedFakeTransport();}
-        static final class AuthenticatedFakeTransport implements MerchantTransport{private boolean failNext;private boolean timeoutNext;private boolean contractSearchObserved;private int authenticatedCalls;
-            void failNext(){failNext=true;}void timeoutNext(){timeoutNext=true;}boolean contractSearchObserved(){return contractSearchObserved;}int authenticatedCalls(){return authenticatedCalls;}
+        @Bean @Primary AuthenticatedFakeTransport transport(ObjectProvider<DemoMerchantService> runtime,ObjectMapper mapper){return new AuthenticatedFakeTransport(runtime,mapper);}
+        static final class AuthenticatedFakeTransport implements MerchantTransport{private final ObjectProvider<DemoMerchantService> runtime;private final ObjectMapper mapper;private boolean failNext;private boolean timeoutNext;private boolean expireQuoteNext;private boolean unavailableNext;private boolean contractSearchObserved;private int authenticatedCalls;private long availabilityClockSkewSeconds;
+            AuthenticatedFakeTransport(ObjectProvider<DemoMerchantService> runtime,ObjectMapper mapper){this.runtime=runtime;this.mapper=mapper;}
+            void failNext(){failNext=true;}void timeoutNext(){timeoutNext=true;}void expireQuoteNext(){expireQuoteNext=true;}void unavailableNext(){unavailableNext=true;}
+            void resetRuntimeModes(){expireQuoteNext=false;unavailableNext=false;availabilityClockSkewSeconds=0;}void skewAvailabilityClock(long seconds){availabilityClockSkewSeconds=seconds;}boolean contractSearchObserved(){return contractSearchObserved;}int authenticatedCalls(){return authenticatedCalls;}
             @Override public MerchantTransportResponse execute(ValidatedEndpointResolution resolution,MerchantTransportRequest request){
             if(!"Bearer task-0126-test-secret".equals(request.headers().get("Authorization")))return new MerchantTransportResponse(401,"application/json","{}".getBytes(StandardCharsets.UTF_8));
             if(request.uri().getPath().endsWith("/products/search"))contractSearchObserved=new String(request.jsonBody(),StandardCharsets.UTF_8).contains("\"contractTest\":true");
             authenticatedCalls++;if(timeoutNext){timeoutNext=false;throw new MerchantExecutionException("MERCHANT_TIMEOUT","Injected demo search timeout");}
             if(failNext){failNext=false;return new MerchantTransportResponse(503,"application/json","{}".getBytes(StandardCharsets.UTF_8));}
-            String path=request.uri().getPath();String body;
+            String path=request.uri().getPath();JsonNode input=mapper.readTree(request.jsonBody());String[] parts=path.split("/");String merchantKey=parts.length>3?parts[3]:"";
+            if(path.endsWith("/availability")&&!"demo-product".equals(input.path("productId").asText())){JsonNode value=runtime.getObject().availability(merchantKey,input);
+                if(unavailableNext){unavailableNext=false;((tools.jackson.databind.node.ObjectNode)value).put("available",false).put("availableQuantity",0);}
+                if(availabilityClockSkewSeconds!=0){var object=(tools.jackson.databind.node.ObjectNode)value;object.put("observedAt",Instant.parse(object.path("observedAt").asText()).plusSeconds(availabilityClockSkewSeconds).toString());object.put("expiresAt",Instant.parse(object.path("expiresAt").asText()).plusSeconds(availabilityClockSkewSeconds).toString());return json(value,Instant.now().plusSeconds(availabilityClockSkewSeconds));}return json(value);}
+            if(path.endsWith("/quotes")&&input.path("lineItems").isArray()){JsonNode value=runtime.getObject().quote(merchantKey,input);
+                if(expireQuoteNext){expireQuoteNext=false;((tools.jackson.databind.node.ObjectNode)value).put("expiresAt",Instant.now().minusSeconds(1).toString());}return json(value);}
+            if(path.endsWith("/orders")&&!input.path("contractTest").asBoolean(false))return json(runtime.getObject().placeOrder(merchantKey,input));
+            String body;
             if(path.endsWith("/products/search"))body="{\"classification\":\"NO_TRUSTWORTHY_MATCH\",\"matches\":[],\"relatedAlternatives\":[]}";
             else if(path.endsWith("/availability"))body="{\"available\":true,\"availableQuantity\":10}";
             else if(path.endsWith("/quotes"))body="{\"quoteId\":\"contract-quote-v1\",\"finalAmountMinor\":49900,\"currency\":\"INR\"}";
             else if(path.endsWith("/returns"))body="{\"orderId\":\"contract-order\",\"state\":\"RETURN_REQUESTED\"}";
             else if(path.endsWith("/cancel"))body="{\"orderId\":\"contract-order\",\"state\":\"CANCELLED\"}";
             else body="{\"orderId\":\"contract-order\",\"state\":\"PLACED\"}";
-            return new MerchantTransportResponse(200,"application/json",body.getBytes(StandardCharsets.UTF_8));}}
+            return new MerchantTransportResponse(200,"application/json",body.getBytes(StandardCharsets.UTF_8));}
+            private MerchantTransportResponse json(JsonNode value){return new MerchantTransportResponse(200,"application/json",mapper.writeValueAsBytes(value));}
+            private MerchantTransportResponse json(JsonNode value,Instant responseDate){return new MerchantTransportResponse(200,"application/json",mapper.writeValueAsBytes(value),Instant.now(),responseDate);}}
         @Bean @Primary EmbeddingProvider embeddings(){return input->Collections.nCopies(768,0.01f);}
         @Bean @Primary CatalogueProvider catalogueProvider(){return barcode->Optional.empty();}
         @Bean @Primary MerchantCustomerLinkProvider links(){return (merchant,user,password)->new MerchantCustomerLinkProvider.LinkResult(true,

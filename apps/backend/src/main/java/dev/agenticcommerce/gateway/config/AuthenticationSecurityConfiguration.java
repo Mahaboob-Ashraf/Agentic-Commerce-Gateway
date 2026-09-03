@@ -2,15 +2,24 @@ package dev.agenticcommerce.gateway.config;
 
 import dev.agenticcommerce.gateway.demo.DemoMerchantApiAuthenticationFilter;
 import dev.agenticcommerce.gateway.identity.authentication.ApplicationActorUserDetailsService;
+import dev.agenticcommerce.gateway.identity.authentication.VerifiedActorPrincipal;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.HexFormat;
 import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -24,11 +33,14 @@ import org.springframework.security.web.authentication.session.CompositeSessionA
 import org.springframework.security.web.authentication.session.SessionAuthenticationStrategy;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.security.web.context.SecurityContextRepository;
+import org.springframework.security.web.csrf.CsrfException;
 import org.springframework.security.web.csrf.CsrfAuthenticationStrategy;
 import org.springframework.security.web.csrf.HttpSessionCsrfTokenRepository;
 
 @Configuration
 public class AuthenticationSecurityConfiguration {
+
+    private static final Logger log = LoggerFactory.getLogger(AuthenticationSecurityConfiguration.class);
 
     @Bean
     PasswordEncoder passwordEncoder() {
@@ -96,8 +108,7 @@ public class AuthenticationSecurityConfiguration {
                 .exceptionHandling(exceptions -> exceptions
                         .authenticationEntryPoint((request, response, exception) ->
                                 writeJsonError(response, HttpServletResponse.SC_UNAUTHORIZED, "unauthorized"))
-                        .accessDeniedHandler((request, response, exception) ->
-                                writeJsonError(response, HttpServletResponse.SC_FORBIDDEN, "forbidden")))
+                        .accessDeniedHandler(AuthenticationSecurityConfiguration::writeAccessDenied))
                 .logout(logout -> logout
                         .logoutUrl("/api/auth/logout")
                         .invalidateHttpSession(true)
@@ -123,5 +134,48 @@ public class AuthenticationSecurityConfiguration {
         response.setStatus(status);
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         response.getWriter().write("{\"error\":\"" + error + "\"}");
+    }
+
+    private static void writeAccessDenied(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            org.springframework.security.access.AccessDeniedException exception) throws IOException {
+        var authentication = org.springframework.security.core.context.SecurityContextHolder
+                .getContext().getAuthentication();
+        boolean authenticated = authentication != null
+                && authentication.isAuthenticated()
+                && !(authentication instanceof AnonymousAuthenticationToken);
+        String principal = authentication != null
+                        && authentication.getPrincipal() instanceof VerifiedActorPrincipal actor
+                ? actor.actorId().toString()
+                : "none";
+        String roles = authentication == null
+                ? "[]"
+                : authentication.getAuthorities().stream()
+                        .map(Object::toString)
+                        .sorted()
+                        .toList()
+                        .toString();
+        boolean csrfFailure = exception instanceof CsrfException;
+        log.warn(
+                "Security request denied path={} authenticated={} principal={} roles={} session={} csrfFailure={} exceptionClass={} reason={}",
+                request.getRequestURI(), authenticated, principal, roles, sessionFingerprint(request),
+                csrfFailure, exception.getClass().getName(),
+                csrfFailure ? "CSRF_VALIDATION_FAILED" : "AUTHORIZATION_DENIED");
+        writeJsonError(response, HttpServletResponse.SC_FORBIDDEN, "forbidden");
+    }
+
+    private static String sessionFingerprint(HttpServletRequest request) {
+        var session = request.getSession(false);
+        if (session == null) {
+            return "none";
+        }
+        try {
+            byte[] digest = MessageDigest.getInstance("SHA-256")
+                    .digest(session.getId().getBytes(StandardCharsets.UTF_8));
+            return HexFormat.of().formatHex(digest, 0, 6);
+        } catch (NoSuchAlgorithmException impossible) {
+            throw new IllegalStateException(impossible);
+        }
     }
 }

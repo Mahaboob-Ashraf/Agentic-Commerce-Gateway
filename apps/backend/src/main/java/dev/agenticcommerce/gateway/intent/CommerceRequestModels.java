@@ -2,6 +2,8 @@ package dev.agenticcommerce.gateway.intent;
 
 import static dev.agenticcommerce.gateway.intent.BuyerModels.*;
 
+import dev.agenticcommerce.gateway.commerce.TransactionModels.EvidenceOutcome;
+import dev.agenticcommerce.gateway.commerce.TransactionModels.ReversibilityOutcome;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -30,11 +32,22 @@ public final class CommerceRequestModels {
     public record ConstraintSummary(String key,ConstraintOutcome result,boolean safetyCritical,
             JsonNode normalizedRequirement,List<String> evidenceReferences) {}
 
+    public record CommerceProgressStep(String code,String label,List<String> evidenceReferences) {}
+
     public record CommerceRequestResult(UUID requestId,UUID threadId,BuyerState state,RequestStatus requestStatus,
             boolean clarificationRequired,String clarificationQuestion,Integer currentIntentVersion,
             IntentGoal goal,String category,Long budgetAmountMinor,String budgetCurrency,
-            List<MaterialRequirement> hardRequirements,UUID merchantId,String merchantDisplayName,
-            UUID catalogueVersionId,String catalogueVersion,List<AuthoritativeProductLine> products,Long authoritativeFinalAmountMinor,
-            String authoritativeCurrency,Instant quoteExpiresAt,ConstraintOutcome constraintOverall,
-            List<ConstraintSummary> constraints,List<String> evidenceReferences,String failureCode) {}
+            List<MaterialRequirement> hardRequirements,List<String> softPreferences,
+            UUID merchantId,String merchantDisplayName,UUID catalogueVersionId,String catalogueVersion,
+            UUID cartId,String cartHash,List<AuthoritativeProductLine> products,
+            UUID quoteRecordId,String merchantQuoteId,String merchantQuoteVersion,
+            Long subtotalMinor,Long taxMinor,Long deliveryMinor,Long feesMinor,
+            Long authoritativeFinalAmountMinor,String authoritativeCurrency,Instant quoteExpiresAt,
+            UUID availabilityRefreshId,EvidenceOutcome availabilityOutcome,String availabilityReasonCode,
+            UUID serviceabilityEvidenceId,EvidenceOutcome serviceabilityOutcome,String serviceabilityReasonCode,
+            UUID constraintCertificateId,String constraintCertificateHash,ConstraintOutcome constraintOverall,
+            List<ConstraintSummary> constraints,UUID transactionProposalId,String transactionProposalHash,
+            Instant proposalExpiresAt,ReversibilityOutcome riskOutcome,List<String> riskReasonCodes,
+            boolean explicitAuthorizationRequired,boolean paymentReady,String authorizationState,String nextAction,
+            List<CommerceProgressStep> progress,List<String> evidenceReferences,String failureCode) {}
 }

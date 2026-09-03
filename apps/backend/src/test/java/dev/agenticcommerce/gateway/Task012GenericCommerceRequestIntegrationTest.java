@@ -85,6 +85,14 @@ class Task012GenericCommerceRequestIntegrationTest {
                     .anySatisfy(fact->assertThat(fact.type()).isEqualTo("REVIEW_COUNT"));});
         assertThat(result.constraints()).filteredOn(c->Set.of("CATEGORY","BRAND","VARIANT","COLOUR").contains(c.key())).allMatch(c->c.result()==ConstraintOutcome.PASS);}
 
+    @Test void ambiguousNamedProductUsesUniqueCatalogueIdentityWithoutRequestingCategory(){Fixture f=fixture("exact-resolution");
+        CommerceRequestResult result=commerceRequests.execute(f.buyer.id(),UUID.randomUUID(),null,"Buy one Synthetic Sonic A1 black");
+        assertThat(result.requestStatus()).isEqualTo(RequestStatus.COMPLETED);
+        assertThat(result.clarificationRequired()).isFalse();assertThat(result.category()).isNull();
+        assertThat(result.products()).singleElement().satisfies(line->{assertThat(line.merchantSku()).isEqualTo("SYN-ELEC-SONIC-A1-BLK");assertThat(line.colour()).isEqualTo("Black");});
+        assertThat(result.hardRequirements()).extracting(MaterialRequirement::field).containsExactly("BRAND","VARIANT","COLOUR");
+        assertThat(result.hardRequirements()).allMatch(field->field.ambiguity()==AmbiguityState.CLEAR);}
+
     @Test void crossCategoryAndHardIdentityMismatchesProduceGroundedNoMatch(){Fixture f=fixture("nomatch");CommerceRequestResult shoes=commerceRequests.execute(f.buyer.id(),UUID.randomUUID(),null,"shoes under 5000 rupees");
         CommerceRequestResult purple=commerceRequests.execute(f.buyer.id(),UUID.randomUUID(),null,"Synthetic Sonic A1 purple earphones under 5000 rupees");
         assertThat(shoes.requestStatus()).isEqualTo(RequestStatus.WAITING_FOR_USER);assertThat(shoes.products()).isEmpty();assertThat(shoes.clarificationQuestion()).contains("No trustworthy product match");
@@ -151,6 +159,7 @@ class Task012GenericCommerceRequestIntegrationTest {
     @TestConfiguration static class Fakes {
         @Bean @Primary BuyerIntentCompiler compiler(){return (message,feedback)->compile(message);}
         private static CompiledIntent compile(ThreadMessage message){String lower=message.normalizedText().toLowerCase(Locale.ROOT);EvidenceSpan span=new EvidenceSpan(message.messageId(),0,message.normalizedText().length());
+            if(lower.equals("buy one synthetic sonic a1 black"))return ambiguousExact(span);
             if(lower.contains("legacy"))return intent(IntentGoal.PURCHASE_FOOD,"Snacks",null,null,null,null,null,null,null,false,null,List.of(),span);
             if(lower.contains("underspecified"))return intent(IntentGoal.PURCHASE_PRODUCT,null,null,null,null,null,null,null,null,false,null,List.of(),span);
             if(lower.contains("shoes"))return intent(IntentGoal.PURCHASE_PRODUCT,"Shoes",500_000L,null,null,null,null,null,null,false,null,List.of(),span);
@@ -159,7 +168,13 @@ class Task012GenericCommerceRequestIntegrationTest {
             return intent(IntentGoal.PURCHASE_PRODUCT,"Snacks",50_000L,null,null,null,null,null,null,true,"PEANUT",List.of("HIGH_PROTEIN"),span);}
         private static CompiledIntent intent(IntentGoal goal,String category,Long budget,String brand,String variant,String size,String colour,String sku,String gtin,boolean vegetarian,String allergen,List<String> preferences,EvidenceSpan span){List<MaterialField> fields=new ArrayList<>();fields.add(field("CATEGORY",ConstraintClassification.HARD,span));if(budget!=null)fields.add(field("BUDGET",ConstraintClassification.HARD,span));if(brand!=null)fields.add(field("BRAND",ConstraintClassification.HARD,span));if(variant!=null)fields.add(field("VARIANT",ConstraintClassification.HARD,span));if(size!=null)fields.add(field("SIZE_STORAGE",ConstraintClassification.HARD,span));if(colour!=null)fields.add(field("COLOUR",ConstraintClassification.HARD,span));if(sku!=null)fields.add(field("MERCHANT_SKU",ConstraintClassification.HARD,span));if(gtin!=null)fields.add(field("GTIN",ConstraintClassification.HARD,span));if(vegetarian)fields.add(field("VEGETARIAN",ConstraintClassification.HARD,span));if(allergen!=null)fields.add(field("ALLERGEN",ConstraintClassification.HARD_SAFETY,span));if(!preferences.isEmpty())fields.add(field("PREFERENCES",ConstraintClassification.SOFT,span));
             return new CompiledIntent(goal,category,budget,budget==null?null:"INR",sku,gtin,brand,variant,size,colour,vegetarian?true:null,allergen,1,null,SubstitutionPolicy.PROHIBIT,null,preferences,List.copyOf(fields),AmbiguityState.CLEAR,null,"FAKE","task012-intent-v1");}
+        private static CompiledIntent ambiguousExact(EvidenceSpan span){List<MaterialField> fields=List.of(
+                ambiguous("BRAND",span),ambiguous("VARIANT",span),ambiguous("COLOUR",span));
+            return new CompiledIntent(IntentGoal.PURCHASE_PRODUCT,null,null,null,null,null,"Synthetic","Sonic A1",null,"black",
+                    null,null,1,null,SubstitutionPolicy.UNKNOWN,null,List.of(),fields,AmbiguityState.AMBIGUOUS,
+                    "Could you please specify the product category for the Synthetic Sonic A1 black?","FAKE","task0134-intent-v1");}
         private static MaterialField field(String name,ConstraintClassification classification,EvidenceSpan span){return new MaterialField(name,classification,span,BigDecimal.ONE,AmbiguityState.CLEAR);}
+        private static MaterialField ambiguous(String name,EvidenceSpan span){return new MaterialField(name,ConstraintClassification.HARD,span,BigDecimal.ONE,AmbiguityState.AMBIGUOUS);}
         @Bean @Primary CatalogueProvider catalogueProvider(){return barcode->Optional.empty();}
         @Bean @Primary EmbeddingProvider embeddings(){return input->{List<Float> values=new ArrayList<>(Collections.nCopies(768,0f));values.set(Math.floorMod(input.hashCode(),32),1f);return List.copyOf(values);};}
         @Bean @Primary MerchantDnsResolver dns()throws Exception{return host->List.of(InetAddress.getByName("93.184.216.34"));}

@@ -20,6 +20,10 @@ public final class BuyerModels {
     public enum ActionOutcome { SUCCESS, FAILURE, DENIED, WAITING }
     public enum IntentGoal { PURCHASE_PRODUCT, PURCHASE_FOOD }
     public enum ConstraintClassification { HARD, HARD_SAFETY, SOFT }
+    public enum MaterialFieldKey {
+        BUDGET, CATEGORY, MERCHANT_SKU, GTIN, BRAND, VARIANT, SIZE_STORAGE, COLOUR,
+        VEGETARIAN, ALLERGEN, PREFERENCES
+    }
     public enum AmbiguityState { CLEAR, AMBIGUOUS }
     public enum SubstitutionPolicy { ALLOW, PROHIBIT, UNKNOWN }
     public enum ConstraintOutcome { PASS, FAIL, UNKNOWN }

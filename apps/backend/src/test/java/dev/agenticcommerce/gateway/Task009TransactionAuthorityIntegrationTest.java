@@ -230,7 +230,12 @@ class Task009TransactionAuthorityIntegrationTest {
                 .isEqualTo(BuyerState.WAITING_FOR_USER);
         AuthorizationDecision authorization = authorizations.confirm(prepared.fixture().buyer().id(),
                 prepared.proposal().proposalId(), session);
+        AuthorizationDecision replay = authorizations.confirm(prepared.fixture().buyer().id(),
+                prepared.proposal().proposalId(), session);
         assertThat(authorization.decision()).isEqualTo(AuthorizationDecisionType.AUTHORIZED);
+        assertThat(replay.authorizationId()).isEqualTo(authorization.authorizationId());
+        assertThat(jdbc.sql("SELECT count(*)::int FROM authorization_decision WHERE proposal_id=:proposal")
+                .param("proposal", prepared.proposal().proposalId()).query(Integer.class).single()).isOne();
         assertThat(authorization.proposalHash()).isEqualTo(prepared.proposal().proposalHash());
         assertThat(authorization.actionType()).isEqualTo(ActionType.PURCHASE);
         assertThat(threads.require(prepared.fixture().buyer().id(), prepared.thread().threadId()).state())
@@ -277,6 +282,10 @@ class Task009TransactionAuthorityIntegrationTest {
         assertThat(authorization.proposalHash()).isEqualTo(prepared.proposal().proposalHash());
         assertThat(authorization.expiresAt()).isAfter(authorization.issuedAt())
                 .isBeforeOrEqualTo(prepared.proposal().proposalExpiresAt());
+        assertThatThrownBy(() -> authorizations.confirm(prepared.fixture().buyer().id(),
+                prepared.proposal().proposalId(), authorizations.bindSession("different-confirm-session")))
+                .isInstanceOfSatisfying(TransactionAuthorityException.class,
+                        failure -> assertThat(failure.code()).isEqualTo("AUTHORIZATION_REPLAY_MISMATCH"));
         assertThat(gate.reserve(prepared.fixture().buyer().id(), prepared.proposal().proposalId(),
                 authorizations.bindSession("different-session")).reasonCode())
                 .isEqualTo("AUTHORIZATION_SESSION_MISMATCH");
@@ -700,12 +709,10 @@ class Task009TransactionAuthorityIntegrationTest {
                 return new CompiledIntent(IntentGoal.PURCHASE_FOOD, "Snacks", 50_000L, "INR",
                         null, null, null, true, "PEANUT", null, 2, SubstitutionPolicy.UNKNOWN,
                         "trusted-demo-location", List.of("HIGH_PROTEIN"), List.of(
-                        new MaterialField("GOAL", ConstraintClassification.HARD, span, BigDecimal.ONE, AmbiguityState.CLEAR),
                         new MaterialField("BUDGET", ConstraintClassification.HARD, span, BigDecimal.ONE, AmbiguityState.CLEAR),
                         new MaterialField("VEGETARIAN", ConstraintClassification.HARD, span, BigDecimal.ONE, AmbiguityState.CLEAR),
                         new MaterialField("ALLERGEN", ConstraintClassification.HARD_SAFETY, span, BigDecimal.ONE, AmbiguityState.CLEAR),
-                        new MaterialField("PREFERENCES", ConstraintClassification.SOFT, span, BigDecimal.ONE, AmbiguityState.CLEAR),
-                        new MaterialField("PEOPLE", ConstraintClassification.HARD, span, BigDecimal.ONE, AmbiguityState.CLEAR)),
+                        new MaterialField("PREFERENCES", ConstraintClassification.SOFT, span, BigDecimal.ONE, AmbiguityState.CLEAR)),
                         AmbiguityState.CLEAR, null, "FAKE", "intent-v1");
             };
         }

@@ -1,11 +1,15 @@
 package dev.agenticcommerce.gateway.intent;
 
-import static dev.agenticcommerce.gateway.intent.BuyerModels.*;
 import java.util.List;
+import java.util.UUID;
 
-/** Bounded action-selection boundary. Application code owns permissions, arguments, and execution. */
+/** Bounded grounded-candidate reasoning boundary. Application code owns transitions, validation, and execution. */
 public interface BuyerDecisionProvider {
-    NextBuyerAction choose(BuyerDecisionContext context,String validationFeedback);
-    record BuyerDecisionContext(BuyerState state,List<BuyerTool> permittedTools,List<String> evidenceReferences){}
-    record NextBuyerAction(BuyerTool action,String conciseRationale,List<String> evidenceReferences,String provider,String model){}
+    CandidateSelection chooseCandidate(CandidateDecisionContext context,String validationFeedback);
+    record CandidateOption(UUID productId,UUID merchantId,String productName,String brand,String variant,
+            String sizeStorage,String colour,String category,Long priceMinor,String currency,double retrievalScore){}
+    record CandidateDecisionContext(List<CandidateOption> candidates,List<String> softPreferences,
+            List<String> evidenceReferences){}
+    record CandidateSelection(UUID productId,String conciseRationale,List<String> evidenceReferences,
+            String provider,String model){}
 }

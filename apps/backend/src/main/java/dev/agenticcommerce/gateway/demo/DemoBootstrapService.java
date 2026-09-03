@@ -18,6 +18,8 @@ import dev.agenticcommerce.gateway.identity.model.*;
 import dev.agenticcommerce.gateway.identity.persistence.*;
 import dev.agenticcommerce.gateway.onboarding.OnboardingRepository;
 import dev.agenticcommerce.gateway.onboarding.OnboardingService;
+import dev.agenticcommerce.gateway.payment.PaymentProvider;
+import dev.agenticcommerce.gateway.payment.PaymentRepository;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -53,6 +55,7 @@ public class DemoBootstrapService {
     private final MerchantAuthorityService mappingAuthority;private final CanonicalCapabilityContractTestService contracts;
     private final DeterministicReadinessService readiness;private final PolicyAuthorityService policies;
     private final MerchantCredentialProvider credentialProvider;private final DemoPolicyExtractionProvider demoPolicyExtractor;
+    private final PaymentRepository paymentRepository;private final PaymentProvider paymentProvider;
     public DemoBootstrapService(JdbcClient jdbc,ObjectMapper mapper,MerchantRepository merchants,ApplicationActorRepository actors,
             MerchantAdminMembershipRepository memberships,ActorPasswordCredentialRepository credentials,PasswordEncoder passwords,
             CatalogueService catalogues,CatalogueRepository catalogueRepository,DemoMerchantRepository demo,OnboardingService onboarding,
@@ -60,12 +63,13 @@ public class DemoBootstrapService {
             AgentizationRunService runService,AgentizationRunRepository runRepository,CapabilityMappingProposalRepository mappings,
             ExecutableMappingValidator validator,MerchantAuthorityService mappingAuthority,
             CanonicalCapabilityContractTestService contracts,DeterministicReadinessService readiness,PolicyAuthorityService policies,
-            MerchantCredentialProvider credentialProvider){
+            MerchantCredentialProvider credentialProvider,PaymentRepository paymentRepository,PaymentProvider paymentProvider){
         this.jdbc=jdbc;this.mapper=mapper;this.merchants=merchants;this.actors=actors;this.memberships=memberships;this.credentials=credentials;
         this.passwords=passwords;this.catalogues=catalogues;this.catalogueRepository=catalogueRepository;this.demo=demo;this.onboarding=onboarding;
         this.onboardingRepository=onboardingRepository;this.endpoints=endpoints;this.artifacts=artifacts;this.runService=runService;
         this.runRepository=runRepository;this.mappings=mappings;this.validator=validator;this.mappingAuthority=mappingAuthority;
         this.contracts=contracts;this.readiness=readiness;this.policies=policies;this.credentialProvider=credentialProvider;
+        this.paymentRepository=paymentRepository;this.paymentProvider=paymentProvider;
         this.demoPolicyExtractor=new DemoPolicyExtractionProvider(mapper);}
 
     public BootstrapSummary bootstrap(String publicBaseUrl,String buyerIdentity,String buyerPassword,Path fixtureRoot){
@@ -75,11 +79,15 @@ public class DemoBootstrapService {
         require(buyerPassword!=null&&buyerPassword.length()>=12&&buyerPassword.length()<=1024,"DEMO_BUYER_PASSWORD must contain 12 to 1024 characters");
         credentialProvider.require(EnvironmentMerchantCredentialProvider.DEMO_CREDENTIAL_REFERENCE);
         String normalizedBaseUrl=publicBaseUrl.replaceAll("/+$","");
-        var completed=completion();if(completed.isPresent()&&completionReusable(completed.get(),normalizedBaseUrl,buyerIdentity))return reused(completed.get());
+        var completed=completion();if(completed.isPresent()&&completionReusable(completed.get(),normalizedBaseUrl,buyerIdentity)){
+            ensurePaymentConfiguration(merchants.findByKey("amazing").orElseThrow());
+            return reused(completed.get());
+        }
         if(completionMarkerExists())clearCompletion();
         BuyerSeed buyer=buyer(buyerIdentity,buyerPassword);MerchantSeed amazing=merchant("amazing","Amazing","AMAZING",true,true,true,2880,
                 fixtureRoot.resolve("amazing-catalogue-v1.json"));MerchantSeed fresh=merchant("freshbasket","FreshBasket","FRESH_BASKET",false,false,false,30,
                 fixtureRoot.resolve("freshbasket-catalogue-v1.json"));
+        ensurePaymentConfiguration(amazing.merchant());
         seedBuyer(buyer.actor(),List.of(amazing.merchant(),fresh.merchant()),buyerIdentity,buyerPassword);
         List<String> blockers=new ArrayList<>();
         for(MerchantSeed seed:List.of(amazing,fresh)){
@@ -94,6 +102,11 @@ public class DemoBootstrapService {
                 amazing.products(),fresh.products(),stats.primaryFacts(),stats.embeddingsReady(),stats.embeddingFailures(),
                 authority.mappings(),authority.ready(),authority.manifests(),buyerLinks,normalizedBaseUrl,DEPLOYMENT_PRECONDITION,List.copyOf(blockers));
         if(blockers.isEmpty())complete(result);return result;
+    }
+
+    private void ensurePaymentConfiguration(Merchant merchant){
+        paymentRepository.registerTestConfiguration(merchant.id(),paymentProvider.configurationReference(),
+                paymentProvider.providerAccountReference());
     }
 
     private MerchantSeed merchant(String key,String display,String code,boolean cancel,boolean returns,boolean perishable,int delivery,Path fixture){

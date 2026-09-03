@@ -49,6 +49,12 @@ public class AuthorizationService {
     @Transactional
     public AuthorizationDecision confirm(UUID buyerId, UUID proposalId, String sessionBindingHash) {
         TransactionProposal proposal = lock(buyerId, proposalId);
+        requireProposalIntegrity(proposal);
+        AuthorizationDecision existing = repository.authorizationForProposal(buyerId, proposalId).orElse(null);
+        if (existing != null) {
+            return requireIdempotentReplay(proposal, existing, sessionBindingHash,
+                    AuthorizationDecisionType.AUTHORIZED, AuthorizationMethod.EXPLICIT_CONFIRMATION);
+        }
         var thread = threads.requireForUpdate(buyerId, proposal.threadId());
         ReversibilityEvaluation risk = repository.riskForProposal(buyerId, proposalId)
                 .orElseThrow(() -> conflict("RISK_EVALUATION_REQUIRED",
@@ -67,6 +73,12 @@ public class AuthorizationService {
     @Transactional
     public AuthorizationDecision deny(UUID buyerId, UUID proposalId, String sessionBindingHash) {
         TransactionProposal proposal = lock(buyerId, proposalId);
+        requireProposalIntegrity(proposal);
+        AuthorizationDecision existing = repository.authorizationForProposal(buyerId, proposalId).orElse(null);
+        if (existing != null) {
+            return requireIdempotentReplay(proposal, existing, sessionBindingHash,
+                    AuthorizationDecisionType.DENIED, AuthorizationMethod.BUYER_DENIAL);
+        }
         threads.requireForUpdate(buyerId, proposal.threadId());
         return create(proposal, sessionBindingHash, AuthorizationDecisionType.DENIED,
                 AuthorizationMethod.BUYER_DENIAL, BuyerState.WAITING_FOR_USER);
@@ -121,6 +133,33 @@ public class AuthorizationService {
         repository.attachAuthorization(proposal.threadId(), proposal.buyerActorId(),
                 proposal.proposalId(), created.authorizationId(), targetState.name());
         return created;
+    }
+
+    private AuthorizationDecision requireIdempotentReplay(
+            TransactionProposal proposal, AuthorizationDecision existing, String sessionBindingHash,
+            AuthorizationDecisionType decision, AuthorizationMethod method) {
+        Instant now = Instant.now();
+        if (!proposal.proposalExpiresAt().isAfter(now) || !existing.expiresAt().isAfter(now)) {
+            throw conflict("AUTHORIZATION_EXPIRED", "Expired authorization cannot be confirmed again");
+        }
+        if (!existing.buyerActorId().equals(proposal.buyerActorId())
+                || !existing.proposalId().equals(proposal.proposalId())
+                || !existing.proposalHash().equals(proposal.proposalHash())
+                || existing.actionType() != proposal.actionType()
+                || !existing.sessionBindingHash().equals(sessionBindingHash)
+                || existing.decision() != decision
+                || existing.authorizationMethod() != method) {
+            throw conflict("AUTHORIZATION_REPLAY_MISMATCH",
+                    "Existing authorization does not match this explicit decision and session");
+        }
+        return existing;
+    }
+
+    private void requireProposalIntegrity(TransactionProposal proposal) {
+        if (!canonical.hash(proposal.canonicalMaterial()).equals(proposal.proposalHash())) {
+            throw conflict("PROPOSAL_HASH_MISMATCH",
+                    "Transaction proposal material no longer matches its immutable hash");
+        }
     }
 
     private TransactionProposal lock(UUID buyerId, UUID proposalId) {

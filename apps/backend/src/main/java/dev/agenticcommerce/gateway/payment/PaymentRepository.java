@@ -15,6 +15,7 @@ import java.util.Set;
 import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.databind.ObjectMapper;
 
 @Repository
@@ -72,6 +73,32 @@ public class PaymentRepository {
     public Optional<PaymentConfiguration> configuration(UUID id) {
         return jdbc.sql("SELECT * FROM merchant_payment_configuration WHERE payment_configuration_id=:id")
                 .param("id", id).query(this::mapConfiguration).optional();
+    }
+
+    @Transactional
+    public PaymentConfiguration registerTestConfiguration(
+            UUID merchantId, String configurationReference, String providerAccountReference) {
+        jdbc.sql("""
+                INSERT INTO merchant_payment_configuration(
+                    merchant_id,provider,environment,configuration_reference,
+                    provider_account_reference,active)
+                VALUES(:merchant,'RAZORPAY','TEST',:configuration,:account,TRUE)
+                ON CONFLICT DO NOTHING
+                """).param("merchant", merchantId).param("configuration", configurationReference)
+                .param("account", providerAccountReference).update();
+        PaymentConfiguration configuration = jdbc.sql("""
+                SELECT * FROM merchant_payment_configuration
+                WHERE merchant_id=:merchant AND provider='RAZORPAY' AND environment='TEST'
+                """).param("merchant", merchantId).query(this::mapConfiguration).optional()
+                .orElseThrow(() -> new IllegalStateException(
+                        "Razorpay Test configuration reference is already bound to another merchant"));
+        if (!configuration.configurationReference().equals(configurationReference)
+                || !configuration.providerAccountReference().equals(providerAccountReference)
+                || !configuration.active()) {
+            throw new IllegalStateException(
+                    "Existing merchant Razorpay Test configuration does not match the configured provider");
+        }
+        return configuration;
     }
 
     public PaymentControl createControl(StartContext context, Instant now) {

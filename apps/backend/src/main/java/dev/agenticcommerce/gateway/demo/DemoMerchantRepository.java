@@ -42,6 +42,10 @@ public class DemoMerchantRepository {
                     rs.getBoolean("cancellation_allowed"),rs.getBoolean("returns_allowed"),
                     rs.getBoolean("perishable_returns_allowed"),rs.getInt("delivery_minutes"))).optional();}
 
+    public boolean isDemoMerchant(UUID merchantId){return jdbc.sql(
+            "SELECT EXISTS(SELECT 1 FROM demo_merchant_profile WHERE merchant_id=:merchant)")
+            .param("merchant",merchantId).query(Boolean.class).single();}
+
     public void initializeInventory(UUID merchantId,UUID catalogueVersionId){jdbc.sql("""
             INSERT INTO demo_merchant_inventory(merchant_id,catalogue_version_id,product_id,merchant_sku,available_quantity)
             SELECT p.merchant_id,p.catalogue_version_id,p.product_id,p.merchant_sku,COALESCE(c.stock_quantity,0)

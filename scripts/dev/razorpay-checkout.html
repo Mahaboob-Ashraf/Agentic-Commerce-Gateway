@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Agentic Commerce Gateway - Razorpay Test Checkout</title>
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+  <style>
+    body { font: 16px system-ui, sans-serif; margin: 2rem auto; max-width: 46rem; padding: 0 1rem; }
+    button { font: inherit; padding: .7rem 1rem; }
+    pre { background: #f4f4f4; overflow-wrap: anywhere; padding: 1rem; white-space: pre-wrap; }
+    .warning { color: #8a3b00; }
+  </style>
+</head>
+<body>
+  <h1>Razorpay Test Checkout</h1>
+  <p class="warning">Use Razorpay Test Mode only. This page contains public checkout initialization data.</p>
+  <dl>
+    <dt>Merchant</dt><dd id="merchant"></dd>
+    <dt>Amount</dt><dd id="amount"></dd>
+    <dt>Order</dt><dd id="order"></dd>
+  </dl>
+  <button id="pay" type="button">Open Razorpay Test Checkout</button>
+  <h2>Checkout result</h2>
+  <p>After a successful human checkout, copy these three values into the resume verifier prompts.</p>
+  <pre id="result">No checkout result yet.</pre>
+  <button id="copy" type="button" disabled>Copy result JSON</button>
+  <script>
+    const initialization = JSON.parse(atob('__CHECKOUT_INITIALIZATION_BASE64__'));
+    const result = document.getElementById('result');
+    const copy = document.getElementById('copy');
+    document.getElementById('merchant').textContent = initialization.merchantDisplayName;
+    document.getElementById('amount').textContent = `${initialization.amountMinor} ${initialization.currency}`;
+    document.getElementById('order').textContent = initialization.providerOrderId;
+    document.getElementById('pay').addEventListener('click', () => {
+      const checkout = new Razorpay({
+        key: initialization.publicKeyId,
+        order_id: initialization.providerOrderId,
+        amount: initialization.amountMinor,
+        currency: initialization.currency,
+        name: initialization.merchantDisplayName,
+        handler: response => {
+          result.textContent = JSON.stringify(response, null, 2);
+          copy.disabled = false;
+        },
+        modal: { ondismiss: () => { if (result.textContent.startsWith('No checkout')) result.textContent = 'Checkout dismissed.'; } }
+      });
+      checkout.open();
+    });
+    copy.addEventListener('click', () => navigator.clipboard.writeText(result.textContent));
+  </script>
+</body>
+</html>

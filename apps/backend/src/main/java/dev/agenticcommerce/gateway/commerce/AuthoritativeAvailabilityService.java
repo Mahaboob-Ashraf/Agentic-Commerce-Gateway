@@ -5,6 +5,7 @@ import static dev.agenticcommerce.gateway.intent.BuyerModels.*;
 
 import dev.agenticcommerce.gateway.agentization.execution.ApprovedMerchantExecutor;
 import dev.agenticcommerce.gateway.agentization.execution.MerchantExecutionMode;
+import dev.agenticcommerce.gateway.agentization.execution.MerchantTransportResponse;
 import dev.agenticcommerce.gateway.agentization.model.CanonicalCapability;
 import dev.agenticcommerce.gateway.agentization.persistence.CapabilityMappingProposalRepository;
 import dev.agenticcommerce.gateway.agentization.service.CanonicalJsonService;
@@ -99,9 +100,7 @@ public class AuthoritativeAvailabilityService {
             }
             Instant observed = parseInstant(value.path("observedAt").asText(null));
             Instant expires = parseInstant(value.path("expiresAt").asText(null));
-            if (observed == null || observed.isAfter(now.plusSeconds(30))
-                    || observed.isBefore(now.minus(policy.availabilityMaximumAge()))
-                    || expires != null && !expires.isAfter(now)) {
+            if (!isFresh(observed, expires, response, now, policy.availabilityMaximumAge())) {
                 return new AvailabilityItemEvidence(null, item.productId(), cart.catalogueVersionId(),
                         item.merchantSku(), item.variant(), item.quantity(), null, null,
                         EvidenceOutcome.UNKNOWN, "AVAILABILITY_STALE_OR_UNDATED", observed, expires, responseHash);
@@ -170,6 +169,21 @@ public class AuthoritativeAvailabilityService {
     private static Instant parseInstant(String value) {
         try { return value == null ? null : Instant.parse(value); }
         catch (RuntimeException ignored) { return null; }
+    }
+
+    static boolean isFresh(
+            Instant observed,
+            Instant expires,
+            MerchantTransportResponse response,
+            Instant fallbackNow,
+            java.time.Duration maximumAge) {
+        Instant reference = response.responseDate() != null
+                ? response.responseDate()
+                : response.receivedAt() != null ? response.receivedAt() : fallbackNow;
+        return observed != null
+                && !observed.isAfter(reference.plusSeconds(30))
+                && !observed.isBefore(reference.minus(maximumAge))
+                && (expires == null || expires.isAfter(reference));
     }
 
     private static EvidenceOutcome reduce(List<EvidenceOutcome> outcomes) {

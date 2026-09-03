@@ -13,6 +13,8 @@ import dev.agenticcommerce.gateway.intent.BuyerStateMachine;
 import dev.agenticcommerce.gateway.intent.BuyerThreadService;
 import dev.agenticcommerce.gateway.onboarding.OnboardingService;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -55,6 +57,22 @@ public class ReversibilityService {
     @Transactional
     public ReversibilityEvaluation evaluate(
             UUID buyerId, UUID proposalId, String sessionBindingHash) {
+        return evaluate(buyerId, proposalId, sessionBindingHash, false);
+    }
+
+    /**
+     * Applies the normal deterministic risk policy while enforcing the P0 product boundary that
+     * every purchase still goes through an explicit buyer-facing Razorpay Checkout confirmation.
+     * No AuthorizationDecision is created by this preparation-only path.
+     */
+    @Transactional
+    public ReversibilityEvaluation evaluateForCheckout(UUID buyerId, UUID proposalId) {
+        return evaluate(buyerId, proposalId, null, true);
+    }
+
+    private ReversibilityEvaluation evaluate(
+            UUID buyerId, UUID proposalId, String sessionBindingHash,
+            boolean requireExplicitCheckout) {
         TransactionProposal proposal = repository.findProposalForUpdate(buyerId, proposalId)
                 .orElseThrow(() -> notFound("TRANSACTION_PROPOSAL_NOT_FOUND", "Proposal was not found"));
         ReversibilityEvaluation existing = repository.riskForProposal(buyerId, proposalId).orElse(null);
@@ -69,6 +87,18 @@ public class ReversibilityService {
         }
         RiskInput input = input(proposal);
         ReversibilityEngine.Decision decision = engine.evaluate(input);
+        if (requireExplicitCheckout && decision.outcome() == ReversibilityOutcome.AUTO_EXECUTE) {
+            var reasons = new ArrayList<>(decision.reasonCodes());
+            reasons.add("P0_RAZORPAY_CHECKOUT_CONFIRMATION_REQUIRED");
+            decision = new ReversibilityEngine.Decision(
+                    ReversibilityOutcome.EXPLICIT_CONFIRMATION, List.copyOf(reasons));
+        } else if (requireExplicitCheckout
+                && decision.outcome() == ReversibilityOutcome.EXPLICIT_CONFIRMATION
+                && !decision.reasonCodes().contains("P0_RAZORPAY_CHECKOUT_CONFIRMATION_REQUIRED")) {
+            var reasons = new ArrayList<>(decision.reasonCodes());
+            reasons.add("P0_RAZORPAY_CHECKOUT_CONFIRMATION_REQUIRED");
+            decision = new ReversibilityEngine.Decision(decision.outcome(), List.copyOf(reasons));
+        }
         var normalized = mapper.valueToTree(input);
         String inputHash = canonical.hash(normalized);
         Instant now = Instant.now();
@@ -84,7 +114,7 @@ public class ReversibilityService {
         }
         repository.attachRisk(proposal.threadId(), buyerId, proposalId,
                 evaluation.reversibilityEvaluationId(), finalState.name());
-        if (decision.outcome() == ReversibilityOutcome.AUTO_EXECUTE) {
+        if (decision.outcome() == ReversibilityOutcome.AUTO_EXECUTE && !requireExplicitCheckout) {
             authorization.authorizeAuto(proposal, sessionBindingHash);
         }
         return evaluation;

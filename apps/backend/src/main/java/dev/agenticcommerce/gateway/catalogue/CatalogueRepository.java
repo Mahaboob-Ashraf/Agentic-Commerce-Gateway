@@ -123,6 +123,30 @@ public class CatalogueRepository {
                 .param("m",merchantId).param("v",versionId).param("p",productId).query(this::product).optional();
     }
 
+    public List<Product> exactIdentityCandidates(String identityTokens,int limit) {
+        return jdbc.sql("SELECT "+productColumns()+"""
+                FROM merchant_product p
+                JOIN merchant_product_commerce_state c ON c.merchant_id=p.merchant_id
+                  AND c.catalogue_version_id=p.catalogue_version_id AND c.product_id=p.product_id
+                JOIN (
+                  SELECT DISTINCT ON (merchant_id) merchant_id,catalogue_version_id
+                  FROM catalogue_version WHERE status='PUBLISHED'
+                  ORDER BY merchant_id,version_number DESC
+                ) latest ON latest.merchant_id=p.merchant_id AND latest.catalogue_version_id=p.catalogue_version_id
+                WHERE p.active
+                  AND to_tsvector('simple',lower(concat_ws(' ',p.brand,p.canonical_name,p.variant)))
+                      @@ plainto_tsquery('simple',:identity)
+                  AND COALESCE((SELECT outcome FROM product_identity_resolution resolution
+                      WHERE resolution.merchant_id=p.merchant_id
+                        AND resolution.catalogue_version_id=p.catalogue_version_id
+                        AND resolution.product_id=p.product_id
+                      ORDER BY resolution.resolved_at DESC LIMIT 1),'UNRESOLVED')<>'CONFLICT'
+                ORDER BY p.merchant_id,p.product_id
+                LIMIT :limit
+                """).param("identity",identityTokens).param("limit",Math.min(Math.max(limit,1),33))
+                .query(this::product).list();
+    }
+
     public List<ScoredProduct> lexicalCandidates(UUID merchantId,UUID versionId,String query,String sku,String gtin,
             String category,Long minPrice,Long maxPrice,int limit) {
         return jdbc.sql("SELECT "+productColumns()+"""

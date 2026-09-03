@@ -5,6 +5,9 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Locale;
 import org.apache.hc.client5.http.config.RequestConfig;
 import org.apache.hc.client5.http.DnsResolver;
@@ -59,12 +62,17 @@ public class PinnedHttpsMerchantTransport implements MerchantTransport {
                 httpRequest.setEntity(new ByteArrayEntity(request.jsonBody(), ContentType.APPLICATION_JSON));
             }
             return client.execute(httpRequest, response -> {
+                Instant responseDate = parseResponseDate(
+                        response.getFirstHeader("Date") == null
+                                ? null
+                                : response.getFirstHeader("Date").getValue());
                 String contentType = response.getEntity() == null || response.getEntity().getContentType() == null
                         ? "" : response.getEntity().getContentType();
                 byte[] body = response.getEntity() == null
                         ? new byte[0]
                         : readBounded(response.getEntity().getContent(), request.maximumResponseBytes());
-                return new MerchantTransportResponse(response.getCode(), contentType, body);
+                return new MerchantTransportResponse(
+                        response.getCode(), contentType, body, Instant.now(), responseDate);
             });
         } catch (MerchantExecutionException exception) {
             throw exception;
@@ -72,6 +80,16 @@ public class PinnedHttpsMerchantTransport implements MerchantTransport {
             String name = exception.getClass().getSimpleName().toLowerCase(Locale.ROOT);
             String code = name.contains("timeout") ? "MERCHANT_TIMEOUT" : "MERCHANT_TRANSPORT_FAILURE";
             throw new MerchantExecutionException(code, "Approved merchant request failed safely", exception);
+        }
+    }
+
+    private static Instant parseResponseDate(String value) {
+        try {
+            return value == null
+                    ? null
+                    : ZonedDateTime.parse(value, DateTimeFormatter.RFC_1123_DATE_TIME).toInstant();
+        } catch (RuntimeException ignored) {
+            return null;
         }
     }
 

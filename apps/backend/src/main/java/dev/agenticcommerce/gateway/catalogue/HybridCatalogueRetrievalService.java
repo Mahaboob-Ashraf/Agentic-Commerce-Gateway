@@ -42,7 +42,8 @@ public class HybridCatalogueRetrievalService {
             if(Boolean.TRUE.equals(request.vegetarian())&&!vegetarian(merchantId,version.id(),c.product.id()))continue;
             AllergenState allergen=allergen(merchantId,version.id(),c.product.id(),request.prohibitedAllergen());
             if(request.prohibitedAllergen()!=null&&allergen!=AllergenState.ABSENT)continue;
-            double completeness=completeness(c.product);double score=c.exact>0?1.0:clamp(c.fts)*.35+clamp(c.trigram)*.30+clamp(c.vector)*.30+completeness*.05;
+            boolean authoritativeExact=c.exact>0||exactBrandVariant(request,c.product,gate);
+            double completeness=completeness(c.product);double score=authoritativeExact?1.0:clamp(c.fts)*.35+clamp(c.trigram)*.30+clamp(c.vector)*.30+completeness*.05;
             Map<String,Double> evidence=new LinkedHashMap<>();evidence.put("exact",c.exact);evidence.put("fts",c.fts);evidence.put("trigram",c.trigram);evidence.put("vector",c.vector);evidence.put("completeness",completeness);
             ranked.add(new SearchHit(c.product,score,gate,Map.copyOf(evidence),allergen));
         }
@@ -104,6 +105,9 @@ public class HybridCatalogueRetrievalService {
 
     private boolean vegetarian(UUID merchantId,UUID versionId,UUID productId){return vegetarianOutcome(merchantId,versionId,productId)==GateOutcome.PASS;}
     private static double completeness(Product p){int present=0;if(p.brand()!=null)present++;if(p.variant()!=null)present++;if(p.sizeStorage()!=null)present++;if(p.category()!=null)present++;if(p.description()!=null)present++;return present/5.0;}
+    private static boolean exactBrandVariant(SearchRequest request,Product product,GateOutcome gate){return gate==GateOutcome.PASS
+            &&request.brand()!=null&&!request.brand().isBlank()&&request.variant()!=null&&!request.variant().isBlank()
+            &&!mismatch(request.brand(),product.brand())&&!mismatch(request.variant(),product.variant());}
     private static double clamp(double v){return Math.max(0,Math.min(1,v));}
     private static boolean mismatch(String requested,String actual){return requested!=null&&!requested.isBlank()&&(actual==null||!CatalogueService.normalizeText(requested).equals(CatalogueService.normalizeText(actual)));}
     private static String factAllergen(tools.jackson.databind.JsonNode value){return CatalogueService.normalizeText(value.isObject()?value.path("allergen").asText():value.asText());}

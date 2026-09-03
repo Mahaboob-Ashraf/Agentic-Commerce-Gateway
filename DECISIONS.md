@@ -435,3 +435,19 @@ records current implementation/project state. ADR-024 is an approved post-PDF ov
 - **Effect on Buildathon demo:** A single Cloud Run deployment and Supabase database can demonstrate two meaningfully
   different READY merchants without making buyer requests depend on live public product APIs. The completion log and
   persisted bootstrap summary state the public base URL and deployment precondition used for the run.
+
+## ADR-026 - Buyer state transitions are deterministic; model reasoning is candidate-bounded
+
+- **Decision:** Derive Safe Buyer tool transitions from the persisted state machine instead of asking a model to select
+  the only permitted action. Retain Gemini for unstructured intent compilation and, only when multiple non-exact
+  grounded candidates survive deterministic retrieval, one bounded candidate-selection call whose output is limited to
+  supplied product IDs and evidence references. Exact identity and single-candidate selection remain deterministic.
+- **Why:** A model call cannot add judgment when authoritative state permits exactly one transition, and sequential calls
+  added dominant latency and provider failure exposure. Candidate preference is the point where bounded semantic
+  reasoning can add value.
+- **Effect on correctness:** Merchant readiness, retrieval, exact identity, transitions, hard constraints, quote,
+  proposal, risk, and money remain deterministic. A selected product is membership-checked, re-retrieved through the
+  hard filters, and reloaded from the authoritative catalogue before cart persistence.
+- **Effect on testing:** Action evidence identifies deterministic state-machine selection; tests reject product or
+  evidence IDs outside the offered set, prove exact selection avoids the provider, retain ambiguity clarification, and
+  verify non-READY search capability exclusion.
