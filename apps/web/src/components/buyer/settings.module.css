@@ -1,0 +1,70 @@
+.page { min-height: 100svh; padding: clamp(1.5rem, 3vw, 3.25rem); }
+.header { width: min(100%, 70rem); margin: 0 auto clamp(2rem, 5vw, 4rem); }
+.header > p { margin: 0 0 0.55rem; color: var(--amana-brand-strong); font-size: 0.68rem; font-weight: 750; letter-spacing: 0.12em; text-transform: uppercase; }
+.header h1 { margin: 0; font-family: var(--amana-font-display); font-size: clamp(2.25rem, 4vw, 3.7rem); font-weight: 550; letter-spacing: -0.048em; line-height: 1; }
+.header > span { display: block; max-width: 39rem; margin-top: 0.9rem; color: var(--amana-ink-muted); font-size: 0.86rem; line-height: 1.65; }
+.settingsGrid { display: grid; width: min(100%, 70rem); grid-template-columns: 13rem minmax(0, 1fr); gap: clamp(2rem, 5vw, 5rem); margin: 0 auto; }
+.sectionNav { display: grid; align-content: start; gap: 0.18rem; }
+.sectionNav a { display: flex; min-height: 2.75rem; align-items: center; justify-content: space-between; border-radius: 0.58rem; color: #68758a; font-size: 0.78rem; font-weight: 580; padding: 0.5rem 0.65rem; text-decoration: none; }
+.sectionNav a:hover { color: var(--amana-ink); }
+.sectionNav a[data-active="true"] { background: #eaf0ff; color: var(--amana-brand-strong); }
+.sectionNav svg { width: 0.9rem; }
+.content { min-width: 0; }
+.section { padding-bottom: 4rem; }
+.section > header { padding-bottom: 1.6rem; border-bottom: 1px solid #e1e6ef; }
+.section > header h2 { margin: 0; font-family: var(--amana-font-display); font-size: 1.65rem; font-weight: 580; letter-spacing: -0.03em; }
+.section > header p { max-width: 40rem; margin: 0.55rem 0 0; color: var(--amana-ink-muted); font-size: 0.78rem; line-height: 1.6; }
+.form { display: grid; gap: 1.25rem; padding-top: 1.75rem; }
+.field { display: grid; gap: 0.45rem; color: #4a566c; font-size: 0.73rem; font-weight: 650; }
+.field input, .field select { width: 100%; min-height: 2.85rem; border: 1px solid var(--amana-border-strong); border-radius: 0.56rem; background: #fff; color: var(--amana-ink); padding: 0.65rem 0.78rem; }
+.twoColumns { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+.formFooter { display: flex; min-height: 4.5rem; align-items: center; justify-content: space-between; gap: 1rem; border-top: 1px solid #e7ebf2; margin-top: 0.5rem; padding-top: 1.25rem; }
+.formFooter p, .message { margin: 0; color: #7d899b; font-size: 0.7rem; }
+.form button, .merchant button, .addButton { min-height: 2.75rem; border: 1px solid var(--amana-brand); border-radius: 0.55rem; background: var(--amana-brand); color: #fff; cursor: pointer; font-size: 0.75rem; font-weight: 680; padding: 0.65rem 1rem; }
+button.secondary { border-color: var(--amana-border-strong); background: #fff; color: #536077; }
+.form button:disabled, .merchant button:disabled { border-color: #d7dde7; background: #eef1f5; color: #919aaa; cursor: not-allowed; }
+.addressList, .merchantList { display: grid; }
+.address { display: flex; align-items: center; justify-content: space-between; gap: 1rem; border-bottom: 1px solid #e3e8f0; padding: 1.35rem 0; }
+.address[data-selected="true"] { border-left: 2px solid var(--amana-brand); padding-left: 1rem; }
+.address span, .merchant span { color: var(--amana-brand-strong); font-size: 0.65rem; font-weight: 720; letter-spacing: 0.06em; text-transform: uppercase; }
+.address h3, .merchant h3, .deviceGuide h3 { margin: 0.3rem 0 0.15rem; font-size: 0.88rem; font-weight: 680; }
+.address p, .merchant p, .deviceGuide p { margin: 0; color: var(--amana-ink-muted); font-size: 0.73rem; line-height: 1.55; }
+.addButton { display: inline-flex; align-items: center; gap: 0.5rem; width: fit-content; margin-top: 1.4rem; border-color: #cfd8e6; background: #fff; color: #46536b; }
+.merchant { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 1rem; border-bottom: 1px solid #e3e8f0; padding: 1.35rem 0; }
+.merchantMonogram { display: grid; width: 2.7rem; height: 2.7rem; place-items: center; border-radius: 0.72rem; background: #eef2fb; color: #244fc7; font-family: var(--amana-font-display); font-weight: 700; }
+.merchant span { display: inline-block; margin-top: 0.42rem; color: #8a6270; }
+.merchant span[data-connected="true"] { color: var(--amana-positive); }
+.connectForm { grid-column: 2 / -1; display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; padding: 1rem; border: 1px solid #dfe5ef; border-radius: 0.7rem; background: #fff; }
+.connectForm > div { grid-column: 1 / -1; display: flex; justify-content: flex-end; gap: 0.5rem; }
+.boundaryNote { display: flex; gap: 0.6rem; margin: 1.2rem 0 0; color: #6c788c; font-size: 0.7rem; line-height: 1.55; }
+.boundaryNote svg { flex: none; color: var(--amana-positive); }
+.toggle { display: grid; min-height: 4rem; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 1rem; border-bottom: 1px solid #e8ecf2; cursor: pointer; }
+.toggle > span { display: grid; gap: 0.2rem; }
+.toggle strong { color: #344158; font-size: 0.79rem; font-weight: 650; }
+.toggle small { color: #7f8a9c; font-size: 0.69rem; font-weight: 400; }
+.toggle input { position: absolute; opacity: 0; pointer-events: none; }
+.toggle i { position: relative; width: 2.5rem; height: 1.4rem; border-radius: 999px; background: #ccd4e0; transition: background var(--amana-motion-quick); }
+.toggle i::after { position: absolute; top: 0.2rem; left: 0.2rem; width: 1rem; height: 1rem; border-radius: 50%; background: #fff; box-shadow: 0 1px 4px rgb(20 34 60 / 25%); content: ""; transition: transform var(--amana-motion-quick); }
+.toggle input:checked + i { background: var(--amana-brand); }
+.toggle input:checked + i::after { transform: translateX(1.1rem); }
+.toggle input:focus-visible + i { outline: var(--amana-focus-width) solid var(--amana-focus); outline-offset: var(--amana-focus-offset); }
+.deviceGuide { display: flex; gap: 1rem; border: 1px solid #dce4ef; border-radius: 0.75rem; background: #f3f6fb; padding: 1rem; }
+.deviceGuide svg { flex: none; color: var(--amana-brand-strong); }
+
+@media (max-width: 47.99rem) {
+  .page { padding: 1.4rem 1rem; }
+  .header { margin-bottom: 2rem; }
+  .settingsGrid { display: block; }
+  .sectionNav { display: flex; margin: 0 -1rem 1.8rem; overflow-x: auto; padding: 0 1rem 0.55rem; scrollbar-width: none; }
+  .sectionNav a { flex: none; white-space: nowrap; }
+  .sectionNav svg { display: none; }
+  .twoColumns, .connectForm { grid-template-columns: 1fr; }
+  .connectForm { grid-column: 1 / -1; }
+  .address { align-items: flex-start; flex-direction: column; }
+  .merchant { grid-template-columns: auto minmax(0, 1fr); }
+  .merchant > button { grid-column: 1 / -1; width: 100%; }
+  .formFooter { align-items: stretch; flex-direction: column; }
+  .formFooter button { width: 100%; }
+}
+
+@media (prefers-reduced-motion: reduce) { .toggle i, .toggle i::after { transition: none; } }

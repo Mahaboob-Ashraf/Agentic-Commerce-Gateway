@@ -23,5 +23,9 @@ public class CommerceRequestApiController {
             @Valid @RequestBody Request request){return service.execute(principal.actorId(),request.requestId(),request.threadId(),request.text());}
     @GetMapping("/{requestId}") public CommerceRequestModels.CommerceRequestResult get(@AuthenticationPrincipal VerifiedActorPrincipal principal,
             @PathVariable UUID requestId){return service.get(principal.actorId(),requestId);}
+    @GetMapping("/thread/{threadId}") public CommerceRequestModels.CommerceRequestResult latestForThread(
+            @AuthenticationPrincipal VerifiedActorPrincipal principal,@PathVariable UUID threadId){
+        return service.latestForThread(principal.actorId(),threadId);
+    }
     public record Request(@NotNull UUID requestId,UUID threadId,@NotBlank @Size(max=4000) String text) {}
 }

@@ -1,12 +1,5 @@
 @import "tailwindcss";
-
-:root {
-  color-scheme: light;
-  --background: #f7f8fa;
-  --foreground: #172033;
-  --surface: #ffffff;
-  --accent: #2563eb;
-}
+@import "../styles/amana-tokens.css";
 
 * {
   box-sizing: border-box;
@@ -17,9 +10,75 @@ body {
   min-height: 100%;
 }
 
+html {
+  background: var(--amana-canvas);
+  color-scheme: light;
+  scroll-behavior: smooth;
+}
+
 body {
   margin: 0;
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--amana-canvas);
+  color: var(--amana-ink);
+  font-family: var(--amana-font-body);
+  font-size: var(--amana-text-body);
+  line-height: 1.6;
+  text-rendering: optimizeLegibility;
+}
+
+.amana-root {
+  min-height: 100%;
+  isolation: isolate;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+:focus-visible {
+  outline: var(--amana-focus-width) solid var(--amana-focus);
+  outline-offset: var(--amana-focus-offset);
+}
+
+::selection {
+  background: var(--amana-selection);
+  color: var(--amana-ink);
+}
+
+.amana-inline-action {
+  display: inline-flex;
+  min-height: var(--amana-touch-target);
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--amana-brand);
+  border-radius: var(--amana-radius-small);
+  background: var(--amana-brand);
+  color: #fff;
+  font-size: var(--amana-text-small);
+  font-weight: 650;
+  line-height: 1;
+  padding-inline: 1rem;
+  text-decoration: none;
+}
+
+.amana-inline-action:hover {
+  background: var(--amana-brand-strong);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
 }

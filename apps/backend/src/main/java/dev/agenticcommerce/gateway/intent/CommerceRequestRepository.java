@@ -29,6 +29,12 @@ public class CommerceRequestRepository {
     public Optional<CommerceRequestRecord> find(UUID buyerId,UUID requestId){return jdbc.sql("SELECT * FROM buyer_commerce_request WHERE buyer_actor_id=:buyer AND request_id=:request")
             .param("buyer",buyerId).param("request",requestId).query(this::record).optional();}
 
+    public Optional<CommerceRequestRecord> latestForThread(UUID buyerId,UUID threadId){return jdbc.sql("""
+            SELECT * FROM buyer_commerce_request
+            WHERE buyer_actor_id=:buyer AND thread_id=:thread
+            ORDER BY created_at DESC,commerce_request_id DESC LIMIT 1
+            """).param("buyer",buyerId).param("thread",threadId).query(this::record).optional();}
+
     public Optional<CommerceRequestRecord> findForUpdate(UUID buyerId,UUID requestId){return jdbc.sql("SELECT * FROM buyer_commerce_request WHERE buyer_actor_id=:buyer AND request_id=:request FOR UPDATE")
             .param("buyer",buyerId).param("request",requestId).query(this::record).optional();}
 

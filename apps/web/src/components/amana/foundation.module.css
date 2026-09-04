@@ -1,0 +1,213 @@
+.page {
+  min-height: 100svh;
+  overflow: clip;
+}
+
+.container {
+  width: min(100%, var(--amana-content-max));
+  margin-inline: auto;
+  padding-inline: var(--amana-gutter);
+}
+
+.pageInner {
+  display: flex;
+  min-height: 100svh;
+  align-items: center;
+  padding-block: var(--amana-section-space);
+}
+
+.section {
+  width: 100%;
+}
+
+.sectionHeader {
+  max-width: var(--amana-editorial-max);
+  margin-bottom: clamp(1.75rem, 1.3rem + 1.5vw, 3rem);
+}
+
+.eyebrow {
+  margin: 0 0 0.75rem;
+  color: var(--amana-brand-strong);
+  font-size: var(--amana-text-caption);
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  line-height: 1.4;
+  text-transform: uppercase;
+}
+
+.heading {
+  margin: 0;
+  color: var(--amana-ink);
+  font-family: var(--amana-font-display);
+  font-size: var(--amana-heading-large);
+  font-variation-settings: "wdth" 104;
+  font-weight: 560;
+  letter-spacing: -0.045em;
+  line-height: 0.98;
+}
+
+.description {
+  max-width: var(--amana-text-measure-narrow);
+  margin: 1.25rem 0 0;
+  color: var(--amana-ink-muted);
+  font-size: var(--amana-text-lead);
+  line-height: 1.55;
+}
+
+.surface {
+  border: 1px solid var(--amana-border);
+  border-radius: var(--amana-radius-large);
+  background: var(--amana-surface);
+}
+
+.surface[data-tone="subtle"] {
+  background: var(--amana-surface-subtle);
+}
+
+.surface[data-tone="raised"] {
+  box-shadow: var(--amana-shadow-spatial);
+}
+
+.surface[data-padding="compact"] {
+  padding: clamp(1rem, 0.9rem + 0.5vw, 1.5rem);
+}
+
+.surface[data-padding="comfortable"] {
+  padding: clamp(1.5rem, 1.1rem + 1.8vw, 3rem);
+}
+
+.actionLink {
+  display: inline-flex;
+  min-height: var(--amana-touch-target);
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--amana-border-strong);
+  border-radius: var(--amana-radius-small);
+  background: var(--amana-surface);
+  color: var(--amana-ink);
+  font-size: var(--amana-text-small);
+  font-weight: 650;
+  line-height: 1;
+  padding-inline: 1.25rem;
+  text-decoration: none;
+  transition:
+    background-color var(--amana-motion-quick) var(--amana-ease-standard),
+    border-color var(--amana-motion-quick) var(--amana-ease-standard),
+    color var(--amana-motion-quick) var(--amana-ease-standard);
+}
+
+.actionLink:hover {
+  border-color: var(--amana-brand);
+  color: var(--amana-brand-strong);
+}
+
+.actionLink:active {
+  background: var(--amana-canvas-blue);
+}
+
+.status {
+  display: inline-flex;
+  min-height: 1.75rem;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--amana-ink-muted);
+  font-size: var(--amana-text-small);
+  font-weight: 650;
+  line-height: 1.3;
+}
+
+.status::before {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--amana-ink-soft);
+  content: "";
+}
+
+.status[data-tone="information"] {
+  color: var(--amana-brand-strong);
+}
+
+.status[data-tone="information"]::before {
+  background: var(--amana-brand);
+}
+
+.status[data-tone="positive"] {
+  color: var(--amana-positive);
+}
+
+.status[data-tone="positive"]::before {
+  background: var(--amana-positive);
+}
+
+.status[data-tone="warning"] {
+  color: var(--amana-warning);
+}
+
+.status[data-tone="warning"]::before {
+  background: var(--amana-warning);
+}
+
+.status[data-tone="negative"] {
+  color: var(--amana-negative);
+}
+
+.status[data-tone="negative"]::before {
+  background: var(--amana-negative);
+}
+
+.product {
+  display: grid;
+  overflow: hidden;
+  border: 1px solid var(--amana-border);
+  border-radius: var(--amana-radius-medium);
+  background: var(--amana-surface);
+}
+
+.productMedia {
+  display: grid;
+  min-height: 12rem;
+  place-items: center;
+  background: var(--amana-canvas-blue);
+}
+
+.productBody {
+  display: grid;
+  align-content: start;
+  gap: 0.75rem;
+  padding: 1.25rem;
+}
+
+.productTitle {
+  margin: 0;
+  color: var(--amana-ink);
+  font-family: var(--amana-font-display);
+  font-size: var(--amana-heading-small);
+  font-weight: 560;
+  letter-spacing: -0.025em;
+  line-height: 1.15;
+}
+
+.productDescription {
+  max-width: var(--amana-text-measure);
+  margin: 0;
+  color: var(--amana-ink-muted);
+  font-size: var(--amana-text-small);
+  line-height: 1.6;
+}
+
+.productFooter {
+  margin-top: 0.5rem;
+}
+
+@media (min-width: 48rem) {
+  .product[data-layout="horizontal"] {
+    grid-template-columns: minmax(15rem, 0.8fr) minmax(18rem, 1.2fr);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .actionLink {
+    transition: none;
+  }
+}

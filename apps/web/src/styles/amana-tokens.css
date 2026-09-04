@@ -1,0 +1,62 @@
+:root {
+  /*
+   * Amana custom tokens are the single source for product-specific surfaces.
+   * Component-level controls continue to use Blade's generated theme tokens.
+   */
+  --amana-canvas: #f7f9fc;
+  --amana-canvas-blue: #eef4ff;
+  --amana-surface: #ffffff;
+  --amana-surface-subtle: #f3f6fa;
+  --amana-surface-raised: #ffffff;
+  --amana-scene-sky: #e7efff;
+  --amana-scene-ground: #d8e4f8;
+  --amana-ink: #18233a;
+  --amana-ink-muted: #5e6c84;
+  --amana-ink-soft: #7f8ba1;
+  --amana-brand: #2b5ff5;
+  --amana-brand-strong: #1647d8;
+  --amana-brand-soft: #dfe9ff;
+  --amana-border: #dce3ee;
+  --amana-border-strong: #c7d2e2;
+  --amana-positive: #13795b;
+  --amana-positive-soft: #e5f6f0;
+  --amana-warning: #946200;
+  --amana-warning-soft: #fff4d6;
+  --amana-negative: #b42318;
+  --amana-negative-soft: #feeceb;
+  --amana-selection: #d7e4ff;
+  --amana-focus: #1d54ed;
+
+  --amana-font-display: "TASA Orbiter", "TASA Orbiter Fallback Arial", Arial, sans-serif;
+  --amana-font-body: "Inter", "Inter Fallback Arial", Arial, sans-serif;
+  --amana-text-caption: 0.75rem;
+  --amana-text-small: 0.875rem;
+  --amana-text-body: 1rem;
+  --amana-text-lead: clamp(1.0625rem, 0.98rem + 0.3vw, 1.25rem);
+  --amana-heading-small: clamp(1.5rem, 1.35rem + 0.6vw, 2rem);
+  --amana-heading-medium: clamp(2rem, 1.65rem + 1.4vw, 3.25rem);
+  --amana-heading-large: clamp(2.75rem, 2rem + 3vw, 5.75rem);
+
+  /* Layout: mobile first; tablet 48rem, laptop 64rem, wide desktop 80rem. */
+  --amana-content-max: 80rem;
+  --amana-editorial-max: 46rem;
+  --amana-text-measure: 65ch;
+  --amana-text-measure-narrow: 48ch;
+  --amana-gutter: clamp(1rem, 0.6rem + 2vw, 3rem);
+  --amana-section-space: clamp(4rem, 2.8rem + 4vw, 8rem);
+  --amana-touch-target: 2.75rem;
+
+  --amana-radius-small: 0.5rem;
+  --amana-radius-medium: 0.875rem;
+  --amana-radius-large: 1.25rem;
+  --amana-shadow-spatial: 0 1.25rem 4rem -2rem rgb(27 55 104 / 22%);
+  --amana-shadow-focus: 0 0 0 0.25rem rgb(43 95 245 / 16%);
+  --amana-focus-width: 0.125rem;
+  --amana-focus-offset: 0.1875rem;
+
+  --amana-motion-quick: 160ms;
+  --amana-motion-standard: 280ms;
+  --amana-motion-gentle: 480ms;
+  --amana-ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --amana-ease-enter: cubic-bezier(0, 0, 0, 1);
+}

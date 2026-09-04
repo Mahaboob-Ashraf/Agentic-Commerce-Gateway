@@ -94,6 +94,14 @@ public class CommerceRequestService {
         if(record.authoritativeResult()==null)throw new BuyerException("COMMERCE_REQUEST_RUNNING",HttpStatus.CONFLICT,"Commerce request is still running");
         return mapper.treeToValue(record.authoritativeResult(),CommerceRequestResult.class);}
 
+    public CommerceRequestResult latestForThread(UUID buyerId,UUID threadId){
+        threads.require(buyerId,threadId);
+        CommerceRequestRecord record=requests.latestForThread(buyerId,threadId)
+                .orElseThrow(()->new BuyerException("COMMERCE_REQUEST_NOT_FOUND",HttpStatus.NOT_FOUND,"Commerce request was not found"));
+        if(record.authoritativeResult()==null)throw new BuyerException("COMMERCE_REQUEST_RUNNING",HttpStatus.CONFLICT,"Commerce request is still running");
+        return mapper.treeToValue(record.authoritativeResult(),CommerceRequestResult.class);
+    }
+
     private CommerceRequestResult result(UUID requestId,CommerceThread thread,RequestStatus status,String failure){
         BuyerIntent intent=buyers.latestIntent(thread.buyerActorId(),thread.threadId()).orElse(null);
         MerchantDiscovery discovery=intent==null?null:buyers.latestDiscovery(thread.buyerActorId(),thread.threadId(),intent.intentId()).orElse(null);

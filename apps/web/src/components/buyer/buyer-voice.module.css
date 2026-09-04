@@ -1,0 +1,47 @@
+.voiceMode { position: relative; overflow: hidden; border: 1px solid #d5dfef; border-radius: 1.15rem; background: linear-gradient(145deg, rgb(255 255 255 / 96%), rgb(242 246 253 / 94%)); box-shadow: 0 1.6rem 4rem -2.5rem rgb(35 58 105 / 38%); padding: clamp(1rem, 3vw, 1.6rem); }
+.voiceHeader { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
+.voiceHeader p { margin: 0 0 0.3rem; color: #315bc9; font-size: 0.61rem; font-weight: 750; letter-spacing: 0.1em; text-transform: uppercase; }
+.voiceHeader h2 { margin: 0; color: #192841; font-family: var(--amana-font-display); font-size: 1.2rem; font-weight: 600; letter-spacing: -0.025em; }
+.voiceHeader button { display: grid; width: 2.3rem; height: 2.3rem; place-items: center; border: 0; border-radius: 50%; background: rgb(232 237 246 / 80%); color: #506079; cursor: pointer; }
+.orbStage { display: grid; justify-items: center; padding: clamp(1.7rem, 5vw, 3rem) 0 1.3rem; text-align: center; }
+.voiceOrb { --voice-level: 0; position: relative; display: grid; width: clamp(8.5rem, 22vw, 12rem); aspect-ratio: 1; place-items: center; border: 1px solid rgb(146 169 229 / 55%); border-radius: 50%; background: radial-gradient(circle at 31% 25%, #fff 0 7%, #edf2ff 16%, #a9bef7 43%, #557ae6 72%, #274ebc 100%); box-shadow: 0 1.6rem 3.8rem -1.8rem rgb(34 76 190 / 50%), inset -1.2rem -1.5rem 2.2rem rgb(25 58 151 / 22%), inset 1rem 1.2rem 1.8rem rgb(255 255 255 / 65%); transform: scale(calc(1 + var(--voice-level) * .045)); transition: transform 100ms linear, filter 300ms ease; }
+.voiceOrb::before, .voiceOrb::after { position: absolute; border: 1px solid rgb(89 123 213 / 22%); border-radius: 50%; content: ""; }
+.voiceOrb::before { inset: -1rem; animation: voice-breathe 3.2s ease-in-out infinite; }
+.voiceOrb::after { inset: -1.8rem; opacity: .45; animation: voice-breathe 3.2s 500ms ease-in-out infinite; }
+.voiceOrb > i { position: absolute; width: .5rem; height: .5rem; border-radius: 50%; background: #fff; box-shadow: 0 0 .8rem rgb(255 255 255 / 90%); opacity: 0; }
+.voiceOrb > i:nth-child(1) { transform: translateY(-6.6rem); }
+.voiceOrb > i:nth-child(2) { transform: rotate(120deg) translateY(-6.6rem); }
+.voiceOrb > i:nth-child(3) { transform: rotate(240deg) translateY(-6.6rem); }
+.voiceOrb > span { width: 34%; aspect-ratio: 1; border: 1px solid rgb(255 255 255 / 65%); border-radius: 50%; background: rgb(255 255 255 / 20%); backdrop-filter: blur(4px); animation: voice-core 4.2s ease-in-out infinite; }
+.voiceOrb[data-state="IDLE"]::before, .voiceOrb[data-state="IDLE"]::after { animation: none; opacity: .2; }
+.voiceOrb[data-state="CONNECTING"] { filter: saturate(.7); }
+.voiceOrb[data-state="CONNECTING"]::before { animation-duration: 1.35s; }
+.voiceOrb[data-state="USER_SPEAKING"] { filter: saturate(1.2) brightness(calc(1 + var(--voice-level) * .08)); }
+.voiceOrb[data-state="THINKING"] > span { animation: voice-think 3.4s linear infinite; border-style: dashed; }
+.voiceOrb[data-state="AGENT_SPEAKING"]::before, .voiceOrb[data-state="AGENT_SPEAKING"]::after { animation-duration: 1.45s; }
+.voiceOrb[data-state="COMMERCE_RUNNING"] > i { opacity: 1; animation: voice-orbit 3s linear infinite; }
+.voiceOrb[data-state="AWAITING_AUTHORIZATION"] { filter: saturate(.72); transform: scale(.96); }
+.voiceOrb[data-state="AWAITING_AUTHORIZATION"]::before, .voiceOrb[data-state="AWAITING_AUTHORIZATION"]::after { animation: none; opacity: .12; }
+.voiceOrb[data-state="ERROR"] { filter: saturate(.25); }
+.voiceOrb[data-state="RECONNECTING"] { filter: saturate(.55); }
+.stateLabel { margin-top: 1.7rem; color: #263852; font-size: .78rem; font-weight: 680; }
+.orbStage small { margin-top: .35rem; color: #7d899b; font-size: .6rem; }
+.transcript { display: grid; max-height: 10.5rem; overflow: auto; gap: .55rem; border-block: 1px solid #e0e6ef; padding: 1rem .15rem; scrollbar-width: thin; }
+.transcript p { width: fit-content; max-width: 82%; margin: 0; border-radius: .75rem; color: #3d4b62; font-size: .74rem; line-height: 1.5; padding: .55rem .7rem; }
+.transcript p[data-role="USER"] { justify-self: end; border: 1px solid #d8e2f6; background: #eaf0ff; }
+.transcript p[data-role="AMANA"] { justify-self: start; background: rgb(255 255 255 / 78%); }
+.transcript p[data-final="false"] { opacity: .62; font-style: italic; }
+.transcriptEmpty { max-width: 28rem !important; justify-self: center !important; background: transparent !important; color: #7d899a !important; text-align: center; }
+.voiceError { margin-top: .8rem; border-left: 3px solid #c74250; background: #fff1f2; color: #8c2c36; font-size: .68rem; line-height: 1.5; padding: .65rem .75rem; }
+.voiceControls { display: flex; flex-wrap: wrap; justify-content: center; gap: .55rem; padding-top: 1rem; }
+.voiceControls button { display: inline-flex; min-height: 2.55rem; align-items: center; justify-content: center; gap: .42rem; border: 1px solid #c7d2e5; border-radius: .62rem; background: #fff; color: #41516a; cursor: pointer; font-size: .7rem; font-weight: 680; padding: .6rem .85rem; }
+.voiceControls .primary { border-color: #2b5ff5; background: #2b5ff5; color: #fff; }
+.boundary { display: flex; max-width: 34rem; align-items: flex-start; gap: .45rem; margin: .9rem auto 0; color: #718096; font-size: .61rem; line-height: 1.5; text-align: left; }
+.boundary svg { flex: none; width: 1rem; height: 1rem; color: #3461d5; }
+.voiceMode[data-paused="true"] *, .voiceMode[data-paused="true"] *::before, .voiceMode[data-paused="true"] *::after { animation-play-state: paused !important; }
+@keyframes voice-breathe { 0%, 100% { opacity: .18; transform: scale(.92); } 50% { opacity: .58; transform: scale(1.05); } }
+@keyframes voice-core { 0%, 100% { transform: scale(.85); } 50% { transform: scale(1.1); } }
+@keyframes voice-think { to { transform: rotate(360deg); } }
+@keyframes voice-orbit { to { rotate: 360deg; } }
+@media (max-width: 35rem) { .voiceMode { border-radius: .9rem; padding: .9rem; } .voiceOrb { width: 7.8rem; } .voiceOrb > i:nth-child(1) { transform: translateY(-4.8rem); } .voiceOrb > i:nth-child(2) { transform: rotate(120deg) translateY(-4.8rem); } .voiceOrb > i:nth-child(3) { transform: rotate(240deg) translateY(-4.8rem); } .orbStage { padding-block: 1.25rem 1rem; } .transcript { max-height: 8.5rem; } .boundary { margin-bottom: .15rem; } }
+@media (prefers-reduced-motion: reduce) { .voiceOrb, .voiceOrb::before, .voiceOrb::after, .voiceOrb > i, .voiceOrb > span { animation: none !important; transition: none; } }

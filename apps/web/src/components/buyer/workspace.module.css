@@ -1,0 +1,205 @@
+.page { min-height: 100svh; padding: clamp(1.25rem, 2.6vw, 2.75rem); }
+.pageNarrow { width: min(100%, 70rem); margin: 0 auto; }
+.pageHeader { display: flex; align-items: flex-start; justify-content: space-between; gap: 2rem; margin-bottom: clamp(2rem, 5vw, 4.5rem); }
+.eyebrow { margin: 0 0 0.5rem; color: var(--amana-brand-strong); font-size: 0.68rem; font-weight: 750; letter-spacing: 0.12em; text-transform: uppercase; }
+.pageHeader h1, .emptyState h1, .placeholder h1 { margin: 0; font-family: var(--amana-font-display); font-size: clamp(2rem, 3.5vw, 3.35rem); font-weight: 550; letter-spacing: -0.045em; line-height: 1.04; }
+.pageHeader p, .placeholder > p { max-width: 40rem; margin: 0.75rem 0 0; color: var(--amana-ink-muted); font-size: 0.88rem; line-height: 1.65; }
+.pageHeaderMeta { display: flex; align-items: center; gap: 0.5rem; color: var(--amana-positive); font-size: 0.72rem; font-weight: 650; white-space: nowrap; }
+.pageHeaderMeta::before { width: 0.45rem; height: 0.45rem; border-radius: 50%; background: var(--amana-positive); content: ""; }
+
+.chatPage { display: grid; min-height: calc(100svh - 4.25rem); grid-template-rows: 1fr auto; padding: clamp(1rem, 2.5vw, 2.5rem); }
+.emptyState { display: grid; width: min(100%, 49rem); min-width: 0; align-content: center; justify-self: center; padding: 3rem 0 2rem; text-align: center; }
+.orb { position: relative; display: grid; width: 5.6rem; height: 5.6rem; place-items: center; margin: 0 auto 2.25rem; border: 1px solid #cddaff; border-radius: 50%; background: radial-gradient(circle at 34% 28%, #fff 0 8%, #abc3ff 28%, #4c75f6 62%, #173fae 100%); box-shadow: 0 1.1rem 3rem -1rem rgb(43 95 245 / 46%); }
+.orb::after { width: 1.3rem; height: 1.3rem; border: 1px solid rgb(255 255 255 / 65%); border-radius: 50%; background: rgb(255 255 255 / 28%); content: ""; }
+.emptyState h1 { overflow-wrap: anywhere; font-size: clamp(2.15rem, 5vw, 4.2rem); }
+.emptyLead { width: min(100%, 34rem); margin: 1rem auto 0; color: var(--amana-ink-muted); font-size: clamp(0.9rem, 1.4vw, 1.05rem); line-height: 1.7; }
+.promptList { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.55rem; margin: 2.1rem 0 0; }
+.promptList button { min-width: 0; min-height: 2.5rem; border: 1px solid #dce3ed; border-radius: 0.65rem; background: rgb(255 255 255 / 78%); color: #526078; cursor: pointer; overflow-wrap: anywhere; font-size: 0.73rem; padding: 0.55rem 0.82rem; transition: border-color var(--amana-motion-quick), transform var(--amana-motion-quick); }
+.promptList button:hover { border-color: #9db5f5; color: #1e4ecf; transform: translateY(-1px); }
+
+.composerWrap { width: min(100%, 52rem); justify-self: center; }
+.composer { border: 1px solid #d9e0ec; border-radius: 1rem; background: #fff; box-shadow: 0 1rem 3rem -1.5rem rgb(37 55 93 / 24%); }
+.composer textarea { display: block; width: 100%; min-height: 4rem; max-height: 10rem; resize: vertical; border: 0; outline: 0; background: transparent; color: var(--amana-ink); font-size: 0.93rem; line-height: 1.55; padding: 1rem 1rem 0.35rem; }
+.composer textarea::placeholder { color: #929cad; }
+.composerBar { display: flex; align-items: center; gap: 0.35rem; padding: 0.45rem; }
+.iconButton, .sendButton { display: grid; width: 2.75rem; height: 2.75rem; place-items: center; border-radius: 0.72rem; cursor: pointer; }
+.iconButton { border: 0; background: transparent; color: #68758c; }
+.iconButton:hover { background: #f1f4f8; color: var(--amana-ink); }
+.sendButton { margin-left: auto; border: 0; background: var(--amana-brand); color: #fff; }
+.sendButton:disabled { background: #dce2ec; color: #8d98aa; cursor: not-allowed; }
+.composerNote { margin: 0.6rem 0 0; color: #8a95a7; font-size: 0.66rem; text-align: center; }
+.inputStatus { min-width: 0; overflow: hidden; margin: 0 0 0 0.4rem; color: #79869b; font-size: 0.68rem; text-overflow: ellipsis; white-space: nowrap; }
+
+.conversationList { border-top: 1px solid #e3e8f0; }
+.conversationRow { display: grid; min-height: 5.5rem; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 1.3rem; border-bottom: 1px solid #e3e8f0; color: inherit; text-decoration: none; transition: background var(--amana-motion-quick); }
+.conversationRow:hover { background: rgb(238 243 253 / 55%); }
+.conversationRow h2 { overflow: hidden; margin: 0; font-family: var(--amana-font-display); font-size: 1rem; font-weight: 590; letter-spacing: -0.012em; text-overflow: ellipsis; white-space: nowrap; }
+.conversationRow p { margin: 0.28rem 0 0; color: var(--amana-ink-soft); font-size: 0.72rem; }
+.conversationRow time { color: #79869a; font-size: 0.72rem; white-space: nowrap; }
+.conversationRow svg { color: #8894a6; }
+.emptyList { padding: 5rem 0; border-block: 1px solid #e3e8f0; text-align: center; }
+.emptyList p { margin: 0 0 1.1rem; color: var(--amana-ink-muted); font-size: 0.85rem; }
+.loading { color: var(--amana-ink-muted); font-size: 0.82rem; }
+
+.threadHeader { padding-bottom: 1.5rem; border-bottom: 1px solid #e3e8f0; }
+.backLink { display: inline-flex; align-items: center; gap: 0.35rem; margin-bottom: 1.4rem; color: #647188; font-size: 0.73rem; text-decoration: none; }
+.backLink svg { transform: rotate(180deg); }
+.threadState { display: inline-flex; margin-top: 0.8rem; border-radius: 0.4rem; background: #edf2ff; color: #2554d8; font-size: 0.65rem; font-weight: 700; padding: 0.3rem 0.5rem; letter-spacing: 0.05em; }
+.messages { display: grid; gap: 1.5rem; width: min(100%, 48rem); margin: 2.5rem auto; }
+.message { display: grid; gap: 0.35rem; justify-items: end; }
+.message p { max-width: 38rem; margin: 0; border-radius: 1rem 1rem 0.3rem 1rem; background: #edf2ff; color: #26334a; font-size: 0.86rem; line-height: 1.6; padding: 0.8rem 1rem; }
+.message time { color: #919bab; font-size: 0.65rem; }
+.readOnlyNotice { width: min(100%, 48rem); margin: 2rem auto 0; border-top: 1px solid #e3e8f0; color: #7a879b; font-size: 0.76rem; padding-top: 1rem; text-align: center; }
+
+.placeholder { display: grid; min-height: calc(100svh - 5.5rem); align-content: center; width: min(100%, 46rem); margin: auto; padding: 2rem; }
+.placeholderGlyph { display: grid; width: 3.6rem; height: 3.6rem; place-items: center; margin-bottom: 1.75rem; border: 1px solid #cdd9ee; border-radius: 0.85rem; background: #edf2ff; color: var(--amana-brand-strong); }
+.placeholderRule { width: 4rem; height: 2px; margin-top: 2rem; background: var(--amana-brand); }
+.truthNote { display: flex; gap: 0.65rem; margin-top: 1.5rem; color: #637088; font-size: 0.75rem; line-height: 1.55; }
+.truthNote svg { flex: none; color: var(--amana-positive); }
+
+@media (max-width: 47.99rem) {
+  .page { padding: 1.35rem 1rem; }
+  .pageHeader { display: block; margin-bottom: 2.3rem; }
+  .pageHeaderMeta { margin-top: 1rem; }
+  .chatPage { min-height: calc(100svh - 8.6rem); padding: 1rem; }
+  .emptyState { align-content: start; padding-top: clamp(2.8rem, 12vh, 6rem); }
+  .orb { width: 4.4rem; height: 4.4rem; margin-bottom: 1.6rem; }
+  .emptyState h1 { font-size: 2.25rem; }
+  .promptList { display: grid; margin-top: 1.5rem; }
+  .promptList button { width: 100%; text-align: left; }
+  .composerWrap { position: sticky; bottom: calc(4.35rem + env(safe-area-inset-bottom)); padding-top: 0.75rem; background: linear-gradient(transparent, #f8f9fc 25%); }
+  .composerNote { display: none; }
+  .conversationRow { min-height: 5rem; grid-template-columns: minmax(0, 1fr) auto; gap: 0.8rem; }
+  .conversationRow > svg { display: none; }
+  .placeholder { min-height: calc(100svh - 9rem); padding: 1.5rem 1rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .promptList button, .conversationRow { transition: none; }
+  .promptList button:hover { transform: none; }
+}
+
+.commerceChat { display: grid; width: min(100%, 64rem); min-height: 100svh; margin: 0 auto; grid-template-rows: auto 1fr auto; padding: clamp(1rem, 2.5vw, 2.5rem); }
+.commerceHeader { display: flex; align-items: flex-start; justify-content: space-between; gap: 1.5rem; padding-bottom: 1.2rem; border-bottom: 1px solid #e4e9f1; }
+.commerceHeader h1 { max-width: 42rem; overflow: hidden; margin: 0; font-family: var(--amana-font-display); font-size: clamp(1.35rem, 2.5vw, 2rem); font-weight: 580; letter-spacing: -0.035em; text-overflow: ellipsis; white-space: nowrap; }
+.commerceHeader a { color: var(--amana-brand-strong); font-size: 0.75rem; font-weight: 650; text-decoration: none; }
+.chatStream { display: grid; align-content: start; gap: 1.35rem; width: min(100%, 52rem); margin: 0 auto; padding: clamp(1.5rem, 4vw, 3.5rem) 0 2rem; }
+.chatStream .emptyState { min-height: clamp(25rem, 58vh, 38rem); padding-block: 2rem; }
+.userBubble { display: grid; max-width: min(38rem, 88%); justify-self: end; justify-items: end; animation: message-in var(--amana-motion-standard) var(--amana-ease-enter) both; }
+.userBubble p { margin: 0; border: 1px solid #dbe4f6; border-radius: 1rem 1rem 0.3rem 1rem; background: #eaf0ff; color: #25344f; font-size: 0.88rem; line-height: 1.6; padding: 0.82rem 1rem; }
+.userBubble span { margin-top: 0.35rem; color: #8b96a7; font-size: 0.62rem; }
+.amanaBubble { display: grid; width: 100%; grid-template-columns: 2rem minmax(0, 1fr); gap: 0.8rem; animation: message-in var(--amana-motion-standard) var(--amana-ease-enter) both; }
+.amanaMark { display: grid; width: 2rem; height: 2rem; place-items: center; border-radius: 0.58rem; background: #173fbb; color: #fff; font-family: var(--amana-font-display); font-size: 0.78rem; font-weight: 700; box-shadow: 0 0.45rem 1rem -0.7rem rgb(23 63 187 / 70%); }
+.amanaBubble > div { min-width: 0; }
+.responseIntro > p { max-width: 42rem; margin: 0; color: #344157; font-size: 0.9rem; line-height: 1.65; }
+.progressList { display: flex; flex-wrap: wrap; gap: 0.45rem 0.85rem; margin: 1rem 0 0; padding: 0; color: #6c788d; font-size: 0.68rem; list-style: none; }
+.progressList li { display: inline-flex; align-items: center; gap: 0.32rem; }
+.progressList span { color: var(--amana-positive); font-weight: 800; }
+.results, .cartPanel, .safetyPanel, .proposal, .paymentPanel, .noMatch { margin-top: 1.25rem; }
+.results { border-block: 1px solid #e1e6ef; padding-block: 1.15rem; }
+.sectionHeading { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
+.sectionHeading p, .proposalKicker { margin: 0 0 0.3rem; color: var(--amana-brand-strong); font-size: 0.61rem; font-weight: 750; letter-spacing: 0.095em; text-transform: uppercase; }
+.sectionHeading h2, .cartPanel h2, .proposal h2, .paymentPanel h2, .noMatch h2 { margin: 0; font-family: var(--amana-font-display); font-size: 1.08rem; font-weight: 610; letter-spacing: -0.02em; }
+.sectionHeading > span { color: #68768c; font-size: 0.69rem; }
+.retrievalNote { margin: 0.45rem 0 1rem; color: #78859a; font-size: 0.68rem; }
+.productRow { display: grid; grid-template-columns: 3.1rem minmax(0, 1fr) auto; gap: 0.9rem; align-items: start; padding: 1rem 0; border-top: 1px solid #edf0f5; }
+.productGlyph { position: relative; display: grid; width: 3.1rem; height: 3.1rem; overflow: hidden; place-items: center; border: 1px solid #d8e1f3; border-radius: 0.72rem; background: #f0f4ff; color: var(--amana-brand-strong); font-family: var(--amana-font-display); font-size: 1.1rem; font-weight: 650; }
+.productGlyph img { position: absolute; inset: 0; width: 100%; height: 100%; background: #fff; object-fit: contain; }
+.productCopy h3 { margin: 0; color: #27344a; font-size: 0.86rem; font-weight: 680; }
+.productCopy > p { margin: 0.25rem 0 0; color: #738096; font-size: 0.68rem; }
+.productCopy dl { display: flex; flex-wrap: wrap; gap: 0.4rem 0.8rem; margin: 0.62rem 0 0; }
+.productCopy dl div { display: inline-flex; gap: 0.25rem; color: #818c9e; font-size: 0.62rem; }
+.productCopy dt::after { content: ":"; }
+.productCopy dd { margin: 0; color: #59667c; }
+.productRow > strong { color: #1e2c44; font-size: 0.85rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.safetyPanel { border: 1px solid #dce3ec; border-radius: 0.72rem; background: #fff; }
+.safetyPanel summary { display: flex; min-height: 3rem; align-items: center; justify-content: space-between; gap: 1rem; cursor: pointer; padding: 0.75rem 0.9rem; }
+.safetyPanel summary span { color: #304058; font-size: 0.78rem; font-weight: 680; }
+.safetyPanel summary small { color: #8490a2; font-size: 0.61rem; letter-spacing: 0.065em; text-transform: uppercase; }
+.evidenceRows { display: grid; border-top: 1px solid #e8ecf2; padding: 0.35rem 0.9rem; }
+.evidenceRow { display: grid; grid-template-columns: 1.5rem minmax(0, 1fr) auto; align-items: center; gap: 0.45rem; padding: 0.55rem 0; border-bottom: 1px solid #f0f2f6; }
+.evidenceRow:last-child { border-bottom: 0; }
+.evidenceRow > span { display: grid; width: 1.2rem; height: 1.2rem; place-items: center; border: 1px solid currentColor; border-radius: 50%; font-size: 0.65rem; font-weight: 800; }
+.evidenceRow div { display: grid; }
+.evidenceRow strong { color: #455168; font-size: 0.7rem; font-weight: 620; }
+.evidenceRow small { color: #8a94a5; font-size: 0.59rem; }
+.evidenceRow em { border-radius: 0.35rem; font-size: 0.58rem; font-style: normal; font-weight: 750; padding: 0.22rem 0.35rem; }
+.evidenceRow[data-outcome="PASS"] > span, .evidenceRow[data-outcome="PASS"] em { color: #157a52; }
+.evidenceRow[data-outcome="PASS"] em { background: #e9f7f0; }
+.evidenceRow[data-outcome="FAIL"] > span, .evidenceRow[data-outcome="FAIL"] em { color: #b72e3b; }
+.evidenceRow[data-outcome="FAIL"] em { background: #fff0f1; }
+.evidenceRow[data-outcome="UNKNOWN"] > span, .evidenceRow[data-outcome="UNKNOWN"] em { color: #8a5d08; }
+.evidenceRow[data-outcome="UNKNOWN"] em { background: #fff6dc; }
+.blockedCopy { margin: 0; border-top: 1px solid #f2e5c5; background: #fffaf0; color: #725317; font-size: 0.68rem; line-height: 1.5; padding: 0.72rem 0.9rem; }
+.cartPanel { padding: 1rem 1.05rem; border-left: 3px solid #7596f8; background: #f4f7ff; }
+.cartPanel ul, .proposal ul { display: grid; gap: 0.5rem; margin: 1rem 0; padding: 0; list-style: none; }
+.cartPanel li { display: flex; justify-content: space-between; gap: 1rem; color: #536078; font-size: 0.72rem; }
+.cartPanel li strong { color: #344158; font-variant-numeric: tabular-nums; }
+.totals { display: grid; gap: 0.35rem; margin: 0; padding-top: 0.8rem; border-top: 1px solid #dbe3f4; }
+.totals div { display: flex; justify-content: space-between; gap: 1rem; color: #718097; font-size: 0.68rem; }
+.totals dd { margin: 0; font-variant-numeric: tabular-nums; }
+.totals .totalLine { margin-top: 0.25rem; color: #22314a; font-size: 0.82rem; font-weight: 700; }
+.proposal { position: relative; overflow: hidden; padding: 1.2rem; border: 1px solid #97aff7; border-radius: 0.85rem; background: #fff; box-shadow: 0 1rem 2.8rem -1.8rem rgb(43 95 245 / 45%); }
+.proposal::before { position: absolute; inset: 0 0 auto; height: 2px; background: linear-gradient(90deg, transparent, #2b5ff5 35%, #78a0ff 70%, transparent); content: ""; }
+.proposal[data-blocked="true"] { border-color: #d8c79d; box-shadow: none; }
+.proposalAmount { margin: 0.75rem 0 0; color: #142346; font-family: var(--amana-font-display); font-size: 1.65rem; font-weight: 620; letter-spacing: -0.035em; }
+.proposal li { color: #4c5970; font-size: 0.73rem; }
+.proposal li span { margin-left: 0.35rem; color: #8b95a5; font-size: 0.62rem; }
+.proposalMeta { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; color: #7b879a; font-size: 0.61rem; }
+.authorizeButton { width: 100%; min-height: 2.85rem; margin-top: 1rem; border: 1px solid var(--amana-brand); border-radius: 0.62rem; background: var(--amana-brand); color: #fff; cursor: pointer; font-size: 0.78rem; font-weight: 720; }
+.authorizeButton:hover { background: var(--amana-brand-strong); }
+.authorizeButton:disabled { border-color: #cbd4e3; background: #cbd4e3; cursor: not-allowed; }
+.paymentPanel { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: start; gap: 0.75rem; padding: 1rem; border-block: 1px solid #dce3ed; }
+.paymentIcon { display: grid; width: 1.75rem; height: 1.75rem; place-items: center; border: 1px solid #7897f1; border-radius: 50%; color: var(--amana-brand-strong); font-weight: 800; }
+.paymentPanel h2 { font-size: 0.92rem; }
+.paymentPanel p { margin: 0.3rem 0 0; color: #69768b; font-size: 0.7rem; line-height: 1.5; }
+.paymentPanel small { display: block; margin-top: 0.45rem; color: #8b95a5; font-size: 0.6rem; }
+.paymentPanel button, .chatError button { min-height: 2.25rem; border: 1px solid #b9c7e4; border-radius: 0.5rem; background: #fff; color: #2f54b9; cursor: pointer; font-size: 0.67rem; font-weight: 680; padding: 0.5rem 0.7rem; }
+.paymentPanel[data-phase="FULFILLED"] .paymentIcon { border-color: #65a98b; background: #e9f7f0; color: #157a52; }
+.noMatch { padding: 1rem; border-left: 3px solid #9c7a2c; background: #fffaf0; }
+.noMatch p { margin: 0.45rem 0 0; color: #786431; font-size: 0.72rem; line-height: 1.55; }
+.liveNotice { margin-left: 2.8rem; color: #66738a; font-size: 0.68rem; line-height: 1.5; }
+.chatError { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-left: 2.8rem; border-left: 3px solid var(--amana-negative); background: #fff2f3; color: #8d2631; font-size: 0.7rem; padding: 0.7rem 0.8rem; }
+.activity { display: flex; min-height: 2.5rem; align-items: center; gap: 0.28rem; color: #68758a; }
+.activity > span { width: 0.34rem; height: 0.34rem; border-radius: 50%; background: #6084ec; animation: activity-pulse 1.15s ease-in-out infinite; }
+.activity > span:nth-child(2) { animation-delay: 120ms; }
+.activity > span:nth-child(3) { animation-delay: 240ms; }
+.activity p { margin: 0 0 0 0.45rem; font-size: 0.72rem; }
+.commerceComposer { position: sticky; bottom: 0; z-index: 5; width: min(100%, 52rem); margin: 0 auto; border: 1px solid #d6deeb; border-radius: 0.85rem; background: rgb(255 255 255 / 96%); box-shadow: 0 1rem 3rem -1.8rem rgb(30 47 84 / 35%); backdrop-filter: blur(12px); }
+.commerceComposer textarea { display: block; width: 100%; min-height: 3.5rem; max-height: 9rem; resize: vertical; border: 0; outline: 0; background: transparent; color: var(--amana-ink); font: inherit; font-size: 0.84rem; line-height: 1.55; padding: 0.9rem 0.9rem 0.25rem; }
+.commerceComposer > div { display: flex; align-items: center; gap: 0.75rem; padding: 0.35rem; }
+.commerceComposer > div > span { margin-left: 0.45rem; color: #8d97a7; font-size: 0.61rem; }
+.voiceButton { display: grid; width: 2.55rem; height: 2.55rem; flex: none; place-items: center; border: 0; border-radius: 0.62rem; background: transparent; color: #65738a; cursor: pointer; }
+.voiceButton:hover { background: #eff3fa; color: var(--amana-brand-strong); }
+.voiceButton:disabled { color: #9ca7b7; cursor: default; }
+.voiceLoading { min-height: 8rem; border: 1px solid #dbe3ef; border-radius: 1rem; background: #f7f9fd; color: #68768b; font-size: 0.72rem; padding: 3.5rem 1rem; text-align: center; }
+.commerceComposer .sendButton { flex: none; }
+@keyframes message-in { from { opacity: 0; transform: translateY(0.35rem); } to { opacity: 1; transform: none; } }
+@keyframes activity-pulse { 0%, 70%, 100% { opacity: 0.3; transform: scale(0.75); } 35% { opacity: 1; transform: scale(1); } }
+
+@media (max-width: 47.99rem) {
+  .commerceChat { min-height: calc(100svh - 8.6rem); padding: 0.9rem; }
+  .commerceHeader { align-items: center; }
+  .commerceHeader h1 { max-width: 66vw; font-size: 1.15rem; }
+  .chatStream { padding-top: 1.2rem; }
+  .chatStream .emptyState { min-height: calc(100svh - 19rem); }
+  .amanaBubble { grid-template-columns: 1.65rem minmax(0, 1fr); gap: 0.55rem; }
+  .amanaMark { width: 1.65rem; height: 1.65rem; border-radius: 0.48rem; font-size: 0.66rem; }
+  .userBubble { max-width: 92%; }
+  .productRow { grid-template-columns: 2.5rem minmax(0, 1fr); }
+  .productGlyph { width: 2.5rem; height: 2.5rem; }
+  .productRow > strong { grid-column: 2; justify-self: start; }
+  .sectionHeading { display: block; }
+  .sectionHeading > span { display: block; margin-top: 0.35rem; }
+  .paymentPanel { grid-template-columns: auto minmax(0, 1fr); }
+  .paymentPanel button { grid-column: 1 / -1; width: 100%; }
+  .liveNotice, .chatError { margin-left: 2.2rem; }
+  .commerceComposer { bottom: calc(4.35rem + env(safe-area-inset-bottom)); }
+  .commerceComposer > div > span { display: none; }
+  .commerceComposer .sendButton { margin-left: auto; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .userBubble, .amanaBubble, .activity > span { animation: none; }
+  .chatStream { scroll-behavior: auto; }
+}

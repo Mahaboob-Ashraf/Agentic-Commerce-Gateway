@@ -1,0 +1,100 @@
+.page { min-height: 100svh; overflow: hidden; background: radial-gradient(circle at 8% 95%, #e8efff 0, transparent 28rem), #fafbfc; padding: 0 clamp(1rem, 4vw, 4rem) 3rem; }
+.topbar { display: flex; height: 5rem; align-items: center; justify-content: space-between; }
+.wordmark { display: inline-flex; align-items: center; gap: 0.62rem; border: 0; background: transparent; color: var(--amana-ink); cursor: pointer; font-family: var(--amana-font-display); font-size: 1rem; font-weight: 650; }
+.wordmark span { display: grid; width: 1.85rem; height: 1.85rem; place-items: center; border-radius: 0.55rem; background: var(--amana-brand); color: white; }
+.exit, .backButton, .skipButton { min-height: 2.75rem; border: 0; background: transparent; color: #657188; cursor: pointer; font-size: 0.75rem; font-weight: 650; padding: 0.65rem 0.8rem; }
+.progress { width: min(100%, 57rem); margin: 0 auto; }
+.progressTrack { display: grid; grid-template-columns: repeat(6, 1fr); gap: 0.38rem; }
+.progressTrack span { height: 2px; background: #dfe4ec; }
+.progressTrack span[data-active="true"] { background: var(--amana-brand); }
+.progress p { margin: 0.65rem 0 0; color: #8a95a7; font-size: 0.65rem; letter-spacing: 0.05em; text-transform: uppercase; }
+.progress strong { color: var(--amana-brand-strong); }
+.stage { display: grid; width: min(100%, 57rem); min-height: calc(100svh - 8.5rem); align-items: center; margin: 0 auto; padding: clamp(2.5rem, 6vh, 5.5rem) 0; }
+.step { width: 100%; min-width: 0; animation: enter var(--amana-motion-gentle) var(--amana-ease-enter) both; }
+.stepHeading { max-width: 41rem; }
+.stepHeading > p { margin: 0 0 0.72rem; color: var(--amana-brand-strong); font-size: 0.68rem; font-weight: 750; letter-spacing: 0.13em; text-transform: uppercase; }
+.stepHeading h1 { overflow-wrap: anywhere; margin: 0; font-family: var(--amana-font-display); font-size: clamp(2.35rem, 5vw, 4.5rem); font-weight: 540; letter-spacing: -0.052em; line-height: 0.98; }
+.stepHeading > span { display: block; max-width: 36rem; margin-top: 1.05rem; color: var(--amana-ink-muted); font-size: 0.9rem; line-height: 1.68; }
+.continueButton { display: inline-flex; min-height: 2.9rem; align-items: center; justify-content: center; gap: 0.55rem; border: 1px solid var(--amana-brand); border-radius: 0.62rem; background: var(--amana-brand); color: white; cursor: pointer; font-size: 0.78rem; font-weight: 680; padding: 0.7rem 1.15rem; }
+.continueButton:hover { background: var(--amana-brand-strong); }
+.continueButton:disabled { border-color: #ccd5e3; background: #ccd5e3; cursor: not-allowed; }
+.welcome { display: grid; grid-template-columns: minmax(0, 1fr) 18rem; align-items: end; gap: 1rem 4rem; }
+.welcomeOrb { grid-column: 2; grid-row: 1 / span 3; display: grid; width: 16rem; height: 16rem; place-items: center; border: 1px solid #b8caff; border-radius: 50%; background: radial-gradient(circle at 36% 28%, #fff 0 5%, #c5d4ff 21%, #6588fa 52%, #1e49c7 78%, #142f7e 100%); box-shadow: 0 2rem 5rem -1.5rem rgb(43 95 245 / 48%); }
+.welcomeOrb span { width: 3rem; height: 3rem; border: 1px solid rgb(255 255 255 / 66%); border-radius: 50%; background: rgb(255 255 255 / 22%); }
+.promise { display: grid; margin: 2.5rem 0; border-block: 1px solid #dfe5ee; }
+.promise div { display: grid; grid-template-columns: 2rem 1fr; gap: 1rem; padding: 0.9rem 0; border-bottom: 1px solid #e6eaf1; }
+.promise div:last-child { border: 0; }
+.promise span { color: var(--amana-brand-strong); font-size: 0.65rem; font-weight: 750; }
+.promise p { margin: 0; color: #667389; font-size: 0.75rem; line-height: 1.55; }
+.promise strong { color: #344158; }
+.formGrid { display: grid; max-width: 38rem; gap: 1rem; margin-top: 2.4rem; }
+.field { display: grid; gap: 0.42rem; color: #49566c; font-size: 0.72rem; font-weight: 650; }
+.field input { width: 100%; min-height: 2.9rem; border: 1px solid var(--amana-border-strong); border-radius: 0.58rem; background: white; color: var(--amana-ink); padding: 0.67rem 0.82rem; }
+.finalActions { display: flex; align-items: center; justify-content: flex-end; gap: 0.6rem; max-width: 38rem; margin-top: 2rem; }
+.finalActions .backButton { margin-right: auto; }
+.addressForm { display: grid; max-width: 47rem; grid-template-columns: 1fr 1fr; gap: 0.9rem; margin-top: 2rem; }
+.addressForm .finalActions { grid-column: 1 / -1; max-width: none; }
+.existingAddresses { display: flex; gap: 0.7rem; margin-top: 1.6rem; overflow-x: auto; padding-bottom: 0.25rem; }
+.existingAddresses button { position: relative; display: grid; min-width: 13rem; gap: 0.2rem; border: 1px solid #dbe2ed; border-radius: 0.7rem; background: white; color: var(--amana-ink); cursor: pointer; padding: 0.8rem; text-align: left; }
+.existingAddresses button[data-selected="true"] { border-color: #86a5fa; background: #f0f4ff; }
+.existingAddresses span { color: var(--amana-brand-strong); font-size: 0.63rem; font-weight: 700; text-transform: uppercase; }
+.existingAddresses strong { overflow: hidden; font-size: 0.76rem; text-overflow: ellipsis; white-space: nowrap; }
+.existingAddresses small { color: #7a8699; font-size: 0.66rem; }
+.existingAddresses svg { position: absolute; top: 0.65rem; right: 0.65rem; width: 1rem; color: var(--amana-positive); }
+.merchants { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 2.4rem; }
+.merchants article { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 0.85rem; border: 1px solid #dce3ed; border-radius: 0.85rem; background: white; padding: 1rem; }
+.merchantLogo { display: grid; width: 2.6rem; height: 2.6rem; place-items: center; border-radius: 0.7rem; background: #edf2ff; color: var(--amana-brand-strong); font-family: var(--amana-font-display); font-weight: 700; }
+.merchants h3 { margin: 0; font-size: 0.84rem; }
+.merchants p { margin: 0.2rem 0; color: #7a869a; font-size: 0.66rem; line-height: 1.4; }
+.merchants span { color: #8a6270; font-size: 0.6rem; font-weight: 700; text-transform: uppercase; }
+.merchants span[data-connected="true"] { color: var(--amana-positive); }
+.merchants button, .merchants form > button { min-height: 2.6rem; border: 1px solid #c9d3e3; border-radius: 0.55rem; background: white; color: #40506b; cursor: pointer; font-size: 0.68rem; font-weight: 650; padding: 0.55rem 0.75rem; }
+.merchants button:disabled { background: #eef1f5; color: #939dab; cursor: not-allowed; }
+.merchants form { grid-column: 1 / -1; display: grid; gap: 0.7rem; padding-top: 0.5rem; }
+.securityNote, .localNote { display: flex; max-width: 38rem; gap: 0.6rem; margin: 1rem 0 0; color: #6f7b8f; font-size: 0.68rem; line-height: 1.55; }
+.securityNote svg { flex: none; color: var(--amana-positive); }
+.skipRow { display: flex; align-items: center; gap: 0.5rem; max-width: 47rem; margin-top: 2rem; }
+.skipRow .backButton { margin-right: auto; }
+.preferenceList { display: grid; max-width: 40rem; margin-top: 2rem; }
+.choice { display: grid; min-height: 4.5rem; grid-template-columns: auto 1fr; align-items: center; gap: 0.9rem; border-bottom: 1px solid #e0e6ef; cursor: pointer; }
+.choice input { position: absolute; opacity: 0; }
+.choice > span { display: grid; width: 1.45rem; height: 1.45rem; place-items: center; border: 1px solid #bdc8d9; border-radius: 0.38rem; color: transparent; }
+.choice input:checked + span { border-color: var(--amana-brand); background: var(--amana-brand); color: white; }
+.choice input:focus-visible + span { outline: var(--amana-focus-width) solid var(--amana-focus); outline-offset: var(--amana-focus-offset); }
+.choice svg { width: 0.9rem; }
+.choice p { display: grid; gap: 0.2rem; margin: 0; }
+.choice strong { font-size: 0.78rem; }
+.choice small { color: #7c8799; font-size: 0.67rem; }
+.allergies { display: grid; gap: 0.45rem; color: #4c596e; font-size: 0.72rem; font-weight: 650; padding-top: 1.2rem; }
+.allergies input { min-height: 2.9rem; border: 1px solid var(--amana-border-strong); border-radius: 0.58rem; background: white; padding: 0.7rem 0.8rem; }
+.readyMark { display: grid; width: 3.6rem; height: 3.6rem; place-items: center; margin-bottom: 1.8rem; border-radius: 50%; background: var(--amana-positive-soft); color: var(--amana-positive); }
+.summary { display: grid; max-width: 42rem; grid-template-columns: repeat(3, 1fr); margin: 2.4rem 0 0; border-block: 1px solid #dee4ed; }
+.summary div { padding: 1rem; border-right: 1px solid #e2e7ef; }
+.summary div:first-child { padding-left: 0; }
+.summary div:last-child { border: 0; }
+.summary dt { color: #7b8799; font-size: 0.63rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
+.summary dd { margin: 0.25rem 0 0; color: #37445a; font-size: 0.75rem; font-weight: 620; }
+.alert { position: fixed; right: 1rem; bottom: 1rem; max-width: 24rem; margin: 0; border: 1px solid #f0c8c4; border-radius: 0.6rem; background: #fff3f1; color: var(--amana-negative); font-size: 0.72rem; padding: 0.8rem 1rem; }
+
+@keyframes enter { from { opacity: 0; transform: translateY(0.6rem); } to { opacity: 1; transform: none; } }
+
+@media (max-width: 47.99rem) {
+  .page { padding-inline: 1rem; }
+  .topbar { height: 4.25rem; }
+  .stage { min-height: calc(100svh - 7rem); align-items: start; padding: 3rem 0 1.5rem; }
+  .welcome { display: block; }
+  .welcomeOrb { width: 5rem; height: 5rem; margin-bottom: 2rem; }
+  .welcomeOrb span { width: 1.2rem; height: 1.2rem; }
+  .stepHeading h1 { font-size: 2.45rem; }
+  .addressForm, .merchants { grid-template-columns: 1fr; }
+  .merchants article { grid-template-columns: auto 1fr; }
+  .merchants article > button { grid-column: 1 / -1; }
+  .summary { grid-template-columns: 1fr; }
+  .summary div, .summary div:first-child { border-right: 0; border-bottom: 1px solid #e2e7ef; padding: 0.85rem 0; }
+  .summary div:last-child { border: 0; }
+  .finalActions, .skipRow { position: sticky; bottom: 0; z-index: 2; margin: 1.5rem -1rem -1.5rem; background: linear-gradient(transparent, #fafbfc 20%); padding: 1.5rem 1rem calc(1rem + env(safe-area-inset-bottom)); }
+  .skipRow { display: grid; grid-template-columns: auto 1fr auto; }
+  .alert { inset: auto 1rem calc(1rem + env(safe-area-inset-bottom)); }
+}
+
+@media (prefers-reduced-motion: reduce) { .step { animation: none; } }
