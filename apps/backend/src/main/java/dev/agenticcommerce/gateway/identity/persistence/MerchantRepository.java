@@ -4,6 +4,7 @@ import dev.agenticcommerce.gateway.identity.model.Merchant;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
@@ -60,6 +61,22 @@ public class MerchantRepository {
                 .param("merchantKey", canonicalKey)
                 .query(MerchantRepository::mapMerchant)
                 .optional();
+    }
+
+    /** Returns only merchant tenants explicitly administered by the authenticated actor. */
+    public List<Merchant> findAllAdministeredByActor(UUID actorId) {
+        Objects.requireNonNull(actorId, "actorId");
+        return jdbcClient.sql("""
+                        SELECT m.merchant_id, m.merchant_key, m.display_name, m.created_at
+                        FROM merchant m
+                        INNER JOIN merchant_admin_membership membership
+                            ON membership.merchant_id = m.merchant_id
+                        WHERE membership.actor_id = :actorId
+                        ORDER BY lower(m.display_name), m.merchant_id
+                        """)
+                .param("actorId", actorId)
+                .query(MerchantRepository::mapMerchant)
+                .list();
     }
 
     private static Merchant mapMerchant(ResultSet resultSet, int rowNumber) throws SQLException {

@@ -97,4 +97,5 @@ demo:
     public-base-url: ${DEMO_MERCHANT_PUBLIC_BASE_URL:}
     buyer-identity: ${DEMO_BUYER_IDENTITY:}
     buyer-password: ${DEMO_BUYER_PASSWORD:}
+    merchant-admin-password: ${DEMO_MERCHANT_ADMIN_PASSWORD:}
     fixture-root: ${DEMO_FIXTURE_ROOT:../../evaluation/demo-data}

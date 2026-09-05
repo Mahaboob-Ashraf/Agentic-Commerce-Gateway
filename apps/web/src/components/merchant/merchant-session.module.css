@@ -1,0 +1,261 @@
+.authPage {
+  min-height: 100svh;
+  display: grid;
+  place-items: center;
+  padding: clamp(1rem, 3vw, 3rem);
+  background:
+    linear-gradient(90deg, rgb(43 95 245 / 4%) 1px, transparent 1px) 0 0 / 5rem 5rem,
+    linear-gradient(rgb(43 95 245 / 4%) 1px, transparent 1px) 0 0 / 5rem 5rem,
+    #f7f9fc;
+  color: var(--amana-ink);
+}
+
+.authPanel {
+  width: min(100%, 72rem);
+  min-height: 40rem;
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(24rem, 0.95fr);
+  overflow: hidden;
+  border: 1px solid var(--amana-border);
+  border-radius: 1rem;
+  background: white;
+  box-shadow: 0 2rem 5rem -3.25rem rgb(28 48 83 / 35%);
+}
+
+.authNarrative {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: clamp(2rem, 5vw, 4.5rem);
+  background: #f1f5fd;
+}
+
+.authNarrative::after {
+  position: absolute;
+  right: -5rem;
+  bottom: -7rem;
+  width: 20rem;
+  height: 20rem;
+  border: 4rem solid rgb(43 95 245 / 6%);
+  border-radius: 50%;
+  content: "";
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.7rem;
+  color: var(--amana-ink);
+  font-family: var(--amana-font-display);
+  font-size: 1.1rem;
+  font-weight: 650;
+  text-decoration: none;
+}
+
+.brandMark,
+.loadingMark {
+  width: 2.25rem;
+  height: 2.25rem;
+  display: block;
+  flex: 0 0 auto;
+  object-fit: contain;
+}
+
+.authNarrative .kicker {
+  margin: auto 0 1rem;
+}
+
+.kicker,
+.formKicker {
+  color: var(--amana-brand-strong);
+  font-size: 0.72rem;
+  font-weight: 750;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.authNarrative h1 {
+  max-width: 12ch;
+  margin: 0;
+  font-family: var(--amana-font-display);
+  font-size: clamp(2.2rem, 4vw, 4rem);
+  font-weight: 590;
+  letter-spacing: -0.045em;
+  line-height: 1.02;
+}
+
+.authNarrative > p:not(.kicker) {
+  max-width: 37rem;
+  margin: 1.5rem 0 0;
+  color: var(--amana-ink-muted);
+  line-height: 1.65;
+}
+
+.trustLine {
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: 2.25rem;
+  color: #35506f;
+  font-size: 0.82rem;
+  font-weight: 650;
+}
+
+.authForm {
+  min-width: 0;
+  align-self: center;
+  display: grid;
+  gap: 1.25rem;
+  padding: clamp(2rem, 5vw, 4rem);
+}
+
+.authForm h2 {
+  margin: 0.35rem 0 0.45rem;
+  font-family: var(--amana-font-display);
+  font-size: 1.7rem;
+  letter-spacing: -0.03em;
+}
+
+.authForm p {
+  margin: 0;
+  color: var(--amana-ink-muted);
+  font-size: 0.86rem;
+}
+
+.authForm .formError {
+  padding: 0.75rem;
+  border-left: 3px solid var(--amana-negative);
+  background: var(--amana-negative-soft);
+  color: var(--amana-negative);
+}
+
+.demoAccess {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.9rem;
+  border: 1px solid #cfdcf3;
+  border-radius: 0.5rem;
+  background: #f4f8ff;
+}
+
+.demoAccess > div {
+  min-width: 0;
+  display: grid;
+  gap: 0.25rem;
+}
+
+.demoAccess > div > p {
+  color: var(--amana-brand-strong);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.demoAccess strong {
+  color: #243a61;
+  font-size: 0.78rem;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.demoAccess span {
+  color: #63728a;
+  font-size: 0.7rem;
+  line-height: 1.45;
+}
+
+.authForm .formNote {
+  color: var(--amana-ink-soft);
+  font-size: 0.75rem;
+  line-height: 1.55;
+  text-align: center;
+}
+
+.roleNotice {
+  width: min(100%, 36rem);
+  padding: 2.5rem;
+  border: 1px solid var(--amana-border);
+  background: white;
+}
+
+.roleNotice h1 {
+  margin: 1rem 0;
+  font-family: var(--amana-font-display);
+  font-size: 2rem;
+  line-height: 1.1;
+}
+
+.roleNotice > p:last-of-type {
+  color: var(--amana-ink-muted);
+}
+
+.roleNotice button {
+  margin-top: 1rem;
+}
+
+@media (max-width: 64rem) {
+  .demoAccess {
+    align-items: stretch;
+    grid-template-columns: 1fr;
+  }
+
+  .demoAccess button {
+    width: 100%;
+  }
+}
+
+@media (max-width: 52rem) {
+  .authPanel {
+    grid-template-columns: 1fr;
+  }
+
+  .authNarrative {
+    min-height: 22rem;
+  }
+
+  .authNarrative .kicker {
+    margin-top: 3rem;
+  }
+
+  .authNarrative h1 {
+    font-size: clamp(2rem, 10vw, 3rem);
+  }
+}
+
+@media (max-width: 30rem) {
+  .authPage {
+    padding: 0.75rem;
+  }
+
+  .authNarrative,
+  .authForm {
+    padding: 1.5rem;
+  }
+
+  .authNarrative {
+    min-height: 20rem;
+  }
+}
+
+@media (max-width: 28rem) {
+  .authPage {
+    padding: 0;
+  }
+
+  .authPanel {
+    min-height: 100svh;
+    border: 0;
+    border-radius: 0;
+  }
+
+  .authNarrative,
+  .authForm {
+    padding: 1.5rem;
+  }
+
+}

@@ -58,7 +58,7 @@ class Task013SafeBuyerEndToEndIntegrationTest {
 
     @BeforeAll void seed(){jdbc.sql("TRUNCATE TABLE merchant,application_actor CASCADE").update();
         var summary=bootstrap.bootstrap("https://merchant.example.test","task013-evaluator@demo.invalid",
-                "task013-not-a-real-password",Path.of("..","..","evaluation","demo-data"));
+                "task013-not-a-real-password",UUID.randomUUID().toString(),Path.of("..","..","evaluation","demo-data"));
         assertThat(summary.blockers()).isEmpty();buyerId=summary.buyerActorId();}
     @BeforeEach void clearRequests(){transport.resetRuntimeModes();paymentProvider.reset();
         jdbc.sql("TRUNCATE TABLE commerce_thread CASCADE").update();jdbc.sql("TRUNCATE TABLE demo_merchant_order").update();

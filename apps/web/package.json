@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint . --max-warnings=0",
     "typecheck": "tsc --noEmit",
+    "test:merchant": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types --test src/lib/merchant/workbench-replay.test.ts src/lib/merchant/merchant-tour.test.ts src/lib/merchant/merchant-presentation.test.ts",
     "test:commerce": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types --test src/lib/buyer/commerce-state.test.ts src/lib/buyer/voice-state.test.ts"
   },
   "dependencies": {

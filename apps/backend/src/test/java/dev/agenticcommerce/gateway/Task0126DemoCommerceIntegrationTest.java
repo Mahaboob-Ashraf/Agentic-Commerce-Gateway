@@ -8,9 +8,17 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import dev.agenticcommerce.gateway.agentization.execution.*;
 import dev.agenticcommerce.gateway.catalogue.*;
 import dev.agenticcommerce.gateway.demo.*;
+import dev.agenticcommerce.gateway.identity.persistence.ActorPasswordCredentialRepository;
+import dev.agenticcommerce.gateway.identity.persistence.ApplicationActorRepository;
 import dev.agenticcommerce.gateway.lifecycle.MerchantLifecycleGateway;
 import dev.agenticcommerce.gateway.onboarding.MerchantCustomerLinkProvider;
 import java.net.InetAddress;
+import java.net.CookieManager;
+import java.net.CookiePolicy;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.time.Instant;
@@ -18,6 +26,7 @@ import java.util.*;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.beans.factory.ObjectProvider;
@@ -33,7 +42,7 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
 @Testcontainers
-@SpringBootTest
+@SpringBootTest(webEnvironment=SpringBootTest.WebEnvironment.RANDOM_PORT)
 @Import(Task0126DemoCommerceIntegrationTest.Fakes.class)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class Task0126DemoCommerceIntegrationTest {
@@ -43,18 +52,23 @@ class Task0126DemoCommerceIntegrationTest {
     @Autowired ObjectMapper mapper;@Autowired DemoMerchantApiAuthenticationFilter authenticationFilter;
     @Autowired Fakes.AuthenticatedFakeTransport transport;@Autowired MerchantLifecycleGateway lifecycle;
     @Autowired WebApplicationContext webApplicationContext;
+    @Autowired ActorPasswordCredentialRepository passwordCredentials;@Autowired ApplicationActorRepository actors;
+    @Autowired org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
+    @LocalServerPort int port;
     private DemoMerchantModels.BootstrapSummary summary;
     private DemoMerchantModels.BootstrapSummary failedSummary;private int completionRowsAfterFailure;
+    private String merchantAdminPassword;
 
     @BeforeAll void seed(){jdbc.sql("TRUNCATE TABLE merchant,application_actor CASCADE").update();
+        merchantAdminPassword=UUID.randomUUID().toString();
         transport.timeoutNext();failedSummary=bootstrap.bootstrap("https://merchant.example.test","evaluator@demo.invalid","not-a-tracked-demo-password",
-                Path.of("..","..","evaluation","demo-data"));
+                merchantAdminPassword,Path.of("..","..","evaluation","demo-data"));
         completionRowsAfterFailure=jdbc.sql("SELECT count(*)::int FROM demo_bootstrap_completion").query(Integer.class).single();
         summary=bootstrap.bootstrap("https://merchant.example.test","evaluator@demo.invalid","not-a-tracked-demo-password",
-                Path.of("..","..","evaluation","demo-data"));}
+                merchantAdminPassword,Path.of("..","..","evaluation","demo-data"));}
 
     @Test void failedBootstrapIsNotCompletedAndRerunRecoversWithoutDuplicatingValidAuthority(){var reused=bootstrap.bootstrap("https://merchant.example.test",
-            "evaluator@demo.invalid","not-a-tracked-demo-password",Path.of("..","..","evaluation","demo-data"));
+            "evaluator@demo.invalid","not-a-tracked-demo-password",merchantAdminPassword,Path.of("..","..","evaluation","demo-data"));
         assertThat(failedSummary.reused()).isFalse();assertThat(failedSummary.blockers()).contains(
                 "amazing:SEARCH_PRODUCTS:MERCHANT_TIMEOUT","EXPECTED_14_READY_CAPABILITIES_ACTUAL_13");assertThat(completionRowsAfterFailure).isZero();
         assertThat(summary.reused()).isFalse();assertThat(summary.blockers()).isEmpty();assertThat(summary.merchants()).isEqualTo(2);
@@ -68,6 +82,41 @@ class Task0126DemoCommerceIntegrationTest {
         assertThat(jdbc.sql("SELECT count(*)::int FROM openapi_artifact").query(Integer.class).single()).isEqualTo(2);
         assertThat(jdbc.sql("SELECT count(*)::int FROM capability_mapping_proposal").query(Integer.class).single()).isEqualTo(15);
         assertThat(jdbc.sql("SELECT count(*)::int FROM agent_commerce_manifest").query(Integer.class).single()).isEqualTo(14);}
+
+    @Test void merchantAdminCredentialIsArgon2AndReusableBootstrapRepairsADeletedCredentialAndAuthenticates()throws Exception{
+        var amazingAdmin=actors.findByIdentityHandle("demo-amazing-admin@agentic-commerce.invalid").orElseThrow();
+        var initial=passwordCredentials.findByActorId(amazingAdmin.id()).orElseThrow();
+        assertThat(initial.passwordHash()).startsWith("$argon2").isNotEqualTo(merchantAdminPassword);
+        assertThat(passwordEncoder.matches(merchantAdminPassword,initial.passwordHash())).isTrue();
+        var freshAdmin=actors.findByIdentityHandle("demo-freshbasket-admin@agentic-commerce.invalid").orElseThrow();
+        var freshCredential=passwordCredentials.findByActorId(freshAdmin.id()).orElseThrow();
+        assertThat(freshCredential.passwordHash()).startsWith("$argon2").isNotEqualTo(merchantAdminPassword);
+        assertThat(passwordEncoder.matches(merchantAdminPassword,freshCredential.passwordHash())).isTrue();
+        jdbc.sql("DELETE FROM actor_password_credential WHERE actor_id=:actor").param("actor",amazingAdmin.id()).update();
+
+        var reused=bootstrap.bootstrap("https://merchant.example.test","evaluator@demo.invalid","not-a-tracked-demo-password",
+                merchantAdminPassword,Path.of("..","..","evaluation","demo-data"));
+        var repaired=passwordCredentials.findByActorId(amazingAdmin.id()).orElseThrow();
+        assertThat(reused.reused()).isTrue();
+        assertThat(repaired.passwordHash()).startsWith("$argon2").isNotEqualTo(merchantAdminPassword);
+        assertThat(passwordEncoder.matches(merchantAdminPassword,repaired.passwordHash())).isTrue();
+
+        CookieManager cookies=new CookieManager(null,CookiePolicy.ACCEPT_ALL);
+        HttpClient client=HttpClient.newBuilder().cookieHandler(cookies).build();
+        HttpResponse<String> csrf=client.send(HttpRequest.newBuilder(uri("/api/auth/csrf")).GET().build(),HttpResponse.BodyHandlers.ofString());
+        String token=mapper.readTree(csrf.body()).path("token").asText();
+        var login=mapper.createObjectNode().put("identityHandle","demo-amazing-admin@agentic-commerce.invalid").put("password",merchantAdminPassword);
+        HttpResponse<String> authenticated=client.send(HttpRequest.newBuilder(uri("/api/auth/login"))
+                .header("Content-Type","application/json").header("X-CSRF-TOKEN",token)
+                .POST(HttpRequest.BodyPublishers.ofByteArray(mapper.writeValueAsBytes(login))).build(),HttpResponse.BodyHandlers.ofString());
+        HttpResponse<String> me=client.send(HttpRequest.newBuilder(uri("/api/auth/me")).GET().build(),HttpResponse.BodyHandlers.ofString());
+        HttpResponse<String> merchantList=client.send(HttpRequest.newBuilder(uri("/api/merchants")).GET().build(),HttpResponse.BodyHandlers.ofString());
+        assertThat(authenticated.statusCode()).isEqualTo(200);
+        assertThat(me.statusCode()).isEqualTo(200);assertThat(me.body()).contains("\"role\":\"MERCHANT_ADMIN\"");
+        assertThat(merchantList.statusCode()).isEqualTo(200);assertThat(mapper.readTree(merchantList.body()).size()).isOne();
+        assertThat(merchantList.body()).contains("\"merchantKey\":\"amazing\"").doesNotContain("freshbasket");}
+
+    private URI uri(String path){return URI.create("http://localhost:"+port+path);}
 
     @Test void demoSearchContractIsDeterministicWhileNormalSearchAndFailuresRemainReal(){
         assertThat(jdbc.sql("SELECT request_timeout_ms FROM capability_mapping_proposal WHERE capability='SEARCH_PRODUCTS' ORDER BY created_at")

@@ -11,6 +11,7 @@
     "web:lint": "pnpm --filter @agentic-commerce/web lint",
     "web:typecheck": "pnpm --filter @agentic-commerce/web typecheck",
     "web:build": "pnpm --filter @agentic-commerce/web build",
+    "web:test": "pnpm --filter @agentic-commerce/web test:merchant",
     "web:check": "pnpm web:lint && pnpm web:typecheck && pnpm web:build"
   }
 }
