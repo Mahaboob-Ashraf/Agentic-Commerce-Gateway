@@ -91,6 +91,8 @@ public class AuthenticationSecurityConfiguration {
                         .requestMatchers("/api/demo-merchants/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/discovery/merchants/*/ready-capabilities").permitAll()
                         .requestMatchers("/api/discovery/merchants/*/catalogue/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/auth/buyer-session-validation")
+                        .hasRole("BUYER")
                         .requestMatchers("/api/auth/me", "/api/auth/logout").authenticated()
                         .requestMatchers("/api/buyer/**").hasRole("BUYER")
                         .requestMatchers("/api/merchants/*/agentization/**")

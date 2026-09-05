@@ -58,7 +58,7 @@ export function reduceVoiceSession(
     case "MODEL_AUDIO_STARTED":
       return { ...state, orb: "AGENT_SPEAKING" };
     case "MODEL_AUDIO_ENDED":
-      return { ...state, orb: state.commerceRunning ? "COMMERCE_RUNNING" : state.awaitingAuthorization ? "AWAITING_AUTHORIZATION" : "LISTENING" };
+      return { ...state, orb: state.commerceRunning ? "COMMERCE_RUNNING" : "LISTENING" };
     case "INTERRUPTED":
       return { ...state, orb: "LISTENING" };
     case "COMMERCE_STARTED":
@@ -66,7 +66,9 @@ export function reduceVoiceSession(
     case "COMMERCE_FINISHED":
       return {
         ...state,
-        orb: action.awaitingAuthorization ? "AWAITING_AUTHORIZATION" : "LISTENING",
+        // The authoritative application result is now a new Live turn. Keep the session in a
+        // conversational state while Gemini narrates it; once playback drains it returns to LISTENING.
+        orb: "THINKING",
         commerceRunning: false,
         awaitingAuthorization: action.awaitingAuthorization,
       };

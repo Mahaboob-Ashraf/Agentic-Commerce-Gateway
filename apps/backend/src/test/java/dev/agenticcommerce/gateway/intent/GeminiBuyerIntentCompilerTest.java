@@ -9,6 +9,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.google.genai.errors.ClientException;
+import com.google.genai.types.GenerateContentConfig;
 import dev.agenticcommerce.gateway.agentization.service.CanonicalJsonService;
 import dev.agenticcommerce.gateway.catalogue.CatalogueModels.Availability;
 import dev.agenticcommerce.gateway.catalogue.CatalogueModels.Product;
@@ -51,7 +52,123 @@ class GeminiBuyerIntentCompilerTest {
         assertThat(compiled.intent().budgetAmountMinor()).isEqualTo(300000L);
         assertThat(compiled.intent().currency()).isEqualTo("INR");
         assertThat(compiled.intent().softPreferences()).containsExactly("GOOD_QUALITY");
-        assertThat(prompt.get()).contains("materialFieldClassifications", "CLEAR requires clarificationQuestion=null");
+        assertThat(prompt.get()).contains(
+                "materialFieldClassifications",
+                "CLEAR requires clarificationQuestion=null",
+                "requiredOutputJsonSchema",
+                "Return exactly one JSON object",
+                "no additional fields");
+    }
+
+    @Test
+    void providerConfigRequestsJsonWithoutProviderEnforcedSchema() {
+        GenerateContentConfig config = GeminiBuyerIntentCompiler.generationConfig();
+
+        assertThat(config.responseMimeType()).contains("application/json");
+        assertThat(config.responseSchema()).isEmpty();
+        assertThat(config.responseJsonSchema()).isEmpty();
+        assertThat(config.temperature()).contains(0.0f);
+        assertThat(config.maxOutputTokens()).contains(4096);
+    }
+
+    @Test
+    void merchantQualifiedNameCannotBecomeProductBrandAndTriggersBoundedRepair() {
+        ThreadMessage message = message("Find Auralink Buds Bluetooth Earphones from Amazing");
+        CompiledIntent invalid = intent(null, null, "Amazing", "Auralink Buds Bluetooth Earphones", null,
+                List.of(), List.of(
+                        field(message, "BRAND", ConstraintClassification.HARD, "Amazing"),
+                        field(message, "VARIANT", ConstraintClassification.HARD, "Auralink Buds Bluetooth Earphones")));
+        CompiledIntent repaired = intent("Earphones", null, "Auralink", "Buds Pro", null,
+                List.of(), List.of(
+                        field(message, "CATEGORY", ConstraintClassification.HARD, "Earphones"),
+                        field(message, "BRAND", ConstraintClassification.HARD, "Auralink"),
+                        field(message, "VARIANT", ConstraintClassification.HARD, "Buds Bluetooth Earphones")));
+        AtomicInteger attempts = new AtomicInteger();
+        AtomicReference<String> repairPrompt = new AtomicReference<>();
+
+        CompiledIntent result = service((model, prompt, schema) -> {
+            if (attempts.incrementAndGet() == 1) return modelJson(invalid);
+            repairPrompt.set(prompt);
+            return modelJson(repaired);
+        }).compile(message).intent();
+
+        assertThat(attempts).hasValue(2);
+        assertThat(result.exactBrand()).isEqualTo("Auralink");
+        assertThat(result.exactVariant()).isEqualTo("Buds Pro");
+        assertThat(repairPrompt.get()).contains(
+                "Store or merchant names introduced by phrases",
+                "schema has no merchant-selection field",
+                "BRAND evidence identifies a merchant/store phrase");
+    }
+
+    @Test
+    void followUpPromptCarriesPersistedThreadIntentAndMakesNewestCorrectionAuthoritative() {
+        ThreadMessage original = message("Find Ora Link buds bluetooth earphones from Amazing");
+        CompiledIntent prior = intent("bluetooth earphones", null, "Ora Link", "Buds", null,
+                List.of(), List.of(
+                        field(original, "CATEGORY", ConstraintClassification.HARD, "bluetooth earphones"),
+                        field(original, "BRAND", ConstraintClassification.HARD, "Ora Link"),
+                        field(original, "VARIANT", ConstraintClassification.HARD, "buds")));
+        ThreadMessage correction = message("AURALINK no space in between");
+        CompiledIntent corrected = intent("bluetooth earphones", null, "Auralink", "Buds", null,
+                List.of(), List.of(
+                        field(correction, "CATEGORY", ConstraintClassification.HARD, "AURALINK"),
+                        field(correction, "BRAND", ConstraintClassification.HARD, "AURALINK"),
+                        field(correction, "VARIANT", ConstraintClassification.HARD, "AURALINK")));
+        AtomicReference<String> prompt = new AtomicReference<>();
+        var compiler = new GeminiBuyerIntentCompiler("gemini-test", mapper, (model, request, schema) -> {
+            prompt.set(request);
+            return modelJson(corrected);
+        });
+
+        CompiledIntent result = new IntentCompilerService(compiler,new CanonicalJsonService(mapper),mapper)
+                .compile(correction,new BuyerIntentCompiler.ConversationContext(
+                        List.of(original.normalizedText()),prior)).intent();
+
+        assertThat(result.exactBrand()).isEqualTo("Auralink");
+        assertThat(prompt.get()).contains("conversationContext","priorCurrentIntent","Ora Link",
+                "The newest inputText is authoritative","AURALINK no space in between");
+    }
+
+    @Test
+    void visualCategoryIsOnlyRetrievalContextWhileExplicitBudgetRemainsHard() {
+        ThreadMessage message=message("Find something like this under ₹4,000");
+        CompiledIntent output=intent("low-top lifestyle sneakers",400_000L,null,null,null,List.of(),List.of(
+                field(message,"CATEGORY",ConstraintClassification.HARD,"this"),
+                field(message,"BUDGET",ConstraintClassification.HARD,"4,000")));
+        AtomicReference<String> prompt=new AtomicReference<>();
+        var compiler=new GeminiBuyerIntentCompiler("gemini-3.1-flash-lite",mapper,(model,request,schema)->{
+            prompt.set(request);ObjectNode json=(ObjectNode)mapper.readTree(modelJson(output));
+            ((ObjectNode)json.path("materialFields").get(0)).put("source","VISUAL_HYPOTHESIS");return mapper.writeValueAsString(json);});
+        var observation=new VisualCommerceModels.VisionObservation("Footwear","low-top sneaker",null,null,
+                List.of("white"),List.of("canvas"),List.of("lifestyle"),List.of(),new BigDecimal("0.86"),List.of("brand unknown"));
+
+        CompiledIntent compiled=new IntentCompilerService(compiler,new CanonicalJsonService(mapper),mapper)
+                .compile(message,new BuyerIntentCompiler.ConversationContext(List.of(),null,observation)).intent();
+
+        assertThat(compiled.materialFields()).filteredOn(field->field.field().equals("CATEGORY"))
+                .allMatch(field->field.classification()==ConstraintClassification.SOFT);
+        assertThat(compiled.materialFields()).filteredOn(field->field.field().equals("BUDGET"))
+                .allMatch(field->field.classification()==ConstraintClassification.HARD);
+        assertThat(prompt.get()).contains("visualHypothesis","Explicit inputText constraints always dominate","visibleText is observed pixels only");
+    }
+
+    @Test
+    void explicitMaterialExclusionIsHardAndCannotBeIntroducedByVision() {
+        ThreadMessage message=message("Find something like this, but not leather");
+        CompiledIntent output=intent("low-top sneaker",null,null,null,null,List.of(),List.of(
+                field(message,"CATEGORY",ConstraintClassification.HARD,"this")));
+        var compiler=new GeminiBuyerIntentCompiler("gemini-test",mapper,(model,request,schema)->{ObjectNode json=(ObjectNode)mapper.readTree(modelJson(output));
+            ((ObjectNode)json.path("materialFields").get(0)).put("source","VISUAL_HYPOTHESIS");ObjectNode excluded=((ArrayNode)json.path("materialFields")).addObject();
+            excluded.put("field","NO_MATERIAL");excluded.put("source","EXPLICIT_TEXT");excluded.put("value","leather");excluded.put("minorValue",0);
+            excluded.put("startOffset",message.normalizedText().indexOf("leather"));excluded.put("endOffset",message.normalizedText().indexOf("leather")+7);excluded.put("modelSignal",1);
+            return mapper.writeValueAsString(json);});
+        var observation=new VisualCommerceModels.VisionObservation("Footwear","sneaker",null,null,List.of("white"),List.of("leather-like"),List.of(),List.of(),BigDecimal.ONE,List.of());
+        CompiledIntent compiled=new IntentCompilerService(compiler,new CanonicalJsonService(mapper),mapper)
+                .compile(message,new BuyerIntentCompiler.ConversationContext(List.of(),null,observation)).intent();
+        assertThat(compiled.excludedMaterials()).containsExactly("leather");
+        assertThat(compiled.materialFields()).filteredOn(field->field.field().equals("EXCLUDED_MATERIAL"))
+                .allMatch(field->field.classification()==ConstraintClassification.HARD);
     }
 
     @Test
@@ -160,7 +277,7 @@ class GeminiBuyerIntentCompilerTest {
             attempts.incrementAndGet();
             throw new IllegalStateException("provider details must remain private");
         }).compile(message)).isInstanceOfSatisfying(BuyerException.class, failure -> {
-            assertThat(failure.code()).isEqualTo("INTENT_COMPILER_UNAVAILABLE");
+            assertThat(failure.code()).isEqualTo("AI_PROVIDER_UNAVAILABLE");
             assertThat(failure.getMessage()).doesNotContain("provider details");
         });
         assertThat(attempts).hasValue(1);
@@ -176,7 +293,7 @@ class GeminiBuyerIntentCompilerTest {
             throw new ClientException(429, "RESOURCE_EXHAUSTED",
                     "Quota exceeded; x-goog-api-key=" + apiKey);
         }).compile(message)).isInstanceOfSatisfying(BuyerException.class,
-                failure -> assertThat(failure.code()).isEqualTo("INTENT_COMPILER_UNAVAILABLE"));
+                failure -> assertThat(failure.code()).isEqualTo("AI_PROVIDER_RATE_LIMITED"));
 
         assertThat(output.getAll())
                 .contains("exceptionClass=com.google.genai.errors.ClientException")
@@ -201,6 +318,36 @@ class GeminiBuyerIntentCompilerTest {
     }
 
     @Test
+    void missingRequiredOutputFieldsRetryOnceThenFailClosed() {
+        ThreadMessage message = message("Find earphones");
+        AtomicInteger attempts = new AtomicInteger();
+
+        assertThatThrownBy(() -> service((model, prompt, schema) -> {
+            attempts.incrementAndGet();
+            return "{\"goal\":\"PURCHASE_PRODUCT\"}";
+        }).compile(message)).isInstanceOfSatisfying(BuyerException.class,
+                failure -> assertThat(failure.code()).isEqualTo("INVALID_BUYER_INTENT"));
+        assertThat(attempts).hasValue(2);
+    }
+
+    @Test
+    void semanticallyOutOfBoundsOutputRetriesOnceThenFailsClosed() {
+        ThreadMessage message = message("Find 101 earphones");
+        CompiledIntent output = intent("earphones", null, null, null, null, List.of(), List.of(
+                field(message, "CATEGORY", ConstraintClassification.HARD, "earphones")));
+        AtomicInteger attempts = new AtomicInteger();
+
+        assertThatThrownBy(() -> service((model, prompt, schema) -> {
+            attempts.incrementAndGet();
+            ObjectNode json = (ObjectNode) mapper.readTree(modelJson(output));
+            json.put("quantity", 101);
+            return mapper.writeValueAsString(json);
+        }).compile(message)).isInstanceOfSatisfying(BuyerException.class,
+                failure -> assertThat(failure.code()).isEqualTo("INVALID_BUYER_INTENT"));
+        assertThat(attempts).hasValue(2);
+    }
+
+    @Test
     @SuppressWarnings("unchecked")
     void schemaUsesCanonicalFieldsAndDomainNumericBounds() {
         Map<String, Object> properties = (Map<String, Object>) GeminiBuyerIntentCompiler.schema().get("properties");
@@ -213,7 +360,7 @@ class GeminiBuyerIntentCompilerTest {
 
         assertThat((List<String>) field.get("enum")).containsExactly(
                 "BUD", "CAT", "SKU", "GTIN", "BRAND", "VAR",
-                "SIZE", "COLOR", "VEG", "ALLERGEN", "PREF");
+                "SIZE", "COLOR", "VEG", "ALLERGEN", "NO_MATERIAL", "PREF");
         assertThat(integerValue.get("minimum")).isEqualTo(0);
         assertThat(quantity).containsEntry("minimum", 1).containsEntry("maximum", 100);
     }
@@ -240,6 +387,7 @@ class GeminiBuyerIntentCompilerTest {
         intent.materialFields().forEach(material -> {
             ObjectNode field = materialFields.addObject();
             field.put("field", providerFieldCode(material.field()));
+            field.put("source", "EXPLICIT_TEXT");
             field.put("minorValue", "BUDGET".equals(material.field()) && intent.budgetAmountMinor() != null
                     ? intent.budgetAmountMinor() : 0L);
             if ("PREFERENCES".equals(material.field())) field.put("value", String.join("|", intent.softPreferences()));

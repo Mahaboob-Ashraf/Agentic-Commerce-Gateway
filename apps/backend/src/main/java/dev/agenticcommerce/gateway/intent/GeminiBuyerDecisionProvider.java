@@ -35,7 +35,7 @@ public class GeminiBuyerDecisionProvider implements BuyerDecisionProvider {
     private final DecisionContentGenerator generator;private final String model;private final ObjectMapper mapper;
     private final ObjectMapper strict=JsonMapper.builder().enable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES).build();
     @Autowired
-    public GeminiBuyerDecisionProvider(@Value("${buyer.gemini.api-key:${GEMINI_API_KEY:}}") String apiKey,@Value("${buyer.gemini.model:gemini-3.6-flash}") String model,ObjectMapper mapper){
+    public GeminiBuyerDecisionProvider(@Value("${buyer.gemini.api-key:${GEMINI_API_KEY:}}") String apiKey,@Value("${buyer.gemini.model:gemini-3.5-flash-lite}") String model,ObjectMapper mapper){
         Client client=Client.builder().apiKey(apiKey).build();
         this.generator=(selectedModel,request,outputSchema)->client.models.generateContent(selectedModel,request,
                 GenerateContentConfig.builder().temperature(0.0f).maxOutputTokens(512).responseMimeType("application/json").responseJsonSchema(outputSchema).build()).text();
@@ -47,8 +47,9 @@ public class GeminiBuyerDecisionProvider implements BuyerDecisionProvider {
         prompt.put("candidates",context.candidates());prompt.put("softPreferences",context.softPreferences());prompt.put("evidenceReferences",context.evidenceReferences());if(feedback!=null)prompt.put("validationFeedback",feedback);
         long providerStarted=System.nanoTime();String output;
         try{output=generator.generate(model,mapper.writeValueAsString(prompt),schema(context));}
-        catch(RuntimeException providerFailure){long providerElapsed=elapsedMillis(providerStarted);logProviderFailure(providerFailure,attempt,providerElapsed);
-            throw new BuyerException("BUYER_DECISION_UNAVAILABLE",HttpStatus.SERVICE_UNAVAILABLE,"Buyer decision provider is unavailable");}
+        catch(RuntimeException providerFailure){long providerElapsed=elapsedMillis(providerStarted);logProviderFailure(providerFailure,attempt,providerElapsed);ApiException api=apiFailure(providerFailure);
+            if(api!=null&&api.code()==429)throw new BuyerException("AI_PROVIDER_RATE_LIMITED",HttpStatus.TOO_MANY_REQUESTS,"Amana's reasoning service is temporarily rate-limited. Retry shortly. Nothing was authorized.");
+            throw new BuyerException("AI_PROVIDER_UNAVAILABLE",HttpStatus.SERVICE_UNAVAILABLE,"Amana's reasoning service is temporarily unavailable. Nothing was authorized.");}
         long providerElapsed=elapsedMillis(providerStarted);long parsingStarted=System.nanoTime();
         try{Raw raw=strict.readValue(output,Raw.class);
             log.info("Gemini candidate reasoning completed attempt={} providerElapsedMs={} parsingElapsedMs={} totalElapsedMs={} repair={} outputShape={} model={}",

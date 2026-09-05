@@ -3,6 +3,7 @@ package dev.agenticcommerce.gateway.identity.persistence;
 import dev.agenticcommerce.gateway.identity.model.Merchant;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Types;
 import java.time.OffsetDateTime;
 import java.util.Locale;
 import java.util.Objects;
@@ -30,7 +31,7 @@ public class MerchantRepository {
         return jdbcClient.sql("""
                         INSERT INTO merchant (merchant_key, display_name)
                         VALUES (:merchantKey, :displayName)
-                        RETURNING merchant_id, merchant_key, display_name, created_at
+                        RETURNING merchant_id, merchant_key, display_name, logo_url, created_at
                         """)
                 .param("merchantKey", canonicalKey)
                 .param("displayName", canonicalDisplayName)
@@ -41,7 +42,7 @@ public class MerchantRepository {
     public Optional<Merchant> findById(UUID merchantId) {
         Objects.requireNonNull(merchantId, "merchantId");
         return jdbcClient.sql("""
-                        SELECT merchant_id, merchant_key, display_name, created_at
+                        SELECT merchant_id, merchant_key, display_name, logo_url, created_at
                         FROM merchant
                         WHERE merchant_id = :merchantId
                         """)
@@ -54,7 +55,7 @@ public class MerchantRepository {
         String canonicalKey = Objects.requireNonNull(merchantKey, "merchantKey")
                 .strip().toLowerCase(Locale.ROOT);
         return jdbcClient.sql("""
-                        SELECT merchant_id, merchant_key, display_name, created_at
+                        SELECT merchant_id, merchant_key, display_name, logo_url, created_at
                         FROM merchant WHERE merchant_key = :merchantKey
                         """)
                 .param("merchantKey", canonicalKey)
@@ -62,11 +63,34 @@ public class MerchantRepository {
                 .optional();
     }
 
+    public Merchant updateLogoUrl(UUID merchantId, String logoUrl) {
+        Objects.requireNonNull(merchantId, "merchantId");
+        String normalizedLogoUrl = logoUrl == null ? null : logoUrl.strip();
+        if (normalizedLogoUrl != null && (!safeLogoUrl(normalizedLogoUrl) || normalizedLogoUrl.length() > 2048)) {
+            throw new IllegalArgumentException("Merchant logo URL must be a safe root-relative or HTTPS URL");
+        }
+        return jdbcClient.sql("""
+                        UPDATE merchant
+                        SET logo_url = :logoUrl
+                        WHERE merchant_id = :merchantId
+                        RETURNING merchant_id, merchant_key, display_name, logo_url, created_at
+                        """)
+                .param("merchantId", merchantId)
+                .param("logoUrl", normalizedLogoUrl, Types.VARCHAR)
+                .query(MerchantRepository::mapMerchant)
+                .single();
+    }
+
+    private static boolean safeLogoUrl(String value) {
+        return (value.startsWith("/") && !value.startsWith("//")) || value.startsWith("https://");
+    }
+
     private static Merchant mapMerchant(ResultSet resultSet, int rowNumber) throws SQLException {
         return new Merchant(
                 resultSet.getObject("merchant_id", UUID.class),
                 resultSet.getString("merchant_key"),
                 resultSet.getString("display_name"),
+                resultSet.getString("logo_url"),
                 resultSet.getObject("created_at", OffsetDateTime.class).toInstant());
     }
 }

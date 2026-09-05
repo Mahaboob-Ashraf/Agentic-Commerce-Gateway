@@ -40,6 +40,29 @@ class ExactProductIdentityResolverTest {
         assertThat(result.intent().ambiguityState()).isEqualTo(AmbiguityState.AMBIGUOUS);
     }
 
+    @Test
+    void clearPartialModelAndCatalogueNameCategoryResolveToOneAuthoritativeIdentity(){
+        CatalogueRepository repository=mock(CatalogueRepository.class);
+        Product auralink=new Product(UUID.randomUUID(),UUID.randomUUID(),UUID.randomUUID(),"AMZ-AUDIO-032",
+                null,"Auralink","Auralink Buds Bluetooth Earphones","auralink buds bluetooth earphones",
+                "Buds Pro",null,"White","Electronics","Bluetooth Earphones",true,"source",299900L,
+                "INR",21L,Availability.IN_STOCK,Instant.parse("2026-08-15T00:00:00Z"));
+        when(repository.exactIdentityCandidates(anyString(),anyInt())).thenReturn(List.of(auralink));
+        UUID messageId=UUID.randomUUID();EvidenceSpan evidence=new EvidenceSpan(messageId,5,38);
+        CompiledIntent clear=new CompiledIntent(IntentGoal.PURCHASE_PRODUCT,"Bluetooth Earphones",null,null,
+                null,null,"Auralink","Buds",null,null,null,null,1,null,SubstitutionPolicy.UNKNOWN,null,List.of(),
+                List.of(clearField("CATEGORY",evidence),clearField("BRAND",evidence),clearField("VARIANT",evidence)),
+                AmbiguityState.CLEAR,null,"GEMINI","test");
+
+        var result=new ExactProductIdentityResolver(repository).resolve(clear);
+
+        assertThat(result.outcome()).isEqualTo(ExactProductIdentityResolver.ResolutionOutcome.UNIQUE);
+        assertThat(result.intent().exactBrand()).isEqualTo("Auralink");
+        assertThat(result.intent().exactVariant()).isEqualTo("Buds Pro");
+        assertThat(result.intent().categoryRequest()).isEqualTo("Electronics");
+        assertThat(result.intent().ambiguityState()).isEqualTo(AmbiguityState.CLEAR);
+    }
+
     private static CompiledIntent intent(String colour){
         UUID messageId=UUID.randomUUID();EvidenceSpan evidence=new EvidenceSpan(messageId,0,32);
         List<MaterialField> fields=colour==null
@@ -52,6 +75,10 @@ class ExactProductIdentityResolverTest {
 
     private static MaterialField field(String key,EvidenceSpan evidence){
         return new MaterialField(key,ConstraintClassification.HARD,evidence,BigDecimal.ONE,AmbiguityState.AMBIGUOUS);
+    }
+
+    private static MaterialField clearField(String key,EvidenceSpan evidence){
+        return new MaterialField(key,ConstraintClassification.HARD,evidence,BigDecimal.ONE,AmbiguityState.CLEAR);
     }
 
     private static Product product(String suffix,String colour){

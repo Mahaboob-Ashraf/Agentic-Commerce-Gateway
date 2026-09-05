@@ -18,7 +18,7 @@ import org.springframework.stereotype.Service;
 public class ExactProductIdentityResolver {
     private static final Logger log=LoggerFactory.getLogger(ExactProductIdentityResolver.class);
     private static final int QUERY_LIMIT=33;
-    private static final Set<String> RESOLVABLE_FIELDS=Set.of("BRAND","VARIANT","SIZE_STORAGE","COLOUR");
+    private static final Set<String> RESOLVABLE_FIELDS=Set.of("CATEGORY","BRAND","VARIANT","SIZE_STORAGE","COLOUR");
     private final CatalogueRepository catalogues;
 
     public ExactProductIdentityResolver(CatalogueRepository catalogues){this.catalogues=catalogues;}
@@ -52,7 +52,7 @@ public class ExactProductIdentityResolver {
     }
 
     private static boolean eligible(CompiledIntent intent){
-        if(intent==null||intent.goal()!=IntentGoal.PURCHASE_PRODUCT||intent.ambiguityState()!=AmbiguityState.AMBIGUOUS
+        if(intent==null||intent.goal()!=IntentGoal.PURCHASE_PRODUCT
                 ||blank(intent.exactBrand())||blank(intent.exactVariant())||intent.materialFields()==null)return false;
         return intent.materialFields().stream().filter(field->field.ambiguity()==AmbiguityState.AMBIGUOUS)
                 .allMatch(field->field.field()!=null&&RESOLVABLE_FIELDS.contains(field.field().toUpperCase(Locale.ROOT)));
@@ -62,8 +62,16 @@ public class ExactProductIdentityResolver {
         Set<String> requested=tokens(intent.exactBrand()+" "+intent.exactVariant());
         Set<String> authoritative=tokens(product.brand()+" "+product.canonicalName()+" "+product.variant());
         return !requested.isEmpty()&&authoritative.containsAll(requested)
+                &&categoryCompatible(intent.categoryRequest(),product)
                 &&sameWhenRequired(intent.exactColour(),product.colour())
                 &&sameWhenRequired(intent.exactSizeStorage(),product.sizeStorage());
+    }
+
+    private static boolean categoryCompatible(String requested,Product product){
+        if(blank(requested))return true;
+        Set<String> categoryTokens=tokens(requested);
+        Set<String> authoritative=tokens(product.canonicalName()+" "+product.category()+" "+product.description());
+        return !categoryTokens.isEmpty()&&authoritative.containsAll(categoryTokens);
     }
 
     private static boolean sameWhenRequired(String requested,String authoritative){
@@ -84,11 +92,11 @@ public class ExactProductIdentityResolver {
     private static CompiledIntent canonicalize(CompiledIntent intent,Product product){
         List<MaterialField> fields=intent.materialFields().stream().map(field->RESOLVABLE_FIELDS.contains(field.field().toUpperCase(Locale.ROOT))
                 ?new MaterialField(field.field(),field.classification(),field.evidence(),field.modelSignal(),AmbiguityState.CLEAR):field).toList();
-        return new CompiledIntent(intent.goal(),intent.categoryRequest(),intent.budgetAmountMinor(),intent.currency(),
+        return new CompiledIntent(intent.goal(),blank(intent.categoryRequest())?null:product.category(),intent.budgetAmountMinor(),intent.currency(),
                 intent.exactMerchantSku(),intent.exactGtin(),product.brand(),product.variant(),
                 blank(intent.exactSizeStorage())?null:product.sizeStorage(),blank(intent.exactColour())?null:product.colour(),
                 intent.vegetarian(),intent.prohibitedAllergen(),intent.quantity(),intent.people(),intent.substitutionPolicy(),
-                intent.deliveryHint(),intent.softPreferences(),fields,AmbiguityState.CLEAR,null,intent.provider(),intent.model());
+                intent.deliveryHint(),intent.excludedMaterials(),intent.softPreferences(),fields,AmbiguityState.CLEAR,null,intent.provider(),intent.model());
     }
 
     private static String normalized(String value){return blank(value)?"":normalize(value);}

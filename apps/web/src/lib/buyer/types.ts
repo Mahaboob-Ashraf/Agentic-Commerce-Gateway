@@ -4,6 +4,12 @@ export type ActorSession = {
   role: "BUYER" | "MERCHANT_ADMIN" | "PLATFORM_ADMIN" | "SYSTEM";
 };
 
+export type BuyerVoicePreference = {
+  voiceName: "Kore" | "Aoede" | "Puck" | "Charon";
+  version: number;
+  updatedAt: string | null;
+};
+
 export type CommerceThread = {
   threadId: string;
   buyerActorId: string;
@@ -115,6 +121,27 @@ export type CommerceProgressStep = {
   evidenceReferences: string[];
 };
 
+export type VisionObservationView = {
+  category: string;
+  productType: string;
+  brandCandidate: string | null;
+  modelCandidate: string | null;
+  colors: string[];
+  materials: string[];
+  styleDescriptors: string[];
+  visibleText: string[];
+  confidence: number;
+  ambiguities: string[];
+  mimeType: "image/jpeg" | "image/png" | "image/webp";
+  originalFilename: string | null;
+  sizeBytes: number;
+  width: number;
+  height: number;
+  observationHash: string;
+  provider: string;
+  model: string;
+};
+
 export type CommerceRequestResult = {
   requestId: string;
   threadId: string;
@@ -131,6 +158,7 @@ export type CommerceRequestResult = {
   softPreferences: string[];
   merchantId: string | null;
   merchantDisplayName: string | null;
+  merchantLogoUrl: string | null;
   catalogueVersionId: string | null;
   catalogueVersion: string | null;
   cartId: string | null;
@@ -168,6 +196,9 @@ export type CommerceRequestResult = {
   progress: CommerceProgressStep[];
   evidenceReferences: string[];
   failureCode: string | null;
+  visualObservation: VisionObservationView | null;
+  visualMatchType: "EXACT_GROUNDED_MATCH" | "VISUALLY_SIMILAR_GROUNDED_RESULT" | null;
+  visualMatchReasons: string[];
 };
 
 export type AuthorizationDecision = {

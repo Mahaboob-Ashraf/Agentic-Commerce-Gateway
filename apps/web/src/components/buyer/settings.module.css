@@ -31,9 +31,10 @@ button.secondary { border-color: var(--amana-border-strong); background: #fff; c
 .address p, .merchant p, .deviceGuide p { margin: 0; color: var(--amana-ink-muted); font-size: 0.73rem; line-height: 1.55; }
 .addButton { display: inline-flex; align-items: center; gap: 0.5rem; width: fit-content; margin-top: 1.4rem; border-color: #cfd8e6; background: #fff; color: #46536b; }
 .merchant { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 1rem; border-bottom: 1px solid #e3e8f0; padding: 1.35rem 0; }
-.merchantMonogram { display: grid; width: 2.7rem; height: 2.7rem; place-items: center; border-radius: 0.72rem; background: #eef2fb; color: #244fc7; font-family: var(--amana-font-display); font-weight: 700; }
-.merchant span { display: inline-block; margin-top: 0.42rem; color: #8a6270; }
-.merchant span[data-connected="true"] { color: var(--amana-positive); }
+.merchantMonogram { position: relative; display: grid; width: 2.7rem; height: 2.7rem; overflow: hidden; place-items: center; border: 1px solid #dfe6f1; border-radius: 0.72rem; background: #eef2fb; color: #244fc7; font-family: var(--amana-font-display); font-weight: 700; }
+.merchantMonogram img { position: absolute; inset: 0; width: 100%; height: 100%; background: #fff; object-fit: contain; }
+.merchant > div span { display: inline-block; margin-top: 0.42rem; color: #8a6270; }
+.merchant > div span[data-connected="true"] { color: var(--amana-positive); }
 .connectForm { grid-column: 2 / -1; display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; padding: 1rem; border: 1px solid #dfe5ef; border-radius: 0.7rem; background: #fff; }
 .connectForm > div { grid-column: 1 / -1; display: flex; justify-content: flex-end; gap: 0.5rem; }
 .boundaryNote { display: flex; gap: 0.6rem; margin: 1.2rem 0 0; color: #6c788c; font-size: 0.7rem; line-height: 1.55; }

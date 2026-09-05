@@ -31,7 +31,7 @@ public class GeminiAgentizationDecisionProvider implements AgentizationDecisionP
 
     public GeminiAgentizationDecisionProvider(
             @Value("${agentization.gemini.api-key}") String apiKey,
-            @Value("${agentization.gemini.model:gemini-3.6-flash}") String model,
+            @Value("${agentization.gemini.model:gemini-3.5-flash-lite}") String model,
             ObjectMapper applicationMapper) {
         this.client = Client.builder().apiKey(apiKey).build();
         this.model = model;

@@ -2,16 +2,17 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type MouseEvent, type ReactNode } from "react";
 import { buyerApi } from "@/lib/buyer/api";
+import { buyerOnboardingSeenKey, buyerWorkspaceKey, nextNewChatGeneration, shouldShowBuyerOnboarding } from "@/lib/buyer/buyer-experience";
 import type { CommerceThread } from "@/lib/buyer/types";
+import { AmanaMark } from "./amana-mark";
 import { Icon } from "./icons";
 import { ProductTour } from "./product-tour";
 import { useBuyerSession } from "./buyer-session";
 import styles from "./buyer-shell.module.css";
 
 const navigation = [
-  { href: "/buyer/chat", label: "New Chat", icon: "add", tour: "new-chat" },
   { href: "/buyer/conversations", label: "Conversations", icon: "archive", tour: "conversations" },
   { href: "/buyer/orders", label: "Orders", icon: "orders", tour: "orders" },
   { href: "/buyer/autobuy", label: "AutoBuy", icon: "autobuy", tour: "autobuy" },
@@ -29,6 +30,7 @@ export function BuyerShell({ children }: { children: ReactNode }) {
   const { actor, signOut } = useBuyerSession();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [threads, setThreads] = useState<CommerceThread[]>([]);
+  const [workspaceGeneration, setWorkspaceGeneration] = useState(0);
   const menuButton = useRef<HTMLButtonElement>(null);
   const drawer = useRef<HTMLElement>(null);
 
@@ -37,14 +39,19 @@ export function BuyerShell({ children }: { children: ReactNode }) {
   }, [pathname]);
 
   useEffect(() => {
+    if (!actor?.actorId) return;
     buyerApi.onboardingStatus().then((nextStatus) => {
-      if (!nextStatus.profileComplete || !nextStatus.addressSelected) {
+      const marker = buyerOnboardingSeenKey(actor.actorId);
+      const legacyMarker = `amana:onboarding-complete:${actor.actorId}`;
+      const seenOnDevice = localStorage.getItem(marker) === "true" || localStorage.getItem(legacyMarker) === "true";
+      if (seenOnDevice && localStorage.getItem(marker) !== "true") localStorage.setItem(marker, "true");
+      if (shouldShowBuyerOnboarding(nextStatus, seenOnDevice)) {
         router.replace("/buyer/onboarding");
       }
     }).catch(() => {
       // The authenticated shell remains available when onboarding status is temporarily unreadable.
     });
-  }, [router]);
+  }, [actor?.actorId, router]);
 
   useEffect(() => {
     if (!drawerOpen) return;
@@ -61,17 +68,27 @@ export function BuyerShell({ children }: { children: ReactNode }) {
 
   const initial = actor?.identityHandle.slice(0, 1).toUpperCase() ?? "A";
 
+  function beginNewChat(event: MouseEvent<HTMLAnchorElement>) {
+    if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    setDrawerOpen(false);
+    setWorkspaceGeneration((current) => nextNewChatGeneration(current));
+  }
+
   const sidebar = (
     <div className={styles.sidebarInner}>
       <div className={styles.sidebarTop}>
         <Link className={styles.brand} href="/buyer/chat" aria-label="Amana Buyer">
-          <span className={styles.brandMark}>A</span>
+          <AmanaMark className={styles.brandMark} priority />
           <span><strong>Amana</strong><small>Buyer</small></span>
         </Link>
         <button className={styles.drawerClose} onClick={() => setDrawerOpen(false)} aria-label="Close navigation">
           <Icon name="close" />
         </button>
       </div>
+
+      <Link className={styles.newConversation} data-tour="new-chat" href="/buyer/chat" onClick={beginNewChat}>
+        <Icon name="add" /><span>New chat</span>
+      </Link>
 
       <nav className={styles.primaryNav} aria-label="Buyer navigation">
         {navigation.map((item) => (
@@ -124,19 +141,12 @@ export function BuyerShell({ children }: { children: ReactNode }) {
       <aside className={styles.sidebar}>{sidebar}</aside>
       <div className={styles.mobileHeader}>
         <button ref={menuButton} onClick={() => setDrawerOpen(true)} aria-expanded={drawerOpen} aria-controls="buyer-mobile-nav" aria-label="Open navigation"><Icon name="menu" /></button>
-        <Link className={styles.mobileBrand} href="/buyer/chat"><span className={styles.brandMark}>A</span>Amana</Link>
+        <Link className={styles.mobileBrand} href="/buyer/chat"><AmanaMark className={styles.brandMark} priority />Amana</Link>
         <span className={styles.mobileAvatar}>{initial}</span>
       </div>
       {drawerOpen && <button className={styles.scrim} onClick={() => setDrawerOpen(false)} aria-label="Close navigation" />}
       <aside className={styles.drawer} data-open={drawerOpen} id="buyer-mobile-nav" aria-hidden={!drawerOpen} aria-label="Buyer navigation" aria-modal={drawerOpen ? "true" : undefined} inert={!drawerOpen} ref={drawer} role={drawerOpen ? "dialog" : undefined}>{sidebar}</aside>
-      <main className={styles.workspace}>{children}</main>
-      <nav className={styles.bottomNav} aria-label="Mobile buyer navigation">
-        {navigation.filter((item) => item.label !== "AutoBuy").map((item) => (
-          <Link data-active={isActive(pathname, item.href)} data-tour={item.tour} href={item.href} key={item.href}>
-            <Icon name={item.icon} /><span>{item.label === "Conversations" ? "History" : item.label}</span>
-          </Link>
-        ))}
-      </nav>
+      <main className={styles.workspace} key={buyerWorkspaceKey(workspaceGeneration)}>{children}</main>
       <ProductTour />
     </div>
   );

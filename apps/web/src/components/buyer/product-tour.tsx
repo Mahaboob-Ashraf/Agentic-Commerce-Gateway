@@ -2,16 +2,9 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { buyerTourSteps as steps } from "@/lib/buyer/buyer-experience";
 import { useBuyerSession } from "./buyer-session";
 import styles from "./buyer-shell.module.css";
-
-const steps = [
-  { target: "new-chat", title: "Start with intent", body: "Open a fresh conversation whenever you want Amana to help with a new purchase." },
-  { target: "conversations", title: "Pick up where you left off", body: "Your grounded commerce conversations stay organized and easy to reopen." },
-  { target: "composer", title: "Text, image, or voice", body: "This workspace is prepared for all three inputs. Commerce execution arrives in the next Buyer task." },
-  { target: "orders", title: "Stay close to every order", body: "Orders will bring tracking and lifecycle actions into one calm view." },
-  { target: "settings", title: "Your boundaries, in one place", body: "Manage delivery details, merchant connections, preferences, and voice settings here." },
-] as const;
 
 type Rect = { top: number; left: number; width: number; height: number };
 
@@ -52,10 +45,12 @@ export function ProductTour() {
 
   useEffect(() => {
     const frame = requestAnimationFrame(locate);
+    const timer = window.setInterval(locate, 250);
     window.addEventListener("resize", locate);
     window.addEventListener("scroll", locate, true);
     return () => {
       cancelAnimationFrame(frame);
+      window.clearInterval(timer);
       window.removeEventListener("resize", locate);
       window.removeEventListener("scroll", locate, true);
     };
@@ -63,9 +58,18 @@ export function ProductTour() {
 
   useEffect(() => {
     if (!active) return;
+    window.dispatchEvent(new CustomEvent("amana:buyer-mode", { detail: { mode: index === 0 ? "VOICE" : "TEXT" } }));
     dialog.current?.focus();
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") setActive(false);
+      if (event.key === "Tab" && dialog.current) {
+        const focusable = Array.from(dialog.current.querySelectorAll<HTMLElement>("button, [href], [tabindex]:not([tabindex='-1'])"));
+        if (focusable.length === 0) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+        else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+      }
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
@@ -77,13 +81,17 @@ export function ProductTour() {
 
   return (
     <div className={styles.tourLayer} aria-live="polite">
+      <svg className={styles.tourBackdrop} aria-hidden="true" width="100%" height="100%">
+        <defs><mask id="amana-tour-mask" maskUnits="userSpaceOnUse"><rect width="100%" height="100%" fill="white" />{rect && <rect x={rect.left} y={rect.top} width={rect.width} height={rect.height} rx="13" fill="black" />}</mask></defs>
+        <rect width="100%" height="100%" fill="rgba(12, 22, 42, .62)" mask="url(#amana-tour-mask)" />
+      </svg>
       {rect && <div className={styles.spotlight} style={rect} />}
       <div
         className={styles.tourCard}
         data-below={tooltipBelow}
         ref={dialog}
         role="dialog"
-        aria-modal="false"
+        aria-modal="true"
         aria-label={`Product tour, step ${index + 1} of ${steps.length}`}
         tabIndex={-1}
         style={rect ? { left: Math.min(Math.max(rect.left, 16), window.innerWidth - 356), top: tooltipBelow ? rect.top + rect.height + 14 : rect.top - 14 } : undefined}

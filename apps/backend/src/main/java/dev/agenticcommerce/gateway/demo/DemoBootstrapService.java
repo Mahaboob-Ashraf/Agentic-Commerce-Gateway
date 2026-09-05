@@ -37,6 +37,7 @@ import tools.jackson.databind.node.ObjectNode;
 
 @Service
 public class DemoBootstrapService {
+    public static final String AMAZING_LOGO_URL="/amana/merchant/amazing.png";
     public static final String BOOTSTRAP_KEY="p0-two-merchant-demo";public static final String FIXTURE_VERSION="task-012.6-v1";
     public static final String DEPLOYMENT_PRECONDITION="CURRENT_BUILD_DEPLOYED_AT_PUBLIC_HTTPS_BASE_URL_BEFORE_BOOTSTRAP";
     private static final int EXPECTED_MERCHANTS=2,EXPECTED_AMAZING_PRODUCTS=50,EXPECTED_FRESH_PRODUCTS=30;
@@ -56,6 +57,7 @@ public class DemoBootstrapService {
     private final DeterministicReadinessService readiness;private final PolicyAuthorityService policies;
     private final MerchantCredentialProvider credentialProvider;private final DemoPolicyExtractionProvider demoPolicyExtractor;
     private final PaymentRepository paymentRepository;private final PaymentProvider paymentProvider;
+    private final CanonicalJsonService canonical;
     public DemoBootstrapService(JdbcClient jdbc,ObjectMapper mapper,MerchantRepository merchants,ApplicationActorRepository actors,
             MerchantAdminMembershipRepository memberships,ActorPasswordCredentialRepository credentials,PasswordEncoder passwords,
             CatalogueService catalogues,CatalogueRepository catalogueRepository,DemoMerchantRepository demo,OnboardingService onboarding,
@@ -63,13 +65,15 @@ public class DemoBootstrapService {
             AgentizationRunService runService,AgentizationRunRepository runRepository,CapabilityMappingProposalRepository mappings,
             ExecutableMappingValidator validator,MerchantAuthorityService mappingAuthority,
             CanonicalCapabilityContractTestService contracts,DeterministicReadinessService readiness,PolicyAuthorityService policies,
-            MerchantCredentialProvider credentialProvider,PaymentRepository paymentRepository,PaymentProvider paymentProvider){
+            MerchantCredentialProvider credentialProvider,PaymentRepository paymentRepository,PaymentProvider paymentProvider,
+            CanonicalJsonService canonical){
         this.jdbc=jdbc;this.mapper=mapper;this.merchants=merchants;this.actors=actors;this.memberships=memberships;this.credentials=credentials;
         this.passwords=passwords;this.catalogues=catalogues;this.catalogueRepository=catalogueRepository;this.demo=demo;this.onboarding=onboarding;
         this.onboardingRepository=onboardingRepository;this.endpoints=endpoints;this.artifacts=artifacts;this.runService=runService;
         this.runRepository=runRepository;this.mappings=mappings;this.validator=validator;this.mappingAuthority=mappingAuthority;
         this.contracts=contracts;this.readiness=readiness;this.policies=policies;this.credentialProvider=credentialProvider;
         this.paymentRepository=paymentRepository;this.paymentProvider=paymentProvider;
+        this.canonical=canonical;
         this.demoPolicyExtractor=new DemoPolicyExtractionProvider(mapper);}
 
     public BootstrapSummary bootstrap(String publicBaseUrl,String buyerIdentity,String buyerPassword,Path fixtureRoot){
@@ -79,13 +83,15 @@ public class DemoBootstrapService {
         require(buyerPassword!=null&&buyerPassword.length()>=12&&buyerPassword.length()<=1024,"DEMO_BUYER_PASSWORD must contain 12 to 1024 characters");
         credentialProvider.require(EnvironmentMerchantCredentialProvider.DEMO_CREDENTIAL_REFERENCE);
         String normalizedBaseUrl=publicBaseUrl.replaceAll("/+$","");
-        var completed=completion();if(completed.isPresent()&&completionReusable(completed.get(),normalizedBaseUrl,buyerIdentity)){
-            ensurePaymentConfiguration(merchants.findByKey("amazing").orElseThrow());
+        var completed=completion();if(completed.isPresent()&&completionReusable(completed.get(),normalizedBaseUrl,buyerIdentity,fixtureRoot)){
+            Merchant amazing=merchants.findByKey("amazing").orElseThrow();
+            if(!AMAZING_LOGO_URL.equals(amazing.logoUrl()))amazing=merchants.updateLogoUrl(amazing.id(),AMAZING_LOGO_URL);
+            ensurePaymentConfiguration(amazing);
             return reused(completed.get());
         }
         if(completionMarkerExists())clearCompletion();
-        BuyerSeed buyer=buyer(buyerIdentity,buyerPassword);MerchantSeed amazing=merchant("amazing","Amazing","AMAZING",true,true,true,2880,
-                fixtureRoot.resolve("amazing-catalogue-v1.json"));MerchantSeed fresh=merchant("freshbasket","FreshBasket","FRESH_BASKET",false,false,false,30,
+        BuyerSeed buyer=buyer(buyerIdentity,buyerPassword);MerchantSeed amazing=merchant("amazing","Amazing",AMAZING_LOGO_URL,"AMAZING",true,true,true,2880,
+                fixtureRoot.resolve("amazing-catalogue-v1.json"));MerchantSeed fresh=merchant("freshbasket","FreshBasket",null,"FRESH_BASKET",false,false,false,30,
                 fixtureRoot.resolve("freshbasket-catalogue-v1.json"));
         ensurePaymentConfiguration(amazing.merchant());
         seedBuyer(buyer.actor(),List.of(amazing.merchant(),fresh.merchant()),buyerIdentity,buyerPassword);
@@ -109,13 +115,15 @@ public class DemoBootstrapService {
                 paymentProvider.providerAccountReference());
     }
 
-    private MerchantSeed merchant(String key,String display,String code,boolean cancel,boolean returns,boolean perishable,int delivery,Path fixture){
+    private MerchantSeed merchant(String key,String display,String logoUrl,String code,boolean cancel,boolean returns,boolean perishable,int delivery,Path fixture){
         var existingMerchant=merchants.findByKey(key);Merchant merchant=existingMerchant.orElseGet(()->merchants.create(key,display));String adminHandle="demo-"+key+"-admin@agentic-commerce.invalid";
+        if(logoUrl!=null&&!logoUrl.equals(merchant.logoUrl()))merchant=merchants.updateLogoUrl(merchant.id(),logoUrl);
         ApplicationActor admin=actors.findByIdentityHandle(adminHandle).orElseGet(()->actors.create(adminHandle,PlatformRole.MERCHANT_ADMIN));
         if(!memberships.existsByMerchantAndActor(merchant.id(),admin.id()))memberships.create(merchant.id(),admin.id());
         demo.saveProfile(merchant.id(),code,cancel,returns,perishable,delivery);
+        String payload=read(fixture);String fixtureHash=canonical.hashText(payload);
         var published=catalogueRepository.latestPublished(merchant.id());int count;
-        if(published.isEmpty()){String payload=read(fixture);var ingestion=catalogues.ingest(admin.id(),merchant.id(),"JSON",payload);published=Optional.of(ingestion.version());count=ingestion.version().accepted();}
+        if(published.isEmpty()||!published.get().sourceHash().equals(fixtureHash)){var ingestion=catalogues.ingest(admin.id(),merchant.id(),"JSON",payload);published=Optional.of(ingestion.version());count=ingestion.version().accepted();}
         else count=published.get().accepted();demo.initializeInventory(merchant.id(),published.orElseThrow().id());return new MerchantSeed(merchant,admin,published.orElseThrow().id(),count,existingMerchant.isEmpty());
     }
 
@@ -168,7 +176,19 @@ public class DemoBootstrapService {
             run=runService.transition(run,AgentizationState.READY_CANDIDATE,null);var evaluation=readiness.evaluate(seed.admin().id(),seed.merchant().id(),run.runId(),ReadinessCapability.from(capability));
             readiness.publishManifestCandidate(seed.admin().id(),seed.merchant().id(),run.runId());manifests++;
             if(evaluation.readiness()==CapabilityReadiness.READY)readyCount++;else blockers.add(seed.merchant().merchantKey()+":"+capability+":"+evaluation.missingRequirements());
-        }return new AgentizationResult(mapped,readyCount,manifests,List.copyOf(blockers));}
+        }
+        manifests+=publishCurrentCatalogueManifestIfRequired(seed);
+        return new AgentizationResult(mapped,readyCount,manifests,List.copyOf(blockers));}
+
+    private int publishCurrentCatalogueManifestIfRequired(MerchantSeed seed){
+        var currentCatalogue=catalogueRepository.latestPublished(seed.merchant().id()).orElseThrow();
+        String expected="v"+currentCatalogue.version()+":"+currentCatalogue.contentHash();
+        var currentManifest=readiness.manifests(seed.admin().id(),seed.merchant().id()).stream()
+                .max(Comparator.comparingInt(AgentCommerceManifest::manifestVersion)).orElse(null);
+        if(currentManifest==null||expected.equals(currentManifest.catalogueVersion()))return 0;
+        readiness.publishManifestCandidate(seed.admin().id(),seed.merchant().id(),currentManifest.runId());
+        return 1;
+    }
 
     private JsonNode openApi(){ObjectNode root=mapper.createObjectNode().put("openapi","3.1.0");var paths=root.putObject("paths");
         operation(paths,"/products/search","post","searchProducts");operation(paths,"/availability","post","getAvailability");
@@ -273,16 +293,33 @@ public class DemoBootstrapService {
             .param("credential",EnvironmentMerchantCredentialProvider.DEMO_CREDENTIAL_REFERENCE)
             .query((rs,n)->new AuthorityStats(rs.getInt(1),rs.getInt(2),rs.getInt(3))).single();}
 
-    private boolean completionReusable(JsonNode summary,String publicBase,String buyerIdentity){try{if(!summary.path("blockers").isArray()
+    private boolean completionReusable(JsonNode summary,String publicBase,String buyerIdentity,Path fixtureRoot){try{if(!summary.path("blockers").isArray()
                 ||!summary.path("blockers").isEmpty()||!publicBase.equals(summary.path("merchantPublicBaseUrl").asText()))return false;
             UUID buyerId=UUID.fromString(summary.path("buyerActorId").asText());UUID amazing=merchantId("amazing"),fresh=merchantId("freshbasket");
             String storedBuyer=jdbc.sql("SELECT identity_handle FROM application_actor WHERE actor_id=:id")
                     .param("id",buyerId).query(String.class).optional().orElse("");
             AuthorityStats authority=authorityStats(publicBase);return storedBuyer.equals(buyerIdentity)&&demoMerchantCount()==EXPECTED_MERCHANTS
                     &&productCount(amazing)==EXPECTED_AMAZING_PRODUCTS&&productCount(fresh)==EXPECTED_FRESH_PRODUCTS
+                    &&catalogueFixtureCurrent(amazing,fixtureRoot.resolve("amazing-catalogue-v1.json"))
+                    &&catalogueFixtureCurrent(fresh,fixtureRoot.resolve("freshbasket-catalogue-v1.json"))
                     &&buyerLinks(buyerId,amazing,fresh)==EXPECTED_BUYER_LINKS
+                    &&manifestCatalogueCurrent(amazing)&&manifestCatalogueCurrent(fresh)
                     &&authority.mappings()==EXPECTED_MAPPINGS&&authority.ready()==EXPECTED_READY_CAPABILITIES;
         }catch(RuntimeException invalid){return false;}}
+    private boolean catalogueFixtureCurrent(UUID merchant,Path fixture){return catalogueRepository.latestPublished(merchant)
+            .map(version->version.sourceHash().equals(canonical.hashText(read(fixture)))).orElse(false);}
+    private boolean manifestCatalogueCurrent(UUID merchant){
+        return jdbc.sql("""
+                SELECT EXISTS(
+                  SELECT 1 FROM agent_commerce_manifest manifest
+                  JOIN catalogue_version version ON version.merchant_id=manifest.merchant_id
+                    AND manifest.catalogue_version='v'||version.version_number||':'||version.content_hash
+                  WHERE manifest.merchant_id=:merchant AND version.status='PUBLISHED'
+                    AND manifest.manifest_version=(SELECT max(candidate.manifest_version)
+                      FROM agent_commerce_manifest candidate WHERE candidate.merchant_id=:merchant)
+                    AND version.version_number=(SELECT max(candidate.version_number)
+                      FROM catalogue_version candidate WHERE candidate.merchant_id=:merchant AND candidate.status='PUBLISHED'))
+                """).param("merchant",merchant).query(Boolean.class).single();}
     private boolean completionMarkerExists(){return jdbc.sql("SELECT EXISTS(SELECT 1 FROM demo_bootstrap_completion WHERE bootstrap_key=:k)")
             .param("k",BOOTSTRAP_KEY).query(Boolean.class).single();}
     private void clearCompletion(){jdbc.sql("DELETE FROM demo_bootstrap_completion WHERE bootstrap_key=:k").param("k",BOOTSTRAP_KEY).update();}

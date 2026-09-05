@@ -3,8 +3,11 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { IconButton, ImageIcon, MicIcon, SendIcon, Tooltip } from "@razorpay/blade/components";
 import { buyerApi, BuyerApiError } from "@/lib/buyer/api";
-import { deriveJourneySnapshot, SingleFlightGate } from "@/lib/buyer/commerce-state";
+import { boundedComposerHeight, commerceThreadHint, initialBuyerInputMode, reduceBuyerInputMode, shouldRenderVoiceOrb, type BuyerInputMode } from "@/lib/buyer/buyer-experience";
+import { deriveJourneySnapshot, isSubmissionBusy, isUserMessageSending, SingleFlightGate, type CommerceSubmissionPhase } from "@/lib/buyer/commerce-state";
+import { BUYER_IMAGE_ACCEPT, validateBuyerImage } from "@/lib/buyer/image-upload";
 import type {
   AuthorizationDecision,
   CheckoutInitialization,
@@ -15,10 +18,12 @@ import type {
   PaymentStateView,
   ThreadMessage,
 } from "@/lib/buyer/types";
-import { Icon } from "./icons";
+import { MerchantLogo } from "./merchant-logo";
 import styles from "./workspace.module.css";
 
 const BuyerVoice = lazy(() => import("./buyer-voice").then((module) => ({ default: module.BuyerVoice })));
+
+type BuyerImageAttachment = { file: File; previewUrl: string };
 
 const suggestions = [
   "Find Auralink Buds Bluetooth Earphones from Amazing",
@@ -42,6 +47,7 @@ declare global {
       amount: number;
       currency: string;
       name: string;
+      image?: string;
       description: string;
       handler: (response: RazorpayResponse) => void;
       modal: { ondismiss: () => void };
@@ -61,32 +67,43 @@ export function CommerceChat({ initialThreadId }: { initialThreadId?: string }) 
   const [checkout, setCheckout] = useState<CheckoutInitialization | null>(null);
   const [payment, setPayment] = useState<PaymentStateView | null>(null);
   const [fulfillment, setFulfillment] = useState<FulfillmentView | null>(null);
-  const [callbackAccepted, setCallbackAccepted] = useState(false);
+  const [callbackProposalId, setCallbackProposalId] = useState<string | null>(null);
   const [value, setValue] = useState("");
+  const [selectedImage, setSelectedImage] = useState<BuyerImageAttachment | null>(null);
+  const [sentImagePreview, setSentImagePreview] = useState<{ threadId: string; previewUrl: string } | null>(null);
   const [loading, setLoading] = useState(Boolean(initialThreadId));
-  const [sending, setSending] = useState(false);
+  const [submissionPhase, setSubmissionPhase] = useState<CommerceSubmissionPhase>("IDLE");
   const [busyAction, setBusyAction] = useState<string | null>(null);
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
-  const [voiceOpen, setVoiceOpen] = useState(false);
+  const [inputMode, setInputMode] = useState<BuyerInputMode>(() => initialBuyerInputMode(initialThreadId));
   const actionGate = useRef(new SingleFlightGate());
-  const pendingSubmission = useRef<{ requestId: string; text: string; threadId: string | null } | null>(null);
+  const activeCommerceCompletion = useRef<Promise<void> | null>(null);
+  const pendingSubmission = useRef<{ requestId: string; text: string; threadId: string | null; imageKey: string | null } | null>(null);
+  const threadIdRef = useRef(threadId);
+  const inputModeRef = useRef(inputMode);
   const checkoutButton = useRef<HTMLButtonElement>(null);
-  const voiceButton = useRef<HTMLButtonElement>(null);
+  const voiceButton = useRef<HTMLSpanElement>(null);
+  const composer = useRef<HTMLTextAreaElement>(null);
+  const imageInput = useRef<HTMLInputElement>(null);
   const endMarker = useRef<HTMLDivElement>(null);
   const userNearBottom = useRef(true);
 
   const snapshot = useMemo(
-    () => deriveJourneySnapshot(result, authorization, Boolean(checkout), callbackAccepted, payment, fulfillment),
-    [authorization, callbackAccepted, checkout, fulfillment, payment, result],
+    () => deriveJourneySnapshot(result, authorization, Boolean(checkout), callbackProposalId === result?.transactionProposalId, payment, fulfillment),
+    [authorization, callbackProposalId, checkout, fulfillment, payment, result],
   );
+  const sending = isSubmissionBusy(submissionPhase);
+
+  useEffect(() => { threadIdRef.current = threadId; }, [threadId]);
+  useEffect(() => { inputModeRef.current = inputMode; }, [inputMode]);
 
   const hydratePayment = useCallback(async (nextResult: CommerceRequestResult) => {
     setAuthorization(null);
     setCheckout(null);
     setPayment(null);
     setFulfillment(null);
-    setCallbackAccepted(false);
+    setCallbackProposalId(null);
     const proposalId = nextResult.transactionProposalId;
     if (!proposalId) return;
     const ownedThreadId = nextResult.threadId;
@@ -108,7 +125,16 @@ export function CommerceChat({ initialThreadId }: { initialThreadId?: string }) 
     setMessages(nextMessages);
     const latest = await optional(() => buyerApi.latestCommerceRequest(id));
     setResult(latest);
-    if (latest) await hydratePayment(latest);
+    if (latest?.requestStatus === "RUNNING") {
+      setSubmissionPhase("PROCESSING");
+      try {
+        const recovered = await recoverCommerceRequest(latest.requestId);
+        setResult(recovered);
+        await hydratePayment(recovered);
+      } finally {
+        setSubmissionPhase("IDLE");
+      }
+    } else if (latest) await hydratePayment(latest);
   }, [hydratePayment]);
 
   useEffect(() => {
@@ -131,12 +157,43 @@ export function CommerceChat({ initialThreadId }: { initialThreadId?: string }) 
     if (userNearBottom.current) endMarker.current?.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "end" });
   }, [busyAction, messages, optimisticMessage, result, snapshot.phase]);
 
-  const runCommerceRequest = useCallback(async (text: string, restoreToComposer = false) => {
-    const normalized = text.trim();
-    if (!normalized || !actionGate.current.enter("send")) {
-      throw new Error("A commerce request is already in progress.");
+  useEffect(() => {
+    const field = composer.current;
+    if (!field) return;
+    field.style.height = "48px";
+    const height = boundedComposerHeight(value ? field.scrollHeight : 48);
+    field.style.height = `${height}px`;
+    field.style.overflowY = field.scrollHeight > height ? "auto" : "hidden";
+  }, [value]);
+
+  useEffect(() => {
+    const changeMode = (event: Event) => {
+      const mode = (event as CustomEvent<{ mode?: BuyerInputMode }>).detail?.mode;
+      if (mode === "VOICE" || mode === "TEXT") {
+        setInputMode((current) => reduceBuyerInputMode(current, mode === "VOICE" ? "VOICE_SELECTED" : "TEXT_SELECTED"));
+      }
+    };
+    window.addEventListener("amana:buyer-mode", changeMode);
+    return () => window.removeEventListener("amana:buyer-mode", changeMode);
+  }, []);
+
+  const runCommerceRequest = useCallback(async (text: string, restoreToComposer = false, attachment?: BuyerImageAttachment) => {
+    const normalized = text.trim() || (attachment ? "Find products like this" : "");
+    if (!normalized) throw new Error("A commerce request needs a product, image, or shopping goal.");
+
+    while (!actionGate.current.enter("send")) {
+      // Typed duplicate submissions remain bounded. A Live correction, however, is a
+      // distinct user turn: wait for the active durable request, then compile the
+      // corrected payload against the now-current thread instead of dropping it.
+      if (restoreToComposer || !activeCommerceCompletion.current) {
+        throw new Error("A commerce request is already in progress.");
+      }
+      await activeCommerceCompletion.current;
     }
-    setSending(true);
+    let releaseCommerceCompletion: () => void = () => undefined;
+    const ownedCompletion = new Promise<void>((resolve) => { releaseCommerceCompletion = resolve; });
+    activeCommerceCompletion.current = ownedCompletion;
+    setSubmissionPhase("SUBMITTING");
     setError("");
     setNotice("");
     if (restoreToComposer) {
@@ -144,15 +201,43 @@ export function CommerceChat({ initialThreadId }: { initialThreadId?: string }) 
       setValue("");
     }
     try {
-      const pending = pendingSubmission.current?.text === normalized && pendingSubmission.current.threadId === threadId
+      const currentThreadId = threadIdRef.current;
+      const imageKey = attachment ? `${attachment.file.name}:${attachment.file.size}:${attachment.file.lastModified}:${attachment.file.type}` : null;
+      const pending = pendingSubmission.current?.text === normalized && pendingSubmission.current.threadId === currentThreadId && pendingSubmission.current.imageKey === imageKey
         ? pendingSubmission.current
-        : { requestId: crypto.randomUUID(), text: normalized, threadId };
+        : { requestId: crypto.randomUUID(), text: normalized, threadId: currentThreadId, imageKey };
       pendingSubmission.current = pending;
-      const next = await buyerApi.createCommerceRequest(pending.requestId, normalized, threadId ?? undefined);
+      let next: CommerceRequestResult;
+      let requestSettled = false;
+      try {
+        const activeRequest = attachment
+          ? buyerApi.createVisualCommerceRequest(pending.requestId, attachment.file, text.trim(), commerceThreadHint(currentThreadId))
+          : buyerApi.createCommerceRequest(pending.requestId, normalized, commerceThreadHint(currentThreadId));
+        void observeCommerceAcceptance(
+          pending.requestId,
+          () => setSubmissionPhase("PROCESSING"),
+          () => requestSettled,
+        );
+        next = await activeRequest;
+      } catch (caught) {
+        if (!(caught instanceof BuyerApiError) || caught.code !== "COMMERCE_REQUEST_RUNNING") throw caught;
+        setSubmissionPhase("PROCESSING");
+        setNotice("This request is already running. Reattached to its durable progress.");
+        next = await recoverCommerceRequest(pending.requestId);
+      } finally {
+        requestSettled = true;
+      }
       pendingSubmission.current = null;
       setResult(next);
       setThreadId(next.threadId);
-      if (!initialThreadId) router.replace(`/buyer/chat/${next.threadId}`);
+      threadIdRef.current = next.threadId;
+      if (attachment) setSentImagePreview({ threadId: next.threadId, previewUrl: attachment.previewUrl });
+      if (!initialThreadId) {
+        const nextPath = `/buyer/chat/${next.threadId}`;
+        // Keep the fresh-chat route stable while Live owns the conversation. Native History API
+        // updates are observed by Next and can replace the page tree, unmounting the voice runtime.
+        if (inputModeRef.current !== "VOICE") router.replace(nextPath);
+      }
       try {
         await reloadThread(next.threadId);
       } catch (reloadError) {
@@ -166,20 +251,46 @@ export function CommerceChat({ initialThreadId }: { initialThreadId?: string }) 
       throw caught;
     } finally {
       setOptimisticMessage("");
-      setSending(false);
+      setSubmissionPhase("IDLE");
       actionGate.current.leave("send");
+      if (activeCommerceCompletion.current === ownedCompletion) activeCommerceCompletion.current = null;
+      releaseCommerceCompletion();
     }
-  }, [initialThreadId, reloadThread, router, threadId]);
+  }, [initialThreadId, reloadThread, router]);
 
   async function submit(event: FormEvent) {
     event.preventDefault();
     const text = value.trim();
-    if (!text) return;
+    if (!text && !selectedImage) return;
     try {
-      await runCommerceRequest(text, true);
+      const completed = await runCommerceRequest(text, true, selectedImage ?? undefined);
+      if (completed.failureCode) {
+        setValue(text);
+        return;
+      }
+      setSelectedImage(null);
     } catch {
       // runCommerceRequest restores the text and presents the bounded failure.
     }
+  }
+
+  async function chooseImage(file: File | undefined) {
+    if (!file) return;
+    try {
+      await validateBuyerImage(file);
+      if (selectedImage) URL.revokeObjectURL(selectedImage.previewUrl);
+      setSelectedImage({ file, previewUrl: URL.createObjectURL(file) });
+      setError("");
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "The selected image is not supported.");
+      if (imageInput.current) imageInput.current.value = "";
+    }
+  }
+
+  function removeSelectedImage() {
+    if (selectedImage) URL.revokeObjectURL(selectedImage.previewUrl);
+    setSelectedImage(null);
+    if (imageInput.current) imageInput.current.value = "";
   }
 
   async function authorizeAndOpen() {
@@ -234,6 +345,7 @@ export function CommerceChat({ initialThreadId }: { initialThreadId?: string }) 
       amount: initialization.amountMinor,
       currency: initialization.currency,
       name: initialization.merchantDisplayName,
+      image: result.merchantLogoUrl ?? undefined,
       description: "Amana authorized purchase",
       handler: (response) => void handleCallback(response),
       modal: {
@@ -251,7 +363,7 @@ export function CommerceChat({ initialThreadId }: { initialThreadId?: string }) 
     if (!result?.transactionProposalId || !actionGate.current.enter("callback")) return;
     setBusyAction("callback");
     setNotice("Payment submitted. Verifying with Razorpay…");
-    setCallbackAccepted(true);
+    setCallbackProposalId(result.transactionProposalId);
     try {
       const submission = {
         razorpayPaymentId: response.razorpay_payment_id,
@@ -319,8 +431,20 @@ export function CommerceChat({ initialThreadId }: { initialThreadId?: string }) 
 
   const showWelcome = !loading && messages.length === 0 && !optimisticMessage && !result;
 
+  const lastVisualMessageId = messages.findLast((message) => message.inputSource === "IMAGE_TEXT")?.messageId;
+  const conversation = <>
+    {loading && <AmanaBubble><Activity text="Restoring the latest verified state…" /></AmanaBubble>}
+    {messages.map((message) => <UserBubble key={message.messageId} text={message.normalizedText} time={message.createdAt} image={message.messageId === lastVisualMessageId && sentImagePreview?.threadId === threadId ? sentImagePreview.previewUrl : null} />)}
+    {optimisticMessage && <UserBubble text={optimisticMessage} pending={isUserMessageSending(submissionPhase)} image={selectedImage?.previewUrl ?? null} />}
+    {sending && <AmanaBubble><Activity text={selectedImage ? "Understanding the image, then checking merchant evidence…" : "Checking live catalogue and merchant facts…"} /></AmanaBubble>}
+    {result && !sending && <CommerceResponse result={result} snapshot={snapshot} authorization={authorization} checkout={checkout} payment={payment} fulfillment={fulfillment} busy={Boolean(busyAction)} onAuthorize={() => void authorizeAndOpen()} onOpenCheckout={() => void openPreparedCheckout()} onReconcile={() => void reconcile()} checkoutButton={checkoutButton} />}
+    {notice && <div className={styles.liveNotice} aria-live="polite">{notice}</div>}
+    {error && <div className={styles.chatError} role="alert"><span>{error}</span>{threadId && <button type="button" onClick={() => void reloadThread(threadId)}>Reload state</button>}</div>}
+    <div ref={endMarker} />
+  </>;
+
   return (
-    <div className={styles.commerceChat} aria-busy={loading || sending || Boolean(busyAction)}>
+    <div className={styles.commerceChat} data-mode={inputMode.toLowerCase()} aria-busy={loading || sending || Boolean(busyAction)}>
       {thread && (
         <header className={styles.commerceHeader}>
           <div><p className={styles.eyebrow}>Buyer conversation</p><h1>{thread.title}</h1></div>
@@ -328,43 +452,76 @@ export function CommerceChat({ initialThreadId }: { initialThreadId?: string }) 
         </header>
       )}
 
-      <section className={styles.chatStream} aria-label="Conversation">
-        {voiceOpen && <Suspense fallback={<div className={styles.voiceLoading}>Preparing secure voice…</div>}><BuyerVoice onClose={() => { setVoiceOpen(false); window.setTimeout(() => voiceButton.current?.focus(), 0); }} onCommerceRequest={runCommerceRequest} /></Suspense>}
-        {showWelcome && <Welcome value={value} setValue={setValue} />}
-        {loading && <AmanaBubble><Activity text="Reconstructing the latest authoritative state…" /></AmanaBubble>}
-        {messages.map((message) => <UserBubble key={message.messageId} text={message.normalizedText} time={message.createdAt} />)}
-        {optimisticMessage && <UserBubble text={optimisticMessage} pending />}
-        {sending && <AmanaBubble><Activity text="Amana is checking this request through Safe Buyer…" /></AmanaBubble>}
-        {result && !sending && <CommerceResponse result={result} snapshot={snapshot} authorization={authorization} checkout={checkout} payment={payment} fulfillment={fulfillment} busy={Boolean(busyAction)} onAuthorize={() => void authorizeAndOpen()} onOpenCheckout={() => void openPreparedCheckout()} onReconcile={() => void reconcile()} checkoutButton={checkoutButton} />}
-        {notice && <div className={styles.liveNotice} aria-live="polite">{notice}</div>}
-        {error && <div className={styles.chatError} role="alert"><span>{error}</span>{threadId && <button type="button" onClick={() => void reloadThread(threadId)}>Reload state</button>}</div>}
-        <div ref={endMarker} />
-      </section>
+      {shouldRenderVoiceOrb(inputMode) ? (
+        <Suspense fallback={<div className={styles.voiceLoading}>Preparing voice…</div>}>
+          <BuyerVoice
+            onClose={() => {
+              setInputMode((current) => reduceBuyerInputMode(current, "TEXT_SELECTED"));
+              const activeThreadId=threadIdRef.current;
+              if (!initialThreadId&&activeThreadId) router.replace(`/buyer/chat/${activeThreadId}`);
+              window.setTimeout(() => voiceButton.current?.querySelector("button")?.focus(), 0);
+            }}
+            onCommerceRequest={runCommerceRequest}
+          >
+            {conversation}
+          </BuyerVoice>
+        </Suspense>
+      ) : <>
+        <section className={styles.chatStream} aria-label="Conversation">
+          {showWelcome && <Welcome value={value} setValue={setValue} />}
+          {conversation}
+        </section>
 
-      <form className={styles.commerceComposer} onSubmit={submit}>
-        <textarea aria-label="Message Amana" onChange={(event) => setValue(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); event.currentTarget.form?.requestSubmit(); } }} placeholder="Tell Amana what you’re looking for…" value={value} disabled={sending} />
-        <div>
-          <button ref={voiceButton} className={styles.voiceButton} type="button" aria-expanded={voiceOpen} aria-label={voiceOpen ? "Voice mode is open" : "Open voice mode"} onClick={() => setVoiceOpen(true)} disabled={voiceOpen}><Icon name="mic" /></button>
-          <span>{sending ? "Working from live merchant and catalogue state" : "Enter to send · Shift+Enter for a new line"}</span>
-          <button className={styles.sendButton} disabled={!value.trim() || sending} type="submit" aria-label="Send request"><Icon name="arrow" /></button>
-        </div>
-      </form>
+        <form className={styles.commerceComposer} data-tour="composer" onSubmit={submit}>
+          {selectedImage && <div className={styles.imagePreview}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={selectedImage.previewUrl} alt="Selected product reference" />
+            <div><strong>{selectedImage.file.name}</strong><span>{formatBytes(selectedImage.file.size)} · preview only</span></div>
+            <button type="button" onClick={removeSelectedImage} aria-label="Remove selected image">Remove</button>
+          </div>}
+          <div className={styles.composerRow}>
+            <input ref={imageInput} className={styles.hiddenFileInput} type="file" accept={BUYER_IMAGE_ACCEPT} onChange={(event) => void chooseImage(event.target.files?.[0])} />
+            <Tooltip content="Add a product image" placement="top">
+              <IconButton icon={ImageIcon} accessibilityLabel="Add a product image" size="medium" isDisabled={sending} onClick={() => imageInput.current?.click()} />
+            </Tooltip>
+            <textarea
+              ref={composer}
+              rows={1}
+              aria-label="Message Amana"
+              onChange={(event) => setValue(event.target.value)}
+              onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); event.currentTarget.form?.requestSubmit(); } }}
+              placeholder="Ask for a product, budget, or requirement"
+              value={value}
+              disabled={sending}
+            />
+            <span ref={voiceButton} data-tour="mode-switch">
+              <Tooltip content="Switch to voice" placement="top">
+                <IconButton icon={MicIcon} accessibilityLabel="Switch to voice mode" size="medium" onClick={() => setInputMode((current) => reduceBuyerInputMode(current, "VOICE_SELECTED"))} />
+              </Tooltip>
+            </span>
+            <IconButton icon={SendIcon} accessibilityLabel="Send request" size="medium" isDisabled={(!value.trim() && !selectedImage) || sending} onClick={() => composer.current?.form?.requestSubmit()} />
+          </div>
+        </form>
+      </>}
     </div>
   );
 }
 
 function Welcome({ value, setValue }: { value: string; setValue: (value: string) => void }) {
   return <section className={styles.emptyState} aria-labelledby="new-chat-title">
-    <div className={styles.orb} aria-hidden="true" />
-    <p className={styles.eyebrow}>A thoughtful place to begin</p>
-    <h1 id="new-chat-title">What can Amana find for you?</h1>
-    <p className={styles.emptyLead}>Describe the product, budget, or safety requirements that matter. Amana will ground the answer before anything moves forward.</p>
+    <p className={styles.eyebrow}>New conversation</p>
+    <h1 id="new-chat-title">Ask Amana</h1>
+    <p className={styles.emptyLead}>Describe what you need. Prices, availability, and safety requirements are checked before a proposal appears.</p>
     <div className={styles.promptList} aria-label="Example prompts">{suggestions.map((suggestion) => <button key={suggestion} aria-pressed={value === suggestion} onClick={() => setValue(suggestion)} type="button">{suggestion}</button>)}</div>
+    <div className={styles.trustRail}><span data-tour="grounding">Grounded in connected catalogues</span><span data-tour="proposal-boundary">You approve every purchase</span></div>
   </section>;
 }
 
-function UserBubble({ text, time, pending = false }: { text: string; time?: string; pending?: boolean }) {
-  return <article className={styles.userBubble}><p>{text}</p><span>{pending ? "Sending…" : time ? formatDate(time) : ""}</span></article>;
+function UserBubble({ text, time, pending = false, image }: { text: string; time?: string; pending?: boolean; image?: string | null }) {
+  return <article className={styles.userBubble}>{image && (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img className={styles.userImage} src={image} alt="Product reference supplied by you" />
+  )}<p>{text}</p><span>{pending ? "Sending…" : time ? formatDate(time) : ""}</span></article>;
 }
 
 function AmanaBubble({ children }: { children: React.ReactNode }) {
@@ -386,28 +543,35 @@ function CommerceResponse({ result, snapshot, authorization, checkout, payment, 
 }) {
   const blocked = result.constraintOverall === "FAIL" || result.constraintOverall === "UNKNOWN" || result.riskOutcome === "BLOCK";
   const noMatch = result.clarificationRequired || (!result.failureCode && result.products.length === 0);
+  const merchantName = result.merchantDisplayName ?? "Connected merchant";
   return <AmanaBubble>
     <div className={styles.responseIntro}>
-      <p>{result.clarificationRequired ? (result.clarificationQuestion ?? "I couldn’t verify an exact product match.") : result.failureCode ? "I couldn’t safely complete this request. Nothing was authorized." : result.transactionProposalId ? "I found a grounded option and prepared the exact purchase for your review." : "Here is the latest verified result."}</p>
+      <p>{result.clarificationRequired ? (result.clarificationQuestion ?? "I couldn’t verify a grounded product match.") : result.failureCode ? failureCopy(result.failureCode) : result.transactionProposalId ? "I found a grounded option and prepared the exact purchase for your review." : "Here is the latest verified result."}</p>
       {result.progress.length > 0 && <ol className={styles.progressList}>{result.progress.map((step) => <li key={step.code}><span aria-hidden="true">✓</span>{step.label}</li>)}</ol>}
     </div>
 
-    {noMatch && <section className={styles.noMatch}><h2>I couldn’t verify an exact product match.</h2><p>I haven’t substituted a similar item. Add a category, exact SKU/GTIN, or a specific brand and model to narrow the request.</p></section>}
+    {noMatch && <section className={styles.noMatch}><h2>I couldn’t verify a grounded product match.</h2><p>{result.visualObservation ? "The visual hypothesis did not produce a trustworthy eligible catalogue result. Add a colour, budget, material, or merchant constraint." : "I haven’t substituted an unverified item. Add a category, exact SKU/GTIN, or a specific brand and model to narrow the request."}</p></section>}
+
+    {result.visualObservation && <section className={styles.visualObservation}>
+      <div><p>Visual hypothesis · not catalogue truth</p><h2>{result.visualObservation.productType}</h2></div>
+      <p>The image appears to show {[...result.visualObservation.colors, ...result.visualObservation.styleDescriptors].slice(0, 4).join(", ") || result.visualObservation.category}. Merchant evidence below determines the actual product.</p>
+      {result.visualObservation.ambiguities.length > 0 && <small>Uncertain: {result.visualObservation.ambiguities.join(" · ")}</small>}
+    </section>}
 
     {result.products.length > 0 && <section className={styles.results} aria-labelledby={`results-${result.requestId}`}>
-      <div className={styles.sectionHeading}><div><p>Hybrid Retrieval · RAG + Lexical</p><h2 id={`results-${result.requestId}`}>Grounded product</h2></div><span>{result.merchantDisplayName ?? "Connected merchant"}</span></div>
+      <div className={styles.sectionHeading}><div><p>Hybrid Retrieval · RAG + Lexical</p><h2 id={`results-${result.requestId}`}>Grounded product</h2></div><div className={styles.merchantIdentity}><MerchantLogo className={styles.merchantLogo} name={merchantName} logoUrl={result.merchantLogoUrl} /><span>{merchantName}</span></div></div>
       <p className={styles.retrievalNote}>Matches meaning as well as exact product terms across connected merchants.</p>
       {result.products.map((product) => <article className={styles.productRow} key={product.productId}>
         <ProductImage name={product.productName} image={authoritativeImage(product.facts)} />
-        <div className={styles.productCopy}><h3>{product.productName}</h3><p>{[product.brand, product.variant, product.colour, product.sizeStorage].filter(Boolean).join(" · ")}</p><dl><div><dt>SKU</dt><dd>{product.merchantSku}</dd></div><div><dt>Quantity</dt><dd>{product.quantity}</dd></div>{product.facts.filter((fact) => fact.type !== "IMAGE").slice(0, 3).map((fact) => <div key={fact.factId}><dt>{friendly(fact.type)}</dt><dd>{factValue(fact.value)}</dd></div>)}</dl></div>
-        <strong>{money(product.unitAmountMinor, result.authoritativeCurrency)}</strong>
+        <div className={styles.productCopy}>{result.visualMatchType && <span className={styles.matchBadge}>{result.visualMatchType === "EXACT_GROUNDED_MATCH" ? "Exact grounded match" : "Visually similar grounded result"}</span>}<span className={styles.productMerchant}><MerchantLogo className={styles.merchantLogoSmall} name={merchantName} logoUrl={result.merchantLogoUrl} />{merchantName}</span><h3>{product.productName}</h3><p>{[product.brand, product.variant, product.colour, product.sizeStorage].filter(Boolean).join(" · ")}</p>{result.visualMatchReasons.map((reason) => <small className={styles.matchReason} key={reason}>{reason}</small>)}<dl><div><dt>SKU</dt><dd>{product.merchantSku}</dd></div><div><dt>Quantity</dt><dd>{product.quantity}</dd></div>{product.facts.filter((fact) => fact.type !== "IMAGE").slice(0, 3).map((fact) => <div key={fact.factId}><dt>{friendly(fact.type)}</dt><dd>{factValue(fact.value)}</dd></div>)}</dl></div>
+        <div className={styles.productPrice}><span>Verified price</span><strong>{money(product.unitAmountMinor, result.authoritativeCurrency)}</strong></div>
       </article>)}
     </section>}
 
     {(result.products.length > 0 || result.constraints.length > 0) && <details className={styles.safetyPanel}>
       <summary><span>Why this is safe</span><small>Deterministic Guardrails</small></summary>
       <div className={styles.evidenceRows}>
-        <Evidence label="Exact product grounded" outcome={result.products.length > 0 ? "PASS" : "UNKNOWN"} />
+        <Evidence label="Merchant product grounded" outcome={result.products.length > 0 ? "PASS" : "UNKNOWN"} />
         <Evidence label="Current price checked" outcome={result.authoritativeFinalAmountMinor != null ? "PASS" : "UNKNOWN"} />
         <Evidence label="Availability checked" outcome={result.availabilityOutcome ?? "UNKNOWN"} detail={result.availabilityReasonCode} />
         <Evidence label="Delivery checked" outcome={result.serviceabilityOutcome ?? "UNKNOWN"} detail={result.serviceabilityReasonCode} />
@@ -417,14 +581,14 @@ function CommerceResponse({ result, snapshot, authorization, checkout, payment, 
     </details>}
 
     {result.cartId && result.products.length > 0 && <section className={styles.cartPanel}>
-      <div className={styles.sectionHeading}><div><p>Candidate cart</p><h2>{result.merchantDisplayName}</h2></div><span>Current quote</span></div>
+      <div className={styles.sectionHeading}><div><p>Candidate cart</p><div className={styles.merchantIdentityLarge}><MerchantLogo className={styles.merchantLogo} name={merchantName} logoUrl={result.merchantLogoUrl} /><h2>{merchantName}</h2></div></div><span>Current quote</span></div>
       <ul>{result.products.map((product) => <li key={product.productId}><span>{product.quantity} × {product.productName}</span><strong>{money(product.lineAmountMinor, result.authoritativeCurrency)}</strong></li>)}</ul>
       <dl className={styles.totals}><div><dt>Subtotal</dt><dd>{money(result.subtotalMinor, result.authoritativeCurrency)}</dd></div><div><dt>Delivery</dt><dd>{money(result.deliveryMinor, result.authoritativeCurrency)}</dd></div>{Boolean(result.taxMinor) && <div><dt>Tax</dt><dd>{money(result.taxMinor, result.authoritativeCurrency)}</dd></div>}{Boolean(result.feesMinor) && <div><dt>Fees</dt><dd>{money(result.feesMinor, result.authoritativeCurrency)}</dd></div>}<div className={styles.totalLine}><dt>Current total</dt><dd>{money(result.authoritativeFinalAmountMinor, result.authoritativeCurrency)}</dd></div></dl>
     </section>}
 
     {result.transactionProposalId && <section className={styles.proposal} data-blocked={!result.paymentReady}>
       <p className={styles.proposalKicker}>Exact action for authorization</p>
-      <h2>Purchase from {result.merchantDisplayName}</h2>
+      <div className={styles.merchantIdentityLarge}><MerchantLogo className={styles.merchantLogo} name={merchantName} logoUrl={result.merchantLogoUrl} /><h2>Purchase from {merchantName}</h2></div>
       <p className={styles.proposalAmount}>{money(result.authoritativeFinalAmountMinor, result.authoritativeCurrency)}</p>
       <ul>{result.products.map((product) => <li key={product.productId}>{product.quantity} × {product.productName} <span>{product.merchantSku}</span></li>)}</ul>
       <div className={styles.proposalMeta}><span>Proposal {shortId(result.transactionProposalId)}</span><span>{result.proposalExpiresAt ? `Expires ${formatDate(result.proposalExpiresAt)}` : "Expiry unavailable"}</span></div>
@@ -435,11 +599,11 @@ function CommerceResponse({ result, snapshot, authorization, checkout, payment, 
       {!result.paymentReady && !authorization && <p className={styles.blockedCopy}>Authorization is unavailable because the current proposal did not pass every required authority check.</p>}
     </section>}
 
-    {(checkout || payment || fulfillment) && <PaymentPanel snapshot={snapshot} payment={payment} fulfillment={fulfillment} busy={busy} onReconcile={onReconcile} />}
+    {(checkout || payment || fulfillment) && <PaymentPanel snapshot={snapshot} payment={payment} fulfillment={fulfillment} busy={busy} merchantName={merchantName} merchantLogoUrl={result.merchantLogoUrl} onReconcile={onReconcile} />}
   </AmanaBubble>;
 }
 
-function PaymentPanel({ snapshot, payment, fulfillment, busy, onReconcile }: { snapshot: ReturnType<typeof deriveJourneySnapshot>; payment: PaymentStateView | null; fulfillment: FulfillmentView | null; busy: boolean; onReconcile: () => void }) {
+function PaymentPanel({ snapshot, payment, fulfillment, busy, merchantName, merchantLogoUrl, onReconcile }: { snapshot: ReturnType<typeof deriveJourneySnapshot>; payment: PaymentStateView | null; fulfillment: FulfillmentView | null; busy: boolean; merchantName: string; merchantLogoUrl: string | null; onReconcile: () => void }) {
   const paymentCopy: Partial<Record<typeof snapshot.phase, [string, string]>> = {
     CHECKOUT_READY: ["Checkout prepared", "Razorpay Checkout is ready for this one authorized execution."],
     PAYMENT_SUBMITTED: ["Payment submitted", "Verifying with Razorpay. A browser callback is evidence, not confirmation."],
@@ -451,7 +615,7 @@ function PaymentPanel({ snapshot, payment, fulfillment, busy, onReconcile }: { s
   };
   const copy = paymentCopy[snapshot.phase];
   if (!copy) return null;
-  return <section className={styles.paymentPanel} data-phase={snapshot.phase} aria-live="polite"><span className={styles.paymentIcon} aria-hidden="true">{snapshot.phase === "FULFILLED" ? "✓" : "•"}</span><div><h2>{copy[0]}</h2><p>{copy[1]}</p>{payment && <small>Provider order {shortId(payment.providerOrderId ?? "pending")} · {money(payment.amountMinor, payment.currency)}</small>}</div>{snapshot.canReconcile && <button disabled={busy} onClick={onReconcile} type="button">{busy ? "Verifying…" : "Verify payment status"}</button>}</section>;
+  return <section className={styles.paymentPanel} data-phase={snapshot.phase} aria-live="polite"><span className={styles.paymentIcon} aria-hidden="true">{snapshot.phase === "FULFILLED" ? "✓" : "•"}</span><div><div className={styles.paymentMerchant}><MerchantLogo className={styles.merchantLogoSmall} name={merchantName} logoUrl={merchantLogoUrl} /><span>{merchantName}</span></div><h2>{copy[0]}</h2><p>{copy[1]}</p>{payment && <small>Provider order {shortId(payment.providerOrderId ?? "pending")} · {money(payment.amountMinor, payment.currency)}</small>}</div>{snapshot.canReconcile && <button disabled={busy} onClick={onReconcile} type="button">{busy ? "Verifying…" : "Verify payment status"}</button>}</section>;
 }
 
 function Evidence({ label, outcome, detail }: { label: string; outcome: EvidenceOutcome; detail?: string | null }) {
@@ -459,10 +623,10 @@ function Evidence({ label, outcome, detail }: { label: string; outcome: Evidence
 }
 
 function ProductImage({ name, image }: { name: string; image: string | null }) {
-  return <div className={styles.productGlyph}><span aria-hidden="true">{name.slice(0, 1)}</span>{image && (
+  return <div className={styles.productGlyph} data-has-media={Boolean(image)}><span aria-hidden="true">{name.slice(0, 1)}</span>{image && (
     // Authoritative catalogue image hosts are dynamic; a fixed Next Image allowlist would reject valid merchants.
     // eslint-disable-next-line @next/next/no-img-element
-    <img src={image} alt={name} loading="lazy" referrerPolicy="no-referrer" onError={(event) => event.currentTarget.remove()} />
+    <img src={image} alt={name} loading="eager" decoding="async" referrerPolicy="no-referrer" onError={(event) => { event.currentTarget.remove(); event.currentTarget.parentElement?.setAttribute("data-has-media", "false"); }} />
   )}</div>;
 }
 
@@ -472,6 +636,45 @@ async function optional<T>(read: () => Promise<T>): Promise<T | null> {
   try { return await read(); } catch (error) {
     if (error instanceof BuyerApiError && [404, 409].includes(error.status)) return null;
     throw error;
+  }
+}
+
+async function recoverCommerceRequest(requestId: string): Promise<CommerceRequestResult> {
+  for (let attempt = 0; attempt < 90; attempt += 1) {
+    await waitUntilVisible();
+    try {
+      const result = await buyerApi.commerceRequest(requestId);
+      if (result.requestStatus !== "RUNNING") return result;
+    } catch (error) {
+      if (!(error instanceof BuyerApiError) || !["COMMERCE_REQUEST_RUNNING", "COMMERCE_REQUEST_ACCEPTING"].includes(error.code ?? "")) throw error;
+    }
+    await delay(1000);
+  }
+  throw new BuyerApiError(
+    504,
+    "The durable commerce request is still running. Reload this conversation to continue tracking it.",
+    "COMMERCE_REQUEST_RECOVERY_TIMEOUT",
+  );
+}
+
+async function observeCommerceAcceptance(
+  requestId: string,
+  onAccepted: () => void,
+  isSettled: () => boolean,
+): Promise<void> {
+  for (let attempt = 0; attempt < 100 && !isSettled(); attempt += 1) {
+    try {
+      await buyerApi.commerceRequest(requestId);
+      if (!isSettled()) onAccepted();
+      return;
+    } catch (error) {
+      if (error instanceof BuyerApiError && error.code === "COMMERCE_REQUEST_ACCEPTING") {
+        if (!isSettled()) onAccepted();
+        return;
+      }
+      if (!(error instanceof BuyerApiError) || error.status !== 404) return;
+    }
+    await delay(100);
   }
 }
 
@@ -499,6 +702,12 @@ function waitUntilVisible() {
 }
 
 function delay(milliseconds: number) { return new Promise((resolve) => window.setTimeout(resolve, milliseconds)); }
+function failureCopy(code: string) {
+  if (code === "AI_PROVIDER_RATE_LIMITED") return "Amana’s reasoning service is temporarily rate-limited. Retry shortly. Nothing was authorized.";
+  if (code === "AI_PROVIDER_UNAVAILABLE") return "Amana’s reasoning service is temporarily unavailable. Retry shortly. Nothing was authorized.";
+  return "I couldn’t safely complete this request. Nothing was authorized.";
+}
+function formatBytes(bytes: number) { return bytes >= 1024 * 1024 ? `${(bytes / (1024 * 1024)).toFixed(1)} MB` : `${Math.ceil(bytes / 1024)} KB`; }
 function shortId(value: string) { return value.length > 12 ? `${value.slice(0, 8)}…${value.slice(-4)}` : value; }
 function friendly(value: string) { return value.toLowerCase().replaceAll("_", " ").replace(/^./, (letter) => letter.toUpperCase()); }
 function factValue(value: unknown) { if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") return String(value); return "Verified merchant fact"; }

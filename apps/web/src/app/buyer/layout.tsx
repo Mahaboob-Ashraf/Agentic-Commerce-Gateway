@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { BuyerSessionProvider } from "@/components/buyer/buyer-session";
+import { AmanaProvider } from "@/components/amana/amana-provider";
 
 export const metadata: Metadata = {
   title: "Amana Buyer",
@@ -7,5 +8,5 @@ export const metadata: Metadata = {
 };
 
 export default function BuyerLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <BuyerSessionProvider>{children}</BuyerSessionProvider>;
+  return <AmanaProvider><BuyerSessionProvider>{children}</BuyerSessionProvider></AmanaProvider>;
 }

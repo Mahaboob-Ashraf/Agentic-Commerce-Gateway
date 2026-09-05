@@ -15,6 +15,11 @@ export interface LiveTranscription {
 }
 
 export interface LiveServerMessage {
+  error?: {
+    code?: number | string;
+    message?: string;
+    status?: string;
+  };
   setupComplete?: Record<string, unknown>;
   serverContent?: {
     modelTurn?: {
@@ -58,6 +63,25 @@ interface LiveSocketCallbacks {
   onmessage: (message: LiveServerMessage, socket: GeminiLiveSocket) => void;
   onerror: () => void;
   onclose: (event: CloseEvent) => void;
+  ondiagnostic?: (diagnostic: LiveTransportDiagnostic) => void;
+}
+
+export type LiveTransportDiagnostic = {
+  stage: "websocket-open" | "setup-sent" | "setup-complete" | "provider-error" | "websocket-error" | "websocket-close" | "setup-timeout";
+  closeCode?: number;
+  closeReason?: string;
+  providerCode?: number | string;
+  providerStatus?: string;
+  providerMessage?: string;
+};
+
+export function sanitizeLiveDiagnosticText(value: string | undefined): string | undefined {
+  if (!value) return undefined;
+  return value
+    .replace(/AIza[\w-]+/g, "[redacted]")
+    .replace(/auth_tokens\/[\w.-]+/g, "auth_tokens/[redacted]")
+    .replace(/(access_token|api[_-]?key|authorization|cookie)\s*[:=]\s*\S+/gi, "$1=[redacted]")
+    .slice(0, 320);
 }
 
 function parseServerMessage(value: string): LiveServerMessage {
@@ -93,8 +117,11 @@ async function messageText(data: unknown): Promise<string> {
 
 export class GeminiLiveSocket {
   private established = false;
+  private readonly connection: WebSocket;
 
-  private constructor(private readonly connection: WebSocket) {}
+  private constructor(connection: WebSocket) {
+    this.connection = connection;
+  }
 
   static connect(
     token: string,
@@ -108,21 +135,33 @@ export class GeminiLiveSocket {
       let messageChain = Promise.resolve();
       const timeout = setTimeout(() => {
         if (!liveSocket.established) {
+          callbacks.ondiagnostic?.({ stage: "setup-timeout" });
           webSocket.close();
           rejectConnection(new Error("LIVE_SETUP_TIMEOUT"));
         }
       }, SETUP_TIMEOUT_MS);
 
       webSocket.onopen = () => {
+        callbacks.ondiagnostic?.({ stage: "websocket-open" });
         webSocket.send(JSON.stringify({ setup }));
+        callbacks.ondiagnostic?.({ stage: "setup-sent" });
       };
       webSocket.onmessage = (event) => {
         messageChain = messageChain
           .then(async () => {
             const message = parseServerMessage(await messageText(event.data));
+            if (message.error) {
+              callbacks.ondiagnostic?.({
+                stage: "provider-error",
+                providerCode: message.error.code,
+                providerStatus: sanitizeLiveDiagnosticText(message.error.status),
+                providerMessage: sanitizeLiveDiagnosticText(message.error.message),
+              });
+            }
             if (message.setupComplete && !liveSocket.established) {
               liveSocket.established = true;
               clearTimeout(timeout);
+              callbacks.ondiagnostic?.({ stage: "setup-complete" });
               resolveConnection(liveSocket);
             }
             callbacks.onmessage(message, liveSocket);
@@ -130,6 +169,7 @@ export class GeminiLiveSocket {
           .catch(() => callbacks.onerror());
       };
       webSocket.onerror = () => {
+        callbacks.ondiagnostic?.({ stage: "websocket-error" });
         if (!liveSocket.established) {
           clearTimeout(timeout);
           rejectConnection(new Error("LIVE_SOCKET_ERROR"));
@@ -139,6 +179,11 @@ export class GeminiLiveSocket {
       };
       webSocket.onclose = (event) => {
         clearTimeout(timeout);
+        callbacks.ondiagnostic?.({
+          stage: "websocket-close",
+          closeCode: event.code,
+          closeReason: sanitizeLiveDiagnosticText(event.reason),
+        });
         if (!liveSocket.established) {
           rejectConnection(new Error("LIVE_SOCKET_CLOSED_DURING_SETUP"));
         }

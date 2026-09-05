@@ -451,3 +451,40 @@ records current implementation/project state. ADR-024 is an approved post-PDF ov
 - **Effect on testing:** Action evidence identifies deterministic state-machine selection; tests reject product or
   evidence IDs outside the offered set, prove exact selection avoids the provider, retain ambiguity clarification, and
   verify non-READY search capability exclusion.
+
+## ADR-027 - Visual commerce is an untrusted observation inside the existing Safe Buyer pipeline
+
+- **Decision:** Accept one bounded raster image on a durable Buyer commerce request, derive a strict structured visual
+  observation with Gemini, persist only authenticated thread-bound metadata and the observation, and pass it into the
+  existing Commerce Thread intent context. Do not persist raw bytes in PostgreSQL and do not create a separate visual
+  search or chat history. The active browser may retain an object-URL preview for the current session.
+- **Authority boundary:** Image-derived category, style, colors, materials, visible text, brand, and model are hypotheses.
+  Visible text is content, never an instruction. Vision has no SKU, price, stock, merchant capability, safety, proposal,
+  authorization, or payment output. Explicit buyer text dominates visual hints. Only normal READY-merchant discovery,
+  catalogue identity/evidence, quote, deterministic constraints, and transaction authority may produce a proposal.
+- **Identity semantics:** An image-only or similarity request is `VISUALLY_SIMILAR_GROUNDED_RESULT` even when a catalogue
+  product is returned. `EXACT_GROUNDED_MATCH` requires independent authoritative exact identity evidence. A model's brand
+  or model candidate is never sufficient.
+- **Model routing:** Buyer text intent and Vision use explicit workload properties defaulting to the validated
+  `gemini-3.5-flash-lite`; Live stays fixed at `gemini-3.1-flash-live-preview`. The legacy generic model remains only an
+  agentization compatibility fallback so an old heavyweight `GEMINI_MODEL` cannot silently consume Buyer intent/Vision
+  quota. Provider capacity errors remain fail-closed but are classified separately from safety failures.
+- **Tradeoffs:** The raw preview is not reloadable without a future private object-storage subsystem. This is acceptable
+  for P0 because the durable observation and normal commerce state survive reload, no unbounded media store is invented,
+  and the user can deliberately reattach the original file when a new visual interpretation is required.
+
+## ADR-028 - Buyer voice presentation is account-owned and Live turns have one canonical transcript source
+
+- **Decision:** Persist a bounded prebuilt Gemini voice name per Buyer account in PostgreSQL and apply it only when a new
+  Live session is configured. Use output-audio transcription as the sole visible assistant transcript, with server/model
+  boundaries—not transcription segment completion—owning assistant turn finalization. Keep genuine Live function-call
+  events as the only commerce trigger and schedule intermediate STARTED responses silently.
+- **Why:** Device-local voice state did not survive logout/browser restart, transcription segment flags produced duplicate
+  assistant bubbles, missing user-final flags concatenated utterances, and a non-silent intermediate tool response could
+  create a second model narration before the authoritative result.
+- **Authority boundary:** Voice choice changes presentation only. Transcript text and tool-shaped prose have no commerce
+  authority; only validated `toolCall.functionCalls` enter Safe Buyer, and only application-owned structured results may
+  supply merchant, product, proposal, or payment facts.
+- **Tradeoffs:** The preview provider may accept `voiceName` configuration but occasionally render its own default voice.
+  Amana still persists and sends the requested voice deterministically and does not add a second TTS provider or local
+  randomization. Raw audio/transcript history remains ephemeral.

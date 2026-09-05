@@ -19,12 +19,13 @@ public class BuyerOrchestrationService {
     private final BuyerThreadService threads;private final BuyerRepository repository;private final BuyerStateMachine states;
     private final IntentCompilerService compiler;private final MerchantDiscoveryService discoveryService;
     private final CandidateCartService carts;private final AuthoritativeQuoteService quotes;
-    private final ConstraintCertificateService constraints;private final CanonicalJsonService canonical;
+    private final ConstraintCertificateService constraints;private final CanonicalJsonService canonical;private final VisionObservationRepository observations;
     public BuyerOrchestrationService(BuyerThreadService threads,BuyerRepository repository,BuyerStateMachine states,
             IntentCompilerService compiler,MerchantDiscoveryService discoveryService,CandidateCartService carts,
-            AuthoritativeQuoteService quotes,ConstraintCertificateService constraints,CanonicalJsonService canonical){
+            AuthoritativeQuoteService quotes,ConstraintCertificateService constraints,CanonicalJsonService canonical,
+            VisionObservationRepository observations){
         this.threads=threads;this.repository=repository;this.states=states;this.compiler=compiler;this.discoveryService=discoveryService;
-        this.carts=carts;this.quotes=quotes;this.constraints=constraints;this.canonical=canonical;}
+        this.carts=carts;this.quotes=quotes;this.constraints=constraints;this.canonical=canonical;this.observations=observations;}
     @Transactional public AdvanceResult advance(UUID buyerId,UUID threadId){return advanceWithinRequest(buyerId,threadId);}
     @Transactional public AdvanceResult advanceWithinRequest(UUID buyerId,UUID threadId){long totalStarted=System.nanoTime();long loadStarted=System.nanoTime();CommerceThread before=threads.requireForUpdate(buyerId,threadId);guard(before);
         BuyerIntent intent=repository.latestIntent(buyerId,threadId).orElse(null);MerchantDiscovery discovery=intent==null?null:repository.latestDiscovery(buyerId,threadId,intent.intentId()).orElse(null);
@@ -47,7 +48,7 @@ public class BuyerOrchestrationService {
         case GET_QUOTE->quote(thread,intent,discovery);
         case VERIFY_CONSTRAINTS->verify(thread,intent);
         case REQUEST_CLARIFICATION->new Execution(BuyerState.WAITING_FOR_USER,thread.currentIntentVersion(),thread.currentCartVersion(),thread.currentQuoteId(),thread.currentCertificateId(),thread.repeatedFailureCount(),ActionOutcome.WAITING,List.of("clarification:required"));};}
-    private Execution compile(CommerceThread thread){long totalStarted=System.nanoTime();long messageStarted=System.nanoTime();ThreadMessage message=repository.latestMessage(thread.buyerActorId(),thread.threadId()).orElseThrow();long messageElapsed=elapsedMillis(messageStarted);long compilerStarted=System.nanoTime();IntentCompilerService.Compiled result=compiler.compile(message);long compilerElapsed=elapsedMillis(compilerStarted);
+    private Execution compile(CommerceThread thread){long totalStarted=System.nanoTime();long messageStarted=System.nanoTime();ThreadMessage message=repository.latestMessage(thread.buyerActorId(),thread.threadId()).orElseThrow();BuyerIntent priorIntent=repository.latestIntent(thread.buyerActorId(),thread.threadId()).orElse(null);List<ThreadMessage> messages=repository.messages(thread.buyerActorId(),thread.threadId());List<String> priorMessages=messages.stream().filter(candidate->!candidate.messageId().equals(message.messageId())).map(ThreadMessage::normalizedText).skip(Math.max(0,messages.size()-7L)).toList();var visual=observations.findByMessage(thread.buyerActorId(),thread.threadId(),message.messageId()).map(VisualCommerceModels.StoredVisionObservation::observation).orElse(null);long messageElapsed=elapsedMillis(messageStarted);long compilerStarted=System.nanoTime();IntentCompilerService.Compiled result=compiler.compile(message,new BuyerIntentCompiler.ConversationContext(priorMessages,priorIntent==null?null:priorIntent.compiled(),visual));long compilerElapsed=elapsedMillis(compilerStarted);
         long persistenceStarted=System.nanoTime();BuyerIntent intent=repository.createIntent(thread,message,result.intent(),result.modelOutputHash(),result.intentHash());long persistenceElapsed=elapsedMillis(persistenceStarted);long gateStarted=System.nanoTime();MerchantDiscoveryService.GateResult gate=discoveryService.preRetrievalGate(intent);long gateElapsed=elapsedMillis(gateStarted);
         log.info("Buyer intent step completed messagePersistenceMs={} compilerMs={} intentPersistenceMs={} gateMs={} gateOutcome={} totalElapsedMs={}",
                 messageElapsed,compilerElapsed,persistenceElapsed,gateElapsed,gate.reasonCode(),elapsedMillis(totalStarted));

@@ -346,6 +346,30 @@ class PostgresFoundationIntegrationTest {
     }
 
     @Test
+    void buyerSessionValidationUsesSpringCsrfValidationForTheAuthenticatedSession() throws Exception {
+        ApplicationActor buyer = createAuthenticatedActor(
+                "voice-session-buyer", PlatformRole.BUYER, TEST_PASSWORD);
+        CookieManager cookies = newCookieManager();
+        HttpClient client = sessionClient(cookies);
+        CsrfSession anonymousCsrf = fetchCsrf(client, cookies);
+        assertThat(login(client, anonymousCsrf.token(), buyer.identityHandle(), TEST_PASSWORD).statusCode())
+                .isEqualTo(200);
+        CsrfSession authenticatedCsrf = fetchCsrf(client, cookies);
+
+        HttpResponse<String> accepted = post(
+                client, "/api/auth/buyer-session-validation", authenticatedCsrf.token(), null);
+        HttpResponse<String> missingCsrf = post(
+                client, "/api/auth/buyer-session-validation", null, null);
+
+        assertThat(accepted.statusCode()).isEqualTo(200);
+        assertThat(accepted.body())
+                .contains(buyer.id().toString())
+                .contains("\"role\":\"BUYER\"");
+        assertThat(missingCsrf.statusCode()).isEqualTo(403);
+        assertThat(missingCsrf.body()).contains("\"error\":\"forbidden\"");
+    }
+
+    @Test
     void invalidPasswordReturnsGenericUnauthorizedResponse() throws Exception {
         createAuthenticatedActor("invalid-password-buyer", PlatformRole.BUYER, TEST_PASSWORD);
         CookieManager cookies = newCookieManager();

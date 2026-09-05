@@ -3,6 +3,7 @@ import type {
   AddressInput,
   BuyerAddress,
   BuyerProfile,
+  BuyerVoicePreference,
   CallbackResult,
   CallbackSubmission,
   CheckoutInitialization,
@@ -18,15 +19,18 @@ import type {
   ThreadMessage,
   AuthorizationDecision,
 } from "./types";
+import { CommerceResponseContractError, parseCommerceRequestResult } from "./commerce-contract";
 
 type CsrfToken = { headerName: string; token: string };
-export type BuyerVoiceToken = { token: string; model: string; preferredLanguage: string | null };
+export type BuyerVoiceToken = { token: string; model: string; preferredLanguage: string | null; voiceName: BuyerVoicePreference["voiceName"] };
 
 export class BuyerApiError extends Error {
   constructor(
     readonly status: number,
     message: string,
     readonly code?: string,
+    readonly requestPath?: string,
+    readonly requestMethod?: string,
   ) {
     super(message);
   }
@@ -38,15 +42,21 @@ async function json<T>(response: Response): Promise<T> {
     let code: string | undefined;
     try {
       const body = (await response.json()) as { code?: string; error?: string; message?: string };
-      code = body.code;
-      message = body.message ?? body.code ?? body.error ?? message;
+      code = body.code ?? body.error;
+      message = response.status === 403 && body.error === "forbidden"
+        ? "Your secure Buyer session did not authorize this request. Refresh the conversation and try again."
+        : body.message ?? body.code ?? body.error ?? message;
     } catch {
       // Preserve the bounded status-based message for non-JSON failures.
     }
     throw new BuyerApiError(response.status, message, code);
   }
   if (response.status === 204) return undefined as T;
-  return response.json() as Promise<T>;
+  try {
+    return await response.json() as T;
+  } catch {
+    throw new BuyerApiError(502, "Amana received an unreadable response. Please retry.", "INVALID_API_RESPONSE");
+  }
 }
 
 async function csrf(): Promise<CsrfToken> {
@@ -55,18 +65,40 @@ async function csrf(): Promise<CsrfToken> {
   );
 }
 
-async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
+async function request<T>(
+  path: string,
+  init: RequestInit = {},
+): Promise<T> {
   const method = (init.method ?? "GET").toUpperCase();
-  const headers = new Headers(init.headers);
-  headers.set("Accept", "application/json");
-  if (init.body) headers.set("Content-Type", "application/json");
-  if (!["GET", "HEAD", "OPTIONS"].includes(method)) {
-    const token = await csrf();
-    headers.set(token.headerName, token.token);
+  const mutating = !["GET", "HEAD", "OPTIONS"].includes(method);
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const headers = new Headers(init.headers);
+    headers.set("Accept", "application/json");
+    if (init.body && !(init.body instanceof FormData)) headers.set("Content-Type", "application/json");
+    if (mutating) {
+      const token = await csrf();
+      headers.set(token.headerName, token.token);
+    }
+    const response = await fetch(path, { ...init, headers, credentials: "include", cache: "no-store" });
+    if (response.status === 403 && mutating && attempt === 0) {
+      // A denied request never reached its controller. Re-prove the authenticated session and
+      // retry once with a newly emitted masked token; authorization remains Spring-owned.
+      const actor = await fetch("/api/auth/me", { credentials: "include", cache: "no-store" });
+      if (actor.ok) continue;
+    }
+    try {
+      return await json<T>(response);
+    } catch (error) {
+      if (error instanceof BuyerApiError) {
+        if (error.status === 403 && process.env.NODE_ENV !== "production") {
+          console.warn(`[buyer-api] denied method=${method} path=${path}`);
+        }
+        throw new BuyerApiError(error.status, error.message, error.code, path, method);
+      }
+      throw error;
+    }
   }
-  return json<T>(
-    await fetch(path, { ...init, headers, credentials: "include", cache: "no-store" }),
-  );
+  throw new BuyerApiError(403, "forbidden", "forbidden", path, method);
 }
 
 export const buyerApi = {
@@ -87,13 +119,34 @@ export const buyerApi = {
   threads: () => request<CommerceThread[]>("/api/buyer/threads"),
   thread: (id: string) => request<CommerceThread>(`/api/buyer/threads/${id}`),
   messages: (id: string) => request<ThreadMessage[]>(`/api/buyer/threads/${id}/messages`),
-  createCommerceRequest: (requestId: string, text: string, threadId?: string) =>
-    request<CommerceRequestResult>("/api/buyer/commerce-requests", {
+  async createCommerceRequest(
+    requestId: string,
+    text: string,
+    threadId?: string,
+  ) {
+    const value = await request<unknown>("/api/buyer/commerce-requests", {
       method: "POST",
       body: JSON.stringify({ requestId, threadId: threadId ?? null, text }),
-    }),
-  latestCommerceRequest: (threadId: string) =>
-    request<CommerceRequestResult>(`/api/buyer/commerce-requests/thread/${threadId}`),
+    });
+    return validatedCommerceResponse(value);
+  },
+  async createVisualCommerceRequest(requestId: string, image: File, text: string, threadId?: string) {
+    const body = new FormData();
+    body.set("requestId", requestId);
+    if (threadId) body.set("threadId", threadId);
+    if (text.trim()) body.set("text", text.trim());
+    body.set("image", image, image.name);
+    const value = await request<unknown>("/api/buyer/commerce-requests/visual", { method: "POST", body });
+    return validatedCommerceResponse(value);
+  },
+  async commerceRequest(requestId: string) {
+    const value = await request<unknown>(`/api/buyer/commerce-requests/${requestId}`);
+    return validatedCommerceResponse(value);
+  },
+  async latestCommerceRequest(threadId: string) {
+    const value = await request<unknown>(`/api/buyer/commerce-requests/thread/${threadId}`);
+    return validatedCommerceResponse(value);
+  },
   authorize: (threadId: string, proposalId: string) =>
     request<AuthorizationDecision>(transactionPath(threadId, proposalId, "/confirm"), { method: "POST" }),
   authorization: (threadId: string, proposalId: string) =>
@@ -142,12 +195,29 @@ export const buyerApi = {
       method: "POST",
     }),
   onboardingStatus: () => request<OnboardingStatus>("/api/buyer/onboarding/status"),
+  voicePreference: () => request<BuyerVoicePreference>("/api/buyer/settings/voice"),
+  saveVoicePreference: (voiceName: BuyerVoicePreference["voiceName"]) =>
+    request<BuyerVoicePreference>("/api/buyer/settings/voice", {
+      method: "PUT",
+      body: JSON.stringify({ voiceName }),
+    }),
   createVoiceToken: (preferredLanguage: string | null) =>
     request<BuyerVoiceToken>("/api/buyer-voice/token", {
       method: "POST",
       body: JSON.stringify({ preferredLanguage }),
     }),
 };
+
+function validatedCommerceResponse(value: unknown): CommerceRequestResult {
+  try {
+    return parseCommerceRequestResult(value);
+  } catch (error) {
+    if (error instanceof CommerceResponseContractError) {
+      throw new BuyerApiError(502, error.message, error.code);
+    }
+    throw error;
+  }
+}
 
 function transactionPath(threadId: string, proposalId: string, suffix: string) {
   return `/api/buyer/threads/${threadId}/transaction/proposals/${proposalId}${suffix}`;
@@ -159,11 +229,13 @@ export const demoMerchants = [
     name: "Amazing",
     description: "Everyday electronics, home and lifestyle",
     merchantId: process.env.NEXT_PUBLIC_AMAZING_MERCHANT_ID ?? null,
+    logoUrl: "/amana/merchant/amazing.png",
   },
   {
     key: "freshbasket",
     name: "FreshBasket",
     description: "Groceries, pantry staples and fresh food",
     merchantId: process.env.NEXT_PUBLIC_FRESHBASKET_MERCHANT_ID ?? null,
+    logoUrl: null,
   },
 ] as const;

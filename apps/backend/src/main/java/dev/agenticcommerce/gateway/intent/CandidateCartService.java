@@ -82,7 +82,7 @@ public class CandidateCartService {
         for(int attempt=1;attempt<=2;attempt++)try{CandidateSelection selected=decisions.chooseCandidate(context,feedback);validateCandidateSelection(selected,context);
             log.info("Candidate selection completed mode=MODEL attempt={} candidateCount={} elapsedMs={} repair={}",
                     attempt,options.size(),elapsedMillis(started),attempt>1);return selected;
-        }catch(BuyerException e){if(e.code().equals("BUYER_DECISION_UNAVAILABLE"))throw e;feedback=bounded(e.getMessage());}
+        }catch(BuyerException e){if(e.code().equals("AI_PROVIDER_UNAVAILABLE")||e.code().equals("AI_PROVIDER_RATE_LIMITED"))throw e;feedback=bounded(e.getMessage());}
         catch(RuntimeException e){feedback="Candidate output failed deterministic validation";}
         throw new BuyerException("BUYER_CANDIDATE_DECISION_INVALID",HttpStatus.UNPROCESSABLE_ENTITY,"Candidate decision remained invalid after one retry");}
     private SearchHit revalidatedHit(BuyerIntent intent,GroundedCandidate selected){return retrieval.search(selected.merchant().merchantId(),request(intent.compiled())).matches().stream()
@@ -99,8 +99,9 @@ public class CandidateCartService {
         if(i.softPreferences()!=null&&i.softPreferences().contains("HIGH_PROTEIN"))q.append(" high protein");
         if(q.isEmpty()&&i.goal()==IntentGoal.PURCHASE_FOOD)q.append("food");
         if(q.isEmpty())q.append(i.exactMerchantSku()!=null?i.exactMerchantSku():i.exactGtin());
+        String hardCategory=i.materialFields().stream().anyMatch(field->"CATEGORY".equals(field.field())&&field.classification()!=ConstraintClassification.SOFT)?i.categoryRequest():null;
         return new SearchRequest(q.toString().strip(),i.exactMerchantSku(),i.exactGtin(),i.exactBrand(),i.exactVariant(),i.exactSizeStorage(),i.exactColour(),
-                i.categoryRequest(),null,i.budgetAmountMinor(),i.vegetarian(),i.prohibitedAllergen()==null?null:i.prohibitedAllergen().toLowerCase(java.util.Locale.ROOT),20);}
+                hardCategory,null,i.budgetAmountMinor(),i.vegetarian(),i.prohibitedAllergen()==null?null:i.prohibitedAllergen().toLowerCase(java.util.Locale.ROOT),20);}
     public record MerchantResult(MerchantCandidate merchant,SearchResponse response){}
     public record MerchantSearch(List<MerchantResult> results){public List<String> evidenceReferences(){return results.stream().flatMap(r->r.response().evidence().stream()).distinct().limit(64).toList();}}
     private record GroundedCandidate(MerchantCandidate merchant,SearchHit hit,List<String> evidence){Product product(){return hit.product();}}

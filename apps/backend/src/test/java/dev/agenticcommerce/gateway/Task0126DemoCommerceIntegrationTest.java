@@ -12,6 +12,7 @@ import dev.agenticcommerce.gateway.lifecycle.MerchantLifecycleGateway;
 import dev.agenticcommerce.gateway.onboarding.MerchantCustomerLinkProvider;
 import java.net.InetAddress;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.util.*;
@@ -45,11 +46,14 @@ class Task0126DemoCommerceIntegrationTest {
     @Autowired WebApplicationContext webApplicationContext;
     private DemoMerchantModels.BootstrapSummary summary;
     private DemoMerchantModels.BootstrapSummary failedSummary;private int completionRowsAfterFailure;
+    private Path legacyFixtureRoot;
 
-    @BeforeAll void seed(){jdbc.sql("TRUNCATE TABLE merchant,application_actor CASCADE").update();
+    @BeforeAll void seed()throws Exception{jdbc.sql("TRUNCATE TABLE merchant,application_actor CASCADE").update();
+        legacyFixtureRoot=legacyFixtureRoot();
         transport.timeoutNext();failedSummary=bootstrap.bootstrap("https://merchant.example.test","evaluator@demo.invalid","not-a-tracked-demo-password",
-                Path.of("..","..","evaluation","demo-data"));
+                legacyFixtureRoot);
         completionRowsAfterFailure=jdbc.sql("SELECT count(*)::int FROM demo_bootstrap_completion").query(Integer.class).single();
+        bootstrap.bootstrap("https://merchant.example.test","evaluator@demo.invalid","not-a-tracked-demo-password",legacyFixtureRoot);
         summary=bootstrap.bootstrap("https://merchant.example.test","evaluator@demo.invalid","not-a-tracked-demo-password",
                 Path.of("..","..","evaluation","demo-data"));}
 
@@ -62,12 +66,40 @@ class Task0126DemoCommerceIntegrationTest {
         assertThat(summary.deploymentPrecondition()).isEqualTo(DemoBootstrapService.DEPLOYMENT_PRECONDITION);
         assertThat(reused.reused()).isTrue();assertThat(reused.buyerCreated()).isFalse();assertThat(reused.merchantsReused()).isEqualTo(2);assertThat(reused.buyerActorId()).isEqualTo(summary.buyerActorId());
         assertThat(reused.merchantPublicBaseUrl()).isEqualTo(summary.merchantPublicBaseUrl());
+        assertThat(jdbc.sql("SELECT logo_url FROM merchant WHERE merchant_key='amazing'").query(String.class).single())
+                .isEqualTo(DemoBootstrapService.AMAZING_LOGO_URL);
         assertThat(jdbc.sql("SELECT count(*)::int FROM demo_merchant_profile").query(Integer.class).single()).isEqualTo(2);
-        assertThat(jdbc.sql("SELECT count(*)::int FROM catalogue_version WHERE status='PUBLISHED'").query(Integer.class).single()).isEqualTo(2);
+        assertThat(jdbc.sql("SELECT count(*)::int FROM catalogue_version WHERE status='PUBLISHED'").query(Integer.class).single()).isEqualTo(3);
         assertThat(jdbc.sql("SELECT count(*)::int FROM merchant_approved_endpoint").query(Integer.class).single()).isEqualTo(2);
         assertThat(jdbc.sql("SELECT count(*)::int FROM openapi_artifact").query(Integer.class).single()).isEqualTo(2);
         assertThat(jdbc.sql("SELECT count(*)::int FROM capability_mapping_proposal").query(Integer.class).single()).isEqualTo(15);
-        assertThat(jdbc.sql("SELECT count(*)::int FROM agent_commerce_manifest").query(Integer.class).single()).isEqualTo(14);}
+        assertThat(jdbc.sql("SELECT count(*)::int FROM agent_commerce_manifest").query(Integer.class).single()).isEqualTo(15);}
+
+    @Test void existingBootstrapPublishesCurrentImageFactsWithoutDestroyingThePriorCatalogue(){
+        UUID amazing=jdbc.sql("SELECT merchant_id FROM merchant WHERE merchant_key='amazing'").query(UUID.class).single();
+        var versions=catalogues.versions(amazing).stream().filter(v->v.status()==VersionStatus.PUBLISHED).toList();
+        assertThat(versions).hasSize(2);
+        assertThat(versions).extracting(version->version.id()).doesNotHaveDuplicates();
+        var current=versions.getFirst();
+        assertThat(catalogues.products(amazing,current.id(),100)).extracting(Product::merchantSku)
+                .contains("AMZ-AUDIO-032","AMZ-SHOE-035");
+        for(String sku:List.of("AMZ-AUDIO-032","AMZ-SHOE-035")){
+            Product product=catalogues.products(amazing,current.id(),100).stream().filter(p->p.merchantSku().equals(sku)).findFirst().orElseThrow();
+            assertThat(catalogues.facts(amazing,current.id(),product.id(),"IMAGE"))
+                    .singleElement().extracting(CatalogueRepository.FactValue::authority).isEqualTo("PRIMARY");
+        }
+        assertThat(jdbc.sql("SELECT count(*)::int FROM demo_bootstrap_completion WHERE fixture_version=:version")
+                .param("version",DemoBootstrapService.FIXTURE_VERSION).query(Integer.class).single()).isOne();
+        assertThat(jdbc.sql("SELECT count(*)::int FROM catalogue_version WHERE merchant_id=:merchant AND status='PUBLISHED'")
+                .param("merchant",amazing).query(Integer.class).single()).isEqualTo(2);
+        assertThat(jdbc.sql("""
+                SELECT manifest.catalogue_version FROM agent_commerce_manifest manifest
+                WHERE manifest.merchant_id=:merchant ORDER BY manifest.manifest_version DESC LIMIT 1
+                """).param("merchant",amazing).query(String.class).single())
+                .isEqualTo("v"+current.version()+":"+current.contentHash());
+        assertThat(jdbc.sql("SELECT count(*)::int FROM agent_commerce_manifest WHERE merchant_id=:merchant")
+                .param("merchant",amazing).query(Integer.class).single()).isEqualTo(8);
+    }
 
     @Test void demoSearchContractIsDeterministicWhileNormalSearchAndFailuresRemainReal(){
         assertThat(jdbc.sql("SELECT request_timeout_ms FROM capability_mapping_proposal WHERE capability='SEARCH_PRODUCTS' ORDER BY created_at")
@@ -157,9 +189,12 @@ class Task0126DemoCommerceIntegrationTest {
                 """).query(Integer.class).single()).isEqualTo(14);
         assertThat(jdbc.sql("SELECT count(*)::int FROM capability_contract_test_run WHERE outcome='PASS'").query(Integer.class).single()).isEqualTo(14);
         var latestStates=jdbc.sql("""
+                WITH latest AS (
+                  SELECT DISTINCT ON (merchant_id) manifest_id,merchant_id
+                  FROM agent_commerce_manifest ORDER BY merchant_id,manifest_version DESC)
                 SELECT c.merchant_id||':'||c.capability||':'||c.readiness FROM agent_commerce_manifest_capability c
-                JOIN agent_commerce_manifest m USING(manifest_id)
-                WHERE m.manifest_version=7 AND c.capability<>'PURCHASE' ORDER BY c.merchant_id,c.capability
+                JOIN latest USING(manifest_id,merchant_id)
+                WHERE c.capability<>'PURCHASE' ORDER BY c.merchant_id,c.capability
                 """).query(String.class).list();
         assertThat(latestStates).hasSize(16);
         assertThat(latestStates).filteredOn(state->state.endsWith(":READY")).hasSize(14);
@@ -170,6 +205,8 @@ class Task0126DemoCommerceIntegrationTest {
         UUID product=jdbc.sql("""
                 SELECT p.product_id FROM merchant_product p JOIN merchant m USING(merchant_id)
                 WHERE m.merchant_key='amazing' AND p.merchant_sku='AMZ-AUDIO-031'
+                  AND p.catalogue_version_id=(SELECT catalogue_version_id FROM catalogue_version
+                    WHERE merchant_id=m.merchant_id AND status='PUBLISHED' ORDER BY version_number DESC LIMIT 1)
                 """).query(UUID.class).single();
         var availability=runtime.availability("amazing",json("{\"productId\":\""+product+"\",\"merchantSku\":\"AMZ-AUDIO-031\",\"requestedQuantity\":1}"));assertThat(availability.path("available").asBoolean()).isTrue();
         var quote=runtime.quote("amazing",json("{\"cartId\":\"demo-cart\",\"cartHash\":\"demo-cart-hash\",\"lineItems\":[{\"productId\":\""+product+"\",\"merchantSku\":\"AMZ-AUDIO-031\",\"quantity\":1}]}"));
@@ -221,9 +258,23 @@ class Task0126DemoCommerceIntegrationTest {
         transport.failNext();var transientFailure=lifecycle.cancel(amazing,"contract-order","lifecycle-transient","demo-customer");
         assertThat(transientFailure.success()).isFalse();assertThat(transientFailure.retryable()).isTrue();assertThat(transientFailure.errorCode()).isEqualTo("MERCHANT_LIFECYCLE_REJECTED");}
 
-    private UUID product(String key,String sku){return jdbc.sql("SELECT p.product_id FROM merchant_product p JOIN merchant m USING(merchant_id) WHERE m.merchant_key=:k AND p.merchant_sku=:s").param("k",key).param("s",sku).query(UUID.class).single();}
+    private UUID product(String key,String sku){return jdbc.sql("""
+            SELECT p.product_id FROM merchant_product p JOIN merchant m USING(merchant_id)
+            WHERE m.merchant_key=:k AND p.merchant_sku=:s AND p.catalogue_version_id=(
+              SELECT catalogue_version_id FROM catalogue_version WHERE merchant_id=m.merchant_id
+              AND status='PUBLISHED' ORDER BY version_number DESC LIMIT 1)
+            """).param("k",key).param("s",sku).query(UUID.class).single();}
     private tools.jackson.databind.JsonNode orderBody(String operation,UUID product,String sku,long price,long amount){return json("{\"merchantOperationId\":\""+operation+"\",\"amountMinor\":"+amount+",\"currency\":\"INR\",\"lineItems\":[{\"productId\":\""+product+"\",\"merchantSku\":\""+sku+"\",\"quantity\":1,\"unitAmountMinor\":"+price+"}]}");}
     private tools.jackson.databind.JsonNode json(String value){return mapper.readTree(value);}
+
+    private Path legacyFixtureRoot()throws Exception{
+        Path source=Path.of("..","..","evaluation","demo-data");Path root=Files.createTempDirectory("legacy-demo-fixture-");
+        Files.copy(source.resolve("freshbasket-catalogue-v1.json"),root.resolve("freshbasket-catalogue-v1.json"));
+        JsonNode amazing=mapper.readTree(Files.readString(source.resolve("amazing-catalogue-v1.json")));
+        for(JsonNode product:amazing.path("products"))if(Set.of("AMZ-AUDIO-032","AMZ-SHOE-035").contains(product.path("merchantSku").asText()))
+            ((tools.jackson.databind.node.ObjectNode)product).remove("facts");
+        Files.writeString(root.resolve("amazing-catalogue-v1.json"),mapper.writeValueAsString(amazing));return root;
+    }
 
     @TestConfiguration(proxyBeanMethods=false)
     static class Fakes {

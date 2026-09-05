@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" role="img" aria-labelledby="title description">
+  <title id="title">Auralink Buds Bluetooth Earphones</title>
+  <desc id="description">White wireless earbuds and charging case on a soft blue background.</desc>
+  <defs>
+    <linearGradient id="background" x1="80" y1="40" x2="560" y2="600" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#f7f9ff"/>
+      <stop offset="1" stop-color="#dfe8ff"/>
+    </linearGradient>
+    <linearGradient id="case" x1="220" y1="292" x2="430" y2="544" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#fff"/>
+      <stop offset="1" stop-color="#e8edf7"/>
+    </linearGradient>
+    <linearGradient id="bud" x1="258" y1="126" x2="365" y2="376" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#fff"/>
+      <stop offset="1" stop-color="#e3e9f5"/>
+    </linearGradient>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="170%">
+      <feDropShadow dx="0" dy="22" stdDeviation="22" flood-color="#284b9b" flood-opacity=".2"/>
+    </filter>
+  </defs>
+  <rect width="640" height="640" rx="72" fill="url(#background)"/>
+  <circle cx="115" cy="126" r="62" fill="#fff" opacity=".58"/>
+  <circle cx="537" cy="500" r="94" fill="#b9ceff" opacity=".42"/>
+  <g filter="url(#shadow)">
+    <path d="M190 354c0-42 34-76 76-76h108c42 0 76 34 76 76v107c0 48-39 87-87 87h-86c-48 0-87-39-87-87V354Z" fill="url(#case)" stroke="#c6d1e5" stroke-width="7"/>
+    <path d="M190 371h260" stroke="#c4cee0" stroke-width="7"/>
+    <rect x="285" y="394" width="70" height="12" rx="6" fill="#afbdd3"/>
+    <circle cx="320" cy="506" r="7" fill="#4f78df"/>
+    <g transform="rotate(-10 257 238)">
+      <path d="M225 147c0-35 28-63 63-63s63 28 63 63v29c0 30-21 55-49 61v125c0 20-16 36-36 36s-36-16-36-36V234c-3-2-5-4-8-6-16-12-25-31-25-51v-30h28Z" fill="url(#bud)" stroke="#c5d0e3" stroke-width="7"/>
+      <ellipse cx="275" cy="157" rx="43" ry="50" fill="#f9fbff" stroke="#c8d3e5" stroke-width="6"/>
+      <ellipse cx="283" cy="155" rx="18" ry="24" fill="#627ba5"/>
+      <circle cx="266" cy="329" r="6" fill="#8ea2c3"/>
+    </g>
+    <g transform="translate(112 28) rotate(12 257 238)">
+      <path d="M225 147c0-35 28-63 63-63s63 28 63 63v29c0 30-21 55-49 61v125c0 20-16 36-36 36s-36-16-36-36V234c-3-2-5-4-8-6-16-12-25-31-25-51v-30h28Z" fill="url(#bud)" stroke="#c5d0e3" stroke-width="7"/>
+      <ellipse cx="275" cy="157" rx="43" ry="50" fill="#f9fbff" stroke="#c8d3e5" stroke-width="6"/>
+      <ellipse cx="283" cy="155" rx="18" ry="24" fill="#627ba5"/>
+      <circle cx="266" cy="329" r="6" fill="#8ea2c3"/>
+    </g>
+  </g>
+  <text x="320" y="592" fill="#254aab" font-family="Arial, sans-serif" font-size="25" font-weight="700" letter-spacing="5" text-anchor="middle">AURALINK</text>
+</svg>

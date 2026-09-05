@@ -1,13 +1,13 @@
 .shell {
   min-height: 100svh;
-  background: #f8f9fc;
+  background: linear-gradient(135deg, #fff 0%, #fbfdff 45%, #f5f9ff 100%);
   color: var(--amana-ink);
 }
 
 .sidebar,
 .drawer {
-  background: #fff;
-  border-right: 1px solid #e5e9f1;
+  background: linear-gradient(180deg, #fff 0%, #f7faff 100%);
+  border-right: 1px solid #dfe7f2;
 }
 
 .sidebar {
@@ -15,20 +15,21 @@
   inset: 0 auto 0 0;
   z-index: 20;
   width: 17.25rem;
+  box-shadow: .75rem 0 2.5rem -2.35rem rgb(30 63 126 / 30%);
 }
 
 .sidebarInner {
   display: flex;
   height: 100%;
   flex-direction: column;
-  padding: 1.35rem 1rem 1rem;
+  padding: 1.15rem .9rem .85rem;
 }
 
 .sidebarTop {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 0.5rem 1.55rem;
+  padding: 0 .5rem 1rem;
 }
 
 .brand,
@@ -46,41 +47,41 @@
 .brand strong { font-size: 1.12rem; font-weight: 650; letter-spacing: -0.025em; }
 .brand small { margin-top: 0.26rem; color: var(--amana-ink-soft); font-family: var(--amana-font-body); font-size: 0.66rem; font-weight: 650; letter-spacing: 0.1em; text-transform: uppercase; }
 
-.brandMark,
-.loadingMark span {
+.brandMark {
   display: grid;
-  width: 2.05rem;
-  height: 2.05rem;
+  width: 2.2rem;
+  height: 2.2rem;
   place-items: center;
-  border-radius: 0.64rem;
-  background: var(--amana-brand);
-  color: #fff;
-  font-family: var(--amana-font-display);
-  font-size: 1.03rem;
-  font-weight: 650;
-  box-shadow: 0 0.5rem 1.25rem -0.7rem rgb(43 95 245 / 65%);
+  overflow: hidden;
+  border-radius: .72rem;
+  background: #fff;
+  box-shadow: 0 .55rem 1.3rem -.75rem rgb(36 91 219 / 45%);
 }
+.brandMark img { width: 100%; height: 100%; object-fit: contain; }
 
-.primaryNav { display: grid; gap: 0.24rem; }
+.newConversation { display: flex; min-height: 2.9rem; align-items: center; gap: .7rem; margin: .2rem .1rem .85rem; border: 1px solid #b9cdf8; border-radius: .72rem; background: linear-gradient(135deg, #f8fbff, #edf4ff); color: #194bcf; font-size: .8rem; font-weight: 680; padding: .62rem .78rem; text-decoration: none; box-shadow: 0 .6rem 1.5rem -1.1rem rgb(34 78 181 / 42%); }
+.newConversation:hover { border-color: #7fa3f4; background: #fff; color: #123da8; }
+.newConversation svg { width: 1.05rem; height: 1.05rem; }
+.primaryNav { display: grid; gap: 0.12rem; }
 .navItem {
   display: grid;
-  min-height: 2.875rem;
+  min-height: 2.5rem;
   grid-template-columns: 1.35rem 1fr auto;
   align-items: center;
   gap: 0.72rem;
   padding: 0.62rem 0.72rem;
-  border-radius: 0.66rem;
+  border-radius: 0.55rem;
   color: #5a667c;
   font-size: 0.875rem;
   font-weight: 580;
   text-decoration: none;
   transition: background var(--amana-motion-quick) var(--amana-ease-standard), color var(--amana-motion-quick) var(--amana-ease-standard);
 }
-.navItem:hover { background: #f5f7fb; color: var(--amana-ink); }
-.navItem[data-active="true"] { background: #edf2ff; color: #1647d8; }
+.navItem:hover { background: #f0f5fd; color: var(--amana-ink); }
+.navItem[data-active="true"] { background: #e9f1ff; color: #1748c4; box-shadow: inset 2px 0 #2b5ff5; }
 .navItem em { color: #8b96aa; font-size: 0.625rem; font-style: normal; letter-spacing: 0.06em; text-transform: uppercase; }
 
-.recentSection { min-height: 0; flex: 1; margin-top: 1.85rem; overflow: hidden; padding: 0 0.5rem; }
+.recentSection { min-height: 0; flex: 1; margin-top: 1.4rem; overflow: hidden; padding: 0 0.5rem; }
 .recentHeading { display: flex; align-items: center; justify-content: space-between; color: #8a96aa; font-size: 0.69rem; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase; }
 .recentHeading a { display: grid; width: 2rem; height: 2rem; place-items: center; color: #718097; }
 .recentHeading svg { width: 1rem; }
@@ -91,7 +92,7 @@
 .recentList span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .recentList time { color: #a1a9b7; font-size: 0.66rem; }
 
-.account { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 0.68rem; border-top: 1px solid #edf0f5; padding: 1rem 0.45rem 0; }
+.account { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 0.68rem; border-top: 1px solid #e3eaf4; padding: 1rem 0.45rem 0; }
 .avatar, .mobileAvatar { display: grid; width: 2rem; height: 2rem; place-items: center; border-radius: 50%; background: #162442; color: #fff; font-size: 0.75rem; font-weight: 700; }
 .account > span:nth-child(2) { display: grid; min-width: 0; }
 .account strong { overflow: hidden; color: #303c52; font-size: 0.75rem; font-weight: 650; text-overflow: ellipsis; white-space: nowrap; }
@@ -101,9 +102,9 @@
 .workspace { min-height: 100svh; margin-left: 17.25rem; }
 .mobileHeader, .bottomNav, .drawer, .drawerClose, .scrim { display: none; }
 
-.authPage { display: grid; min-height: 100svh; place-items: center; padding: 1.25rem; background: radial-gradient(circle at 18% 12%, #e6edff 0, transparent 28rem), #f8f9fc; }
+.authPage { display: grid; min-height: 100svh; place-items: center; padding: 1.25rem; background: radial-gradient(circle at 18% 12%, #e1edff 0, transparent 30rem), linear-gradient(135deg, #fff, #f5f9ff); }
 .authPage > p { color: var(--amana-ink-muted); }
-.authCard { width: min(100%, 27rem); padding: clamp(2rem, 7vw, 3.4rem); border: 1px solid var(--amana-border); border-radius: 1.2rem; background: #fff; box-shadow: var(--amana-shadow-spatial); }
+.authCard { width: min(100%, 28rem); padding: clamp(2rem, 7vw, 3.25rem); border: 1px solid #dbe5f2; border-radius: 1.15rem; background: rgb(255 255 255 / 96%); box-shadow: 0 1.75rem 5rem -2.5rem rgb(29 59 119 / 34%); }
 .authBrand { margin-bottom: 3rem; font-size: 1.06rem; font-weight: 650; }
 .kicker { margin: 0 0 0.7rem; color: var(--amana-brand-strong); font-size: 0.7rem; font-weight: 750; letter-spacing: 0.12em; text-transform: uppercase; }
 .authCard h1 { margin: 0; font-family: var(--amana-font-display); font-size: 2.25rem; font-weight: 560; letter-spacing: -0.04em; line-height: 1.05; }
@@ -113,6 +114,13 @@
 .authForm input { width: 100%; min-height: 2.9rem; border: 1px solid var(--amana-border-strong); border-radius: 0.58rem; background: #fff; color: var(--amana-ink); padding: 0.7rem 0.8rem; }
 .authFootnote { margin: 1.5rem 0 0; color: #8994a7; font-size: 0.7rem; line-height: 1.5; }
 .formError { margin: 0; color: var(--amana-negative); font-size: 0.76rem; }
+.demoAccess { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: .25rem 1rem; margin-top: 1.25rem; border: 1px solid #d9e5fa; border-radius: .78rem; background: #f5f9ff; padding: .85rem; }
+.demoAccess div { display: grid; gap: .16rem; }
+.demoAccess strong { color: #263754; font-size: .74rem; }
+.demoAccess span, .demoAccess p { color: #79879b; font-size: .62rem; }
+.demoAccess p { grid-column: 1 / -1; margin: .3rem 0 0; line-height: 1.45; }
+.demoAccess button { min-height: 2.25rem; border: 1px solid #abc0ed; border-radius: .55rem; background: #fff; color: #2454cb; cursor: pointer; font-size: .66rem; font-weight: 700; padding: .5rem .68rem; }
+.demoAccess button:hover { border-color: #7398ed; background: #eef4ff; }
 
 .primaryButton, .secondaryButton, .textButton {
   min-height: 2.75rem;
@@ -129,9 +137,11 @@
 .secondaryButton:disabled { opacity: 0.45; cursor: not-allowed; }
 .textButton { border: 0; background: transparent; color: var(--amana-ink-muted); }
 
-.tourLayer { position: fixed; inset: 0; z-index: 100; pointer-events: none; }
-.spotlight { position: fixed; border: 2px solid #8aabff; border-radius: 0.8rem; box-shadow: 0 0 0 9999px rgb(13 23 43 / 56%), 0 0 0 6px rgb(122 158 255 / 20%); transition: inset var(--amana-motion-standard) var(--amana-ease-standard), width var(--amana-motion-standard) var(--amana-ease-standard), height var(--amana-motion-standard) var(--amana-ease-standard); }
+.tourLayer { position: fixed; inset: 0; z-index: 2000; isolation: isolate; pointer-events: auto; }
+.tourBackdrop { position: fixed; inset: 0; z-index: 0; display: block; }
+.spotlight { position: fixed; z-index: 1; border: 2px solid #91afff; border-radius: .85rem; box-shadow: 0 0 0 5px rgb(122 158 255 / 18%); pointer-events: none; transition: inset var(--amana-motion-standard) var(--amana-ease-standard), width var(--amana-motion-standard) var(--amana-ease-standard), height var(--amana-motion-standard) var(--amana-ease-standard); }
 .tourCard { position: fixed; width: min(21.25rem, calc(100vw - 2rem)); padding: 1.25rem; border: 1px solid #d8e0ed; border-radius: 0.9rem; background: #fff; box-shadow: 0 1.5rem 4rem -1.5rem rgb(10 22 48 / 42%); pointer-events: auto; transform: translateY(-100%); }
+.tourCard { z-index: 2; }
 .tourCard[data-below="true"] { transform: none; }
 .tourProgress { display: flex; align-items: center; gap: 0.7rem; color: #738198; font-size: 0.67rem; font-weight: 700; }
 .tourProgress::after { position: absolute; top: 1.57rem; right: 1.25rem; width: 4.5rem; height: 2px; background: #e6eaf1; content: ""; }
@@ -148,7 +158,7 @@
   .mobileHeader { position: fixed; inset: 0 0 auto; z-index: 30; display: grid; height: 4.25rem; grid-template-columns: 2.75rem 1fr 2.75rem; align-items: center; border-bottom: 1px solid #e6eaf1; background: rgb(255 255 255 / 92%); padding: 0 1rem; backdrop-filter: blur(14px); }
   .mobileHeader > button { display: grid; width: 2.75rem; height: 2.75rem; place-items: center; border: 0; background: transparent; color: var(--amana-ink); }
   .mobileBrand { justify-self: center; font-size: 0.96rem; font-weight: 650; }
-  .mobileBrand .brandMark { width: 1.7rem; height: 1.7rem; border-radius: 0.5rem; font-size: 0.82rem; }
+  .mobileBrand .brandMark { width: 1.7rem; height: 1.7rem; border-radius: 0.52rem; }
   .mobileAvatar { justify-self: end; }
   .scrim { position: fixed; inset: 0; z-index: 40; display: block; border: 0; background: rgb(13 23 43 / 42%); }
   .drawer { position: fixed; inset: 0 auto 0 0; z-index: 50; display: block; width: min(20rem, 88vw); transform: translateX(-102%); transition: transform var(--amana-motion-standard) var(--amana-ease-enter); }
@@ -157,11 +167,7 @@
 }
 
 @media (max-width: 47.99rem) {
-  .workspace { padding-bottom: calc(4.35rem + env(safe-area-inset-bottom)); }
-  .bottomNav { position: fixed; inset: auto 0 0; z-index: 30; display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid #e3e8f0; background: rgb(255 255 255 / 96%); padding: 0.3rem 0.4rem calc(0.3rem + env(safe-area-inset-bottom)); backdrop-filter: blur(14px); }
-  .bottomNav a { display: grid; min-height: 3.35rem; place-items: center; align-content: center; gap: 0.1rem; border-radius: 0.55rem; color: #758197; font-size: 0.61rem; font-weight: 620; text-decoration: none; }
-  .bottomNav a[data-active="true"] { background: #edf2ff; color: var(--amana-brand-strong); }
-  .bottomNav svg { width: 1.18rem; height: 1.18rem; }
+  .workspace { padding-bottom: env(safe-area-inset-bottom); }
   .tourCard { inset: auto 1rem calc(1rem + env(safe-area-inset-bottom)) !important; width: auto; transform: none !important; }
   .spotlight { transition-duration: var(--amana-motion-quick); }
 }

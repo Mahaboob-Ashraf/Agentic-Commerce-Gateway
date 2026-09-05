@@ -1,15 +1,16 @@
-.page { min-height: 100svh; overflow: hidden; background: radial-gradient(circle at 8% 95%, #e8efff 0, transparent 28rem), #fafbfc; padding: 0 clamp(1rem, 4vw, 4rem) 3rem; }
-.topbar { display: flex; height: 5rem; align-items: center; justify-content: space-between; }
+.page { min-height: 100svh; overflow: hidden; background: radial-gradient(circle at 9% 92%, #dfeaff 0, transparent 30rem), linear-gradient(145deg, #fff 0%, #f8fbff 58%, #f2f7ff 100%); padding: 0 clamp(1rem, 4vw, 4rem) 3rem; }
+.topbar { display: flex; width: min(100%, 64rem); height: 5rem; align-items: center; justify-content: space-between; margin: 0 auto; }
 .wordmark { display: inline-flex; align-items: center; gap: 0.62rem; border: 0; background: transparent; color: var(--amana-ink); cursor: pointer; font-family: var(--amana-font-display); font-size: 1rem; font-weight: 650; }
-.wordmark span { display: grid; width: 1.85rem; height: 1.85rem; place-items: center; border-radius: 0.55rem; background: var(--amana-brand); color: white; }
+.brandMark { display: grid; width: 2rem; height: 2rem; place-items: center; overflow: hidden; border-radius: .62rem; background: #fff; box-shadow: 0 .55rem 1.3rem -.8rem rgb(36 91 219 / 45%); }
+.brandMark img { width: 100%; height: 100%; object-fit: contain; }
 .exit, .backButton, .skipButton { min-height: 2.75rem; border: 0; background: transparent; color: #657188; cursor: pointer; font-size: 0.75rem; font-weight: 650; padding: 0.65rem 0.8rem; }
-.progress { width: min(100%, 57rem); margin: 0 auto; }
+.progress { width: min(100%, 60rem); margin: 0 auto; }
 .progressTrack { display: grid; grid-template-columns: repeat(6, 1fr); gap: 0.38rem; }
 .progressTrack span { height: 2px; background: #dfe4ec; }
 .progressTrack span[data-active="true"] { background: var(--amana-brand); }
 .progress p { margin: 0.65rem 0 0; color: #8a95a7; font-size: 0.65rem; letter-spacing: 0.05em; text-transform: uppercase; }
 .progress strong { color: var(--amana-brand-strong); }
-.stage { display: grid; width: min(100%, 57rem); min-height: calc(100svh - 8.5rem); align-items: center; margin: 0 auto; padding: clamp(2.5rem, 6vh, 5.5rem) 0; }
+.stage { display: grid; width: min(100%, 64rem); min-height: calc(100svh - 9.25rem); align-items: center; margin: 1.1rem auto 0; border: 1px solid #dce6f4; border-radius: 1.4rem; background: rgb(255 255 255 / 88%); box-shadow: 0 2rem 5rem -3.4rem rgb(28 64 130 / 42%); padding: clamp(2.25rem, 6vw, 5rem); }
 .step { width: 100%; min-width: 0; animation: enter var(--amana-motion-gentle) var(--amana-ease-enter) both; }
 .stepHeading { max-width: 41rem; }
 .stepHeading > p { margin: 0 0 0.72rem; color: var(--amana-brand-strong); font-size: 0.68rem; font-weight: 750; letter-spacing: 0.13em; text-transform: uppercase; }
@@ -18,9 +19,7 @@
 .continueButton { display: inline-flex; min-height: 2.9rem; align-items: center; justify-content: center; gap: 0.55rem; border: 1px solid var(--amana-brand); border-radius: 0.62rem; background: var(--amana-brand); color: white; cursor: pointer; font-size: 0.78rem; font-weight: 680; padding: 0.7rem 1.15rem; }
 .continueButton:hover { background: var(--amana-brand-strong); }
 .continueButton:disabled { border-color: #ccd5e3; background: #ccd5e3; cursor: not-allowed; }
-.welcome { display: grid; grid-template-columns: minmax(0, 1fr) 18rem; align-items: end; gap: 1rem 4rem; }
-.welcomeOrb { grid-column: 2; grid-row: 1 / span 3; display: grid; width: 16rem; height: 16rem; place-items: center; border: 1px solid #b8caff; border-radius: 50%; background: radial-gradient(circle at 36% 28%, #fff 0 5%, #c5d4ff 21%, #6588fa 52%, #1e49c7 78%, #142f7e 100%); box-shadow: 0 2rem 5rem -1.5rem rgb(43 95 245 / 48%); }
-.welcomeOrb span { width: 3rem; height: 3rem; border: 1px solid rgb(255 255 255 / 66%); border-radius: 50%; background: rgb(255 255 255 / 22%); }
+.welcome { max-width: 44rem; }
 .promise { display: grid; margin: 2.5rem 0; border-block: 1px solid #dfe5ee; }
 .promise div { display: grid; grid-template-columns: 2rem 1fr; gap: 1rem; padding: 0.9rem 0; border-bottom: 1px solid #e6eaf1; }
 .promise div:last-child { border: 0; }
@@ -43,11 +42,12 @@
 .existingAddresses svg { position: absolute; top: 0.65rem; right: 0.65rem; width: 1rem; color: var(--amana-positive); }
 .merchants { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 2.4rem; }
 .merchants article { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 0.85rem; border: 1px solid #dce3ed; border-radius: 0.85rem; background: white; padding: 1rem; }
-.merchantLogo { display: grid; width: 2.6rem; height: 2.6rem; place-items: center; border-radius: 0.7rem; background: #edf2ff; color: var(--amana-brand-strong); font-family: var(--amana-font-display); font-weight: 700; }
+.merchantLogo { position: relative; display: grid; width: 2.6rem; height: 2.6rem; overflow: hidden; place-items: center; border: 1px solid #dfe6f1; border-radius: 0.7rem; background: #edf2ff; color: var(--amana-brand-strong); font-family: var(--amana-font-display); font-weight: 700; }
+.merchantLogo img { position: absolute; inset: 0; width: 100%; height: 100%; background: #fff; object-fit: contain; }
 .merchants h3 { margin: 0; font-size: 0.84rem; }
 .merchants p { margin: 0.2rem 0; color: #7a869a; font-size: 0.66rem; line-height: 1.4; }
-.merchants span { color: #8a6270; font-size: 0.6rem; font-weight: 700; text-transform: uppercase; }
-.merchants span[data-connected="true"] { color: var(--amana-positive); }
+.merchants article > div span { color: #8a6270; font-size: 0.6rem; font-weight: 700; text-transform: uppercase; }
+.merchants article > div span[data-connected="true"] { color: var(--amana-positive); }
 .merchants button, .merchants form > button { min-height: 2.6rem; border: 1px solid #c9d3e3; border-radius: 0.55rem; background: white; color: #40506b; cursor: pointer; font-size: 0.68rem; font-weight: 650; padding: 0.55rem 0.75rem; }
 .merchants button:disabled { background: #eef1f5; color: #939dab; cursor: not-allowed; }
 .merchants form { grid-column: 1 / -1; display: grid; gap: 0.7rem; padding-top: 0.5rem; }
@@ -81,10 +81,7 @@
 @media (max-width: 47.99rem) {
   .page { padding-inline: 1rem; }
   .topbar { height: 4.25rem; }
-  .stage { min-height: calc(100svh - 7rem); align-items: start; padding: 3rem 0 1.5rem; }
-  .welcome { display: block; }
-  .welcomeOrb { width: 5rem; height: 5rem; margin-bottom: 2rem; }
-  .welcomeOrb span { width: 1.2rem; height: 1.2rem; }
+  .stage { min-height: calc(100svh - 7rem); align-items: start; margin-top: .65rem; border-radius: 1rem; padding: 2rem 1.15rem; }
   .stepHeading h1 { font-size: 2.45rem; }
   .addressForm, .merchants { grid-template-columns: 1fr; }
   .merchants article { grid-template-columns: auto 1fr; }

@@ -67,6 +67,7 @@ class Task012GenericCommerceRequestIntegrationTest {
         assertThat(result.requestStatus()).isEqualTo(RequestStatus.COMPLETED);assertThat(result.state()).isEqualTo(BuyerState.CONSTRAINTS_VERIFIED);
         assertThat(result.goal()).isEqualTo(IntentGoal.PURCHASE_PRODUCT);assertThat(result.merchantId()).isEqualTo(f.grocery.id());assertThat(result.catalogueVersion()).startsWith("v1:");assertThat(result.products()).singleElement().satisfies(line->{
             assertThat(line.merchantSku()).isEqualTo("SYN-GROCERY-CHANA-200");assertThat(line.lineAmountMinor()).isEqualTo(21_500L);
+            assertThat(line.facts()).anySatisfy(fact->{assertThat(fact.type()).isEqualTo("IMAGE");assertThat(fact.value().asText()).isEqualTo("/demo/products/roasted-chana.svg");});
             assertThat(line.facts()).anySatisfy(fact->{assertThat(fact.type()).isEqualTo("ALLERGEN");assertThat(fact.authorityTier()).isEqualTo("PRIMARY");assertThat(fact.value().path("status").asText()).isEqualTo("ABSENT");});});
         assertThat(result.authoritativeFinalAmountMinor()).isEqualTo(21_500L).isNotEqualTo(19_900L);
         assertThat(result.constraints()).extracting(ConstraintSummary::key).contains("CATEGORY","BUDGET","VEGETARIAN","ALLERGEN_PEANUT","QUOTE_VALIDITY");
@@ -118,9 +119,23 @@ class Task012GenericCommerceRequestIntegrationTest {
         assertThat(jdbc.sql("SELECT count(*)::int FROM commerce_thread WHERE buyer_actor_id=:b").param("b",f.buyer.id()).query(Integer.class).single()).isOne();
         assertThatThrownBy(()->commerceRequests.execute(f.buyer.id(),request,null,"shoes under 5000 rupees")).isInstanceOfSatisfying(BuyerException.class,e->assertThat(e.code()).isEqualTo("COMMERCE_REQUEST_IDEMPOTENCY_CONFLICT"));}
 
+    @Test void runningRequestReadReturnsAttachableDurableStateInsteadOfRawConflict(){Fixture f=fixture("running-recovery");CommerceThread thread=threads.create(f.buyer.id(),"mango milkshake under 300 rupees");UUID request=UUID.randomUUID();
+        jdbc.sql("INSERT INTO buyer_commerce_request(request_id,buyer_actor_id,requested_thread_id,thread_id,normalized_text,material_hash) VALUES(:request,:buyer,:thread,:thread,:text,:hash)")
+                .param("request",request).param("buyer",f.buyer.id()).param("thread",thread.threadId()).param("text","mango milkshake under 300 rupees").param("hash","a".repeat(64)).update();
+        CommerceRequestResult running=commerceRequests.get(f.buyer.id(),request);
+        assertThat(running.requestId()).isEqualTo(request);assertThat(running.threadId()).isEqualTo(thread.threadId());assertThat(running.requestStatus()).isEqualTo(RequestStatus.RUNNING);
+        assertThat(running.products()).isEmpty();assertThat(running.paymentReady()).isFalse();}
+
     @Test void correctionCreatesFreshIntentAndLegacyFoodRemainsReadable(){Fixture f=fixture("correction");CommerceRequestResult first=commerceRequests.execute(f.buyer.id(),UUID.randomUUID(),null,"mango milkshake under 300 rupees");CommerceRequestResult corrected=commerceRequests.execute(f.buyer.id(),UUID.randomUUID(),first.threadId(),"change to high-protein vegetarian snacks under 500 rupees, peanuts prohibited");
         assertThat(corrected.currentIntentVersion()).isEqualTo(2);assertThat(jdbc.sql("SELECT count(*)::int FROM buyer_intent WHERE thread_id=:t").param("t",first.threadId()).query(Integer.class).single()).isEqualTo(2);
         assertThat(corrected.products().getFirst().category()).isEqualTo("Snacks");CommerceRequestResult legacy=commerceRequests.execute(f.buyer.id(),UUID.randomUUID(),null,"legacy food purchase");assertThat(legacy.goal()).isEqualTo(IntentGoal.PURCHASE_FOOD);}
+
+    @Test void statusFollowUpReturnsCurrentThreadEvidenceWithoutDiscardingOrRecompilingIntent(){Fixture f=fixture("status-follow-up");CommerceRequestResult first=commerceRequests.execute(f.buyer.id(),UUID.randomUUID(),null,"mango milkshake under 300 rupees");
+        CommerceRequestResult status=commerceRequests.execute(f.buyer.id(),UUID.randomUUID(),first.threadId(),"what happened?");
+        assertThat(status.threadId()).isEqualTo(first.threadId());assertThat(status.currentIntentVersion()).isEqualTo(first.currentIntentVersion());
+        assertThat(status.products()).extracting(AuthoritativeProductLine::merchantSku).containsExactly("SYN-GROCERY-MANGO-SHAKE-250");
+        assertThat(jdbc.sql("SELECT count(*)::int FROM buyer_intent WHERE thread_id=:t").param("t",first.threadId()).query(Integer.class).single()).isOne();
+        assertThat(threads.messages(f.buyer.id(),first.threadId())).extracting(ThreadMessage::normalizedText).containsExactly("mango milkshake under 300 rupees","what happened?");}
 
     @Test void deterministicCompilerFailureIsPersistedAndIdempotentlyRecoverable(){Fixture f=fixture("failure");UUID request=UUID.randomUUID();
         CommerceRequestResult failed=commerceRequests.execute(f.buyer.id(),request,null,"underspecified request");

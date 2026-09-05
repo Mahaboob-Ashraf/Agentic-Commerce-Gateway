@@ -12,7 +12,10 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.MediaType;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/buyer/commerce-requests")
@@ -21,6 +24,11 @@ public class CommerceRequestApiController {
     public CommerceRequestApiController(CommerceRequestService service){this.service=service;}
     @PostMapping public CommerceRequestModels.CommerceRequestResult create(@AuthenticationPrincipal VerifiedActorPrincipal principal,
             @Valid @RequestBody Request request){return service.execute(principal.actorId(),request.requestId(),request.threadId(),request.text());}
+    @PostMapping(path="/visual",consumes=MediaType.MULTIPART_FORM_DATA_VALUE)
+    public CommerceRequestModels.CommerceRequestResult createVisual(@AuthenticationPrincipal VerifiedActorPrincipal principal,
+            @RequestParam UUID requestId,@RequestParam(required=false) UUID threadId,
+            @RequestParam(required=false) @Size(max=4000) String text,@RequestParam("image") MultipartFile image){
+        return service.executeVisual(principal.actorId(),requestId,threadId,text,image);}
     @GetMapping("/{requestId}") public CommerceRequestModels.CommerceRequestResult get(@AuthenticationPrincipal VerifiedActorPrincipal principal,
             @PathVariable UUID requestId){return service.get(principal.actorId(),requestId);}
     @GetMapping("/thread/{threadId}") public CommerceRequestModels.CommerceRequestResult latestForThread(

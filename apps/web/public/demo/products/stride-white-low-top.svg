@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 480" role="img" aria-labelledby="title description">
+  <title id="title">Stride white low-top lifestyle sneaker</title>
+  <desc id="description">Catalogue illustration of a white low-top sneaker with a blue heel tab and rubber sole.</desc>
+  <rect width="640" height="480" rx="48" fill="#f4f6fa"/>
+  <ellipse cx="330" cy="386" rx="238" ry="25" fill="#dce2eb"/>
+  <path d="M111 310c57-9 102-32 135-69l45-51c19-22 50-32 79-24l57 16c18 5 30 21 30 40v27c0 17 11 32 27 38l73 27c25 9 41 33 39 59l-3 25H105c-22 0-39-18-38-40 1-21 18-38 44-38Z" fill="#fff" stroke="#263b67" stroke-width="8" stroke-linejoin="round"/>
+  <path d="M75 351c79 18 177 20 294 6 79-9 154-5 224 13v28H105c-22 0-39-18-38-40 0-3 1-5 8-7Z" fill="#e9edf3" stroke="#263b67" stroke-width="8"/>
+  <path d="M421 181v103" stroke="#315fc4" stroke-width="32"/>
+  <path d="m247 241 161 43M228 266l168 43M207 291l159 41" stroke="#8b98ad" stroke-width="9" stroke-linecap="round"/>
+  <path d="M281 196c37 36 74 51 126 48" fill="none" stroke="#263b67" stroke-width="8" stroke-linecap="round"/>
+  <circle cx="262" cy="238" r="7" fill="#263b67"/><circle cx="239" cy="264" r="7" fill="#263b67"/><circle cx="217" cy="290" r="7" fill="#263b67"/>
+</svg>

@@ -16,13 +16,26 @@ public class BuyerThreadService {
     private final BuyerAccessService access;private final BuyerRepository repository;private final CanonicalJsonService canonical;
     private final BuyerStateMachine states;
     public BuyerThreadService(BuyerAccessService access,BuyerRepository repository,CanonicalJsonService canonical,BuyerStateMachine states){this.access=access;this.repository=repository;this.canonical=canonical;this.states=states;}
-    @Transactional public CommerceThread create(UUID buyerId,String input){access.requireBuyer(buyerId);String text=normalize(input);String title=text.length()<=80?text:text.substring(0,80);
-        CommerceThread thread=repository.createThread(buyerId,title,Instant.now().plus(30,ChronoUnit.MINUTES));repository.appendMessage(thread,"TYPED_TEXT",text,canonical.hashText(text));return thread;}
+    @Transactional public CommerceThread create(UUID buyerId,String input){return createWithSource(buyerId,input,"TYPED_TEXT");}
+    @Transactional public CommerceThread createVisual(UUID buyerId,String input){return createWithSource(buyerId,input,"IMAGE_TEXT");}
+    private CommerceThread createWithSource(UUID buyerId,String input,String source){access.requireBuyer(buyerId);String text=normalize(input);String title=text.length()<=80?text:text.substring(0,80);
+        CommerceThread thread=repository.createThread(buyerId,title,Instant.now().plus(30,ChronoUnit.MINUTES));repository.appendMessage(thread,source,text,canonical.hashText(text));return thread;}
     @Transactional public ThreadMessage addMessage(UUID buyerId,UUID threadId,String input){access.requireBuyer(buyerId);CommerceThread thread=requireForUpdate(buyerId,threadId);String text=normalize(input);
         if(thread.state()!=BuyerState.WAITING_FOR_USER&&thread.state()!=BuyerState.CONSTRAINTS_VERIFIED&&thread.state()!=BuyerState.SEARCHING&&thread.state()!=BuyerState.CART_PROPOSED
                 &&thread.state()!=BuyerState.TRANSACTION_PROPOSED&&thread.state()!=BuyerState.RISK_EVALUATED&&thread.state()!=BuyerState.READY_TO_EXECUTE)
             throw new BuyerException("BUYER_MESSAGE_NOT_ALLOWED",HttpStatus.CONFLICT,"A clarification or correction is not accepted in the current state");
         states.require(thread.state(),BuyerState.UNDERSTANDING);ThreadMessage message=repository.appendMessage(thread,"TYPED_TEXT",text,canonical.hashText(text));repository.resumeForMessage(thread);return message;}
+    @Transactional public ThreadMessage addVisualMessage(UUID buyerId,UUID threadId,String input){access.requireBuyer(buyerId);CommerceThread thread=requireForUpdate(buyerId,threadId);String text=normalize(input);
+        if(thread.state()!=BuyerState.WAITING_FOR_USER&&thread.state()!=BuyerState.CONSTRAINTS_VERIFIED&&thread.state()!=BuyerState.SEARCHING&&thread.state()!=BuyerState.CART_PROPOSED
+                &&thread.state()!=BuyerState.TRANSACTION_PROPOSED&&thread.state()!=BuyerState.RISK_EVALUATED&&thread.state()!=BuyerState.READY_TO_EXECUTE)
+            throw new BuyerException("BUYER_MESSAGE_NOT_ALLOWED",HttpStatus.CONFLICT,"A visual request is not accepted in the current state");
+        states.require(thread.state(),BuyerState.UNDERSTANDING);ThreadMessage message=repository.appendMessage(thread,"IMAGE_TEXT",text,canonical.hashText(text));repository.resumeForMessage(thread);return message;}
+    @Transactional public ThreadMessage addContextMessage(UUID buyerId,UUID threadId,String input){access.requireBuyer(buyerId);CommerceThread thread=requireForUpdate(buyerId,threadId);String text=normalize(input);
+        if(thread.state()!=BuyerState.WAITING_FOR_USER&&thread.state()!=BuyerState.CONSTRAINTS_VERIFIED
+                &&thread.state()!=BuyerState.TRANSACTION_PROPOSED&&thread.state()!=BuyerState.RISK_EVALUATED
+                &&thread.state()!=BuyerState.READY_TO_EXECUTE)
+            throw new BuyerException("BUYER_MESSAGE_NOT_ALLOWED",HttpStatus.CONFLICT,"Thread status is unavailable in the current state");
+        return repository.appendMessage(thread,"TYPED_TEXT",text,canonical.hashText(text));}
     public CommerceThread require(UUID buyerId,UUID threadId){access.requireBuyer(buyerId);return repository.findThread(buyerId,threadId).orElseThrow(()->new BuyerException("COMMERCE_THREAD_NOT_FOUND",HttpStatus.NOT_FOUND,"Buyer thread was not found"));}
     public CommerceThread requireForUpdate(UUID buyerId,UUID threadId){access.requireBuyer(buyerId);return repository.findThreadForUpdate(buyerId,threadId).orElseThrow(()->new BuyerException("COMMERCE_THREAD_NOT_FOUND",HttpStatus.NOT_FOUND,"Buyer thread was not found"));}
     public List<CommerceThread> list(UUID buyerId){access.requireBuyer(buyerId);return repository.listThreads(buyerId);}

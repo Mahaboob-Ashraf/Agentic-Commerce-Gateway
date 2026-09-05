@@ -5,7 +5,7 @@ import java.util.Objects;
 import java.util.UUID;
 
 /** Stable tenant identity for merchant-owned resources. */
-public record Merchant(UUID id, String merchantKey, String displayName, Instant createdAt) {
+public record Merchant(UUID id, String merchantKey, String displayName, String logoUrl, Instant createdAt) {
 
     public Merchant {
         Objects.requireNonNull(id, "id");

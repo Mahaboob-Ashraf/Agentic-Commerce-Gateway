@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 // @ts-expect-error Node's native type-stripping runner requires the explicit extension.
-import { deriveJourneySnapshot, hasSafetyCriticalUnknown, SingleFlightGate } from "./commerce-state.ts";
+import { deriveJourneySnapshot, hasSafetyCriticalUnknown, isSubmissionBusy, isUserMessageSending, SingleFlightGate } from "./commerce-state.ts";
 import type { CommerceRequestResult, FulfillmentView, PaymentStateView } from "./types.ts";
 
 const future = "2099-01-01T00:00:00Z";
@@ -9,7 +9,7 @@ const result = (overrides: Partial<CommerceRequestResult> = {}): CommerceRequest
   requestId: "request", threadId: "thread", state: "WAITING_FOR_USER", requestStatus: "COMPLETED",
   clarificationRequired: false, clarificationQuestion: null, currentIntentVersion: 1, goal: "PURCHASE_PRODUCT",
   category: "audio", budgetAmountMinor: null, budgetCurrency: "INR", hardRequirements: [], softPreferences: [],
-  merchantId: "merchant", merchantDisplayName: "Amazing", catalogueVersionId: "catalogue", catalogueVersion: "1",
+  merchantId: "merchant", merchantDisplayName: "Amazing", merchantLogoUrl: "/amana/merchant/amazing.png", catalogueVersionId: "catalogue", catalogueVersion: "1",
   cartId: "cart", cartHash: "hash", products: [{ productId: "product", merchantSku: "SKU", productName: "Product", brand: "Brand", variant: "Model", sizeStorage: null, colour: null, category: "audio", quantity: 1, unitAmountMinor: 100, lineAmountMinor: 100, facts: [] }],
   quoteRecordId: "quote", merchantQuoteId: "merchant-quote", merchantQuoteVersion: "1", subtotalMinor: 100,
   taxMinor: 0, deliveryMinor: 0, feesMinor: 0, authoritativeFinalAmountMinor: 100, authoritativeCurrency: "INR", quoteExpiresAt: future,
@@ -19,7 +19,7 @@ const result = (overrides: Partial<CommerceRequestResult> = {}): CommerceRequest
   transactionProposalId: "proposal", transactionProposalHash: "proposal-hash", proposalExpiresAt: future,
   riskOutcome: "EXPLICIT_CONFIRMATION", riskReasonCodes: [], explicitAuthorizationRequired: true, paymentReady: true,
   authorizationState: "WAITING_FOR_EXPLICIT_PAYMENT_AUTHORIZATION", nextAction: "AUTHORIZE_RAZORPAY_CHECKOUT",
-  progress: [], evidenceReferences: [], failureCode: null, ...overrides,
+  progress: [], evidenceReferences: [], failureCode: null, visualObservation: null, visualMatchType: null, visualMatchReasons: [], ...overrides,
 });
 
 const payment = (paymentState: PaymentStateView["paymentState"]): PaymentStateView => ({
@@ -60,12 +60,28 @@ test("uncertain, confirmed and fulfilled backend states remain distinct", () => 
   assert.equal(deriveJourneySnapshot(result(), null, true, true, payment("PAYMENT_CONFIRMED"), fulfilled).phase, "FULFILLED");
 });
 
+test("fulfillment is rendered only after confirmed payment for the same proposal and execution", () => {
+  const confirmed = payment("PAYMENT_CONFIRMED");
+  const fulfilled: FulfillmentView = { executionId: "execution", paymentState: "PAYMENT_CONFIRMED", fulfillmentState: "FULFILLED", merchantOperationId: "operation", merchantOrderId: "merchant-order", attemptCount: 1, lastErrorCode: null };
+  assert.equal(deriveJourneySnapshot(result(), null, true, true, confirmed, { ...fulfilled, executionId: "other-execution" }).phase, "FINALIZING");
+  assert.equal(deriveJourneySnapshot(result(), null, true, false, { ...confirmed, proposalId: "other-proposal" }, fulfilled).phase, "CHECKOUT_READY");
+  assert.equal(deriveJourneySnapshot(result(), null, true, true, confirmed, { ...fulfilled, paymentState: "PAYMENT_PENDING" }).phase, "FINALIZING");
+  assert.equal(deriveJourneySnapshot(result(), null, true, true, confirmed, fulfilled).phase, "FULFILLED");
+});
+
 test("single-flight guard rejects rapid duplicate actions and releases cleanly", () => {
   const gate = new SingleFlightGate();
   assert.equal(gate.enter("authorize"), true);
   assert.equal(gate.enter("authorize"), false);
   gate.leave("authorize");
   assert.equal(gate.enter("authorize"), true);
+});
+
+test("Sending belongs only to transport submission, not long commerce processing", () => {
+  assert.equal(isUserMessageSending("SUBMITTING"), true);
+  assert.equal(isUserMessageSending("PROCESSING"), false);
+  assert.equal(isSubmissionBusy("PROCESSING"), true);
+  assert.equal(isSubmissionBusy("IDLE"), false);
 });
 
 test("refresh reconstruction derives the same authoritative uncertain state", () => {

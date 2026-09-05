@@ -26,6 +26,7 @@ import {
   type LiveServerMessage,
   type LiveTranscription,
 } from "@/lib/gemini-live/socket";
+import { startGeminiLiveRuntime } from "@/lib/gemini-live/runtime";
 
 type ConnectionState =
   | "DISCONNECTED"
@@ -1071,24 +1072,13 @@ export function GeminiLiveLab() {
     resetPerSessionState();
     sessionNumberRef.current += 1;
 
-    let stream: MediaStream | null = null;
     let ownedSession: GeminiLiveSocket | null = null;
     try {
-      stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          channelCount: 1,
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-        },
-        video: false,
-      });
-      setMicrophoneSettings(inspectMicrophoneSettings(stream));
-
-      const audioContext = new AudioContext({ latencyHint: "interactive" });
-      await audioContext.resume();
-      audioContextRef.current = audioContext;
-      playerRef.current = await PcmAudioPlayer.create(audioContext, {
+      const runtime = await startGeminiLiveRuntime({
+        onMicrophoneReady: (stream) => setMicrophoneSettings(inspectMicrophoneSettings(stream)),
+        onAudioContextReady: (context) => { audioContextRef.current = context; },
+        onPlaybackReady: (player) => { playerRef.current = player; },
+        playback: {
         onStarted: () => {
           const turn = Math.max(1, currentModelTurnRef.current);
           const now = performance.now();
@@ -1142,9 +1132,9 @@ export function GeminiLiveLab() {
           setConnectionState("ERROR");
           addTimeline("ERROR", code);
         },
-      });
-
-      const tokenResponse = await fetch("/api/labs/gemini-live/token", {
+        },
+        acquireToken: async () => {
+          const tokenResponse = await fetch("/api/labs/gemini-live/token", {
         method: "POST",
         headers: { Accept: "application/json", "Content-Type": "application/json" },
         cache: "no-store",
@@ -1153,67 +1143,40 @@ export function GeminiLiveLab() {
       const tokenPayload = (await tokenResponse.json()) as Partial<TokenResponse> & {
         error?: string;
       };
-      if (!tokenResponse.ok || !tokenPayload.token) {
-        throw new Error(`TOKEN:${tokenPayload.error ?? "UNKNOWN"}`);
-      }
-      if (
-        tokenPayload.model !== options.model ||
-        tokenPayload.asyncMode !== options.asyncMode ||
-        tokenPayload.proactiveAudio !== options.proactiveAudio
-      ) {
-        throw new Error("TOKEN:SESSION_CONSTRAINT_MISMATCH");
-      }
-
-      ownedSession = await GeminiLiveSocket.connect(
-        tokenPayload.token,
-        buildGeminiLiveRawSetup(options),
-        {
-          onmessage: (message, socket) => handleLiveMessage(message, socket),
-          onerror: () => {
+          if (!tokenResponse.ok || !tokenPayload.token) {
+            throw new Error(`TOKEN:${tokenPayload.error ?? "UNKNOWN"}`);
+          }
+          if (
+            tokenPayload.model !== options.model ||
+            tokenPayload.asyncMode !== options.asyncMode ||
+            tokenPayload.proactiveAudio !== options.proactiveAudio
+          ) {
+            throw new Error("TOKEN:SESSION_CONSTRAINT_MISMATCH");
+          }
+          return { token: tokenPayload.token, setup: buildGeminiLiveRawSetup(options) };
+        },
+        onMessage: (message, socket) => handleLiveMessage(message, socket),
+        onSocketError: () => {
             if (sessionRef.current === ownedSession) {
               setErrorMessage("Gemini Live reported a WebSocket failure.");
               setConnectionState("ERROR");
               addTimeline("ERROR", "LIVE_SOCKET_ERROR");
               closeCurrentSession("socket error");
             }
-          },
-          onclose: (event) => {
+        },
+        onSocketClose: (event) => {
             if (sessionRef.current !== ownedSession) return;
             sessionRef.current = null;
             releaseMedia();
             setErrorMessage(connectionCloseMessage(event.reason));
             setConnectionState("ERROR");
             addTimeline("SESSION_CLOSED", `unexpected · code ${event.code}`);
-          },
         },
-      );
-      sessionRef.current = ownedSession;
-      if (!connectedLoggedRef.current) {
-        connectedLoggedRef.current = true;
-        addTimeline("SESSION_CONNECTED", `${options.model} · session ${sessionNumberRef.current}`);
-      }
-
-      if (seedCompactState) {
-        ownedSession.sendClientContent({
-          turns: [{ role: "user", parts: [{ text: compactSeedText() }] }],
-          turnComplete: false,
-        });
-        addTimeline("SESSION_CONTEXT_SEEDED", "compact deterministic state only");
-      }
-
-      recorderRef.current = await ContinuousPcmRecorder.create(audioContext, stream, {
-        onAudio: (base64Pcm) => {
-          if (sessionRef.current === ownedSession) {
-            try {
-              ownedSession?.sendRealtimeInput({
-                audio: { data: base64Pcm, mimeType: "audio/pcm;rate=16000" },
-              });
-            } catch {
-              setErrorMessage("Microphone audio could not be sent to Gemini Live.");
-              addTimeline("ERROR", "MICROPHONE_SEND_FAILED");
-            }
-          }
+        onAudioSendError: () => {
+          setErrorMessage("Microphone audio could not be sent to Gemini Live.");
+          addTimeline("ERROR", "MICROPHONE_SEND_FAILED");
         },
+        capture: {
         onLevel: (rms) => {
           const now = performance.now();
           if (now - lastLevelUiAtRef.current >= 200) {
@@ -1233,16 +1196,31 @@ export function GeminiLiveLab() {
           setConnectionState("ERROR");
           addTimeline("ERROR", code);
         },
+        },
+        onSocketReady: (socket) => {
+          ownedSession = socket;
+          sessionRef.current = socket;
+          if (!connectedLoggedRef.current) {
+            connectedLoggedRef.current = true;
+            addTimeline("SESSION_CONNECTED", `${options.model} · session ${sessionNumberRef.current}`);
+          }
+          if (seedCompactState) {
+            socket.sendClientContent({
+              turns: [{ role: "user", parts: [{ text: compactSeedText() }] }],
+              turnComplete: false,
+            });
+            addTimeline("SESSION_CONTEXT_SEEDED", "compact deterministic state only");
+          }
+        },
+        onRecorderReady: (recorder) => { recorderRef.current = recorder; },
       });
-      recorderRef.current.start();
+      ownedSession = runtime.socket;
       sessionAgeTimerRef.current = setInterval(() => {
         setSessionAgeMs(Math.max(0, Math.round(performance.now() - sessionStartedAtRef.current)));
       }, 1_000);
       setConnectionState("LISTENING");
     } catch (error) {
-      stream?.getTracks().forEach((track) => track.stop());
       if (sessionRef.current === ownedSession) sessionRef.current = null;
-      ownedSession?.close("session start failed");
       releaseMedia();
       const code = error instanceof Error ? error.message : "UNKNOWN";
       if (error instanceof DOMException && error.name === "NotAllowedError") {

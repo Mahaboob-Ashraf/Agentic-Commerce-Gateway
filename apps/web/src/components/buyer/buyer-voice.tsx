@@ -1,8 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useReducer, useRef, useState } from "react";
+import { useCallback, useEffect, useReducer, useRef, useState, type ReactNode } from "react";
+import { Button, CloseIcon, IconButton, KeyboardIcon, MicIcon, MicOffIcon, Tooltip } from "@razorpay/blade/components";
 import { buyerApi, BuyerApiError } from "@/lib/buyer/api";
 import type { CommerceRequestResult } from "@/lib/buyer/types";
+import { VoiceTranscriptTurns, type VoiceTranscriptTurn } from "@/lib/buyer/voice-transcript";
 import {
   executeProductionVoiceCommerce,
   initialVoiceSessionState,
@@ -23,26 +25,25 @@ import {
   type LiveServerMessage,
   type LiveTranscription,
 } from "@/lib/gemini-live/socket";
+import { startGeminiLiveRuntime, type GeminiLiveRuntimeStage } from "@/lib/gemini-live/runtime";
 import { useBuyerSession } from "./buyer-session";
-import { Icon } from "./icons";
 import styles from "./buyer-voice.module.css";
-
-type VoiceTurn = {
-  id: string;
-  role: "USER" | "AMANA";
-  text: string;
-  final: boolean;
-  languageCode?: string;
-};
 
 type Props = {
   onClose: () => void;
   onCommerceRequest: (query: string) => Promise<CommerceRequestResult>;
+  children: ReactNode;
 };
 
 const ACKNOWLEDGEMENT_TIMEOUT_MS = 15_000;
 const HEALTHY_SESSION_AGE_MS = 8 * 60_000;
 const MAX_TRANSCRIPT_TURNS = 80;
+
+function developmentVoiceDiagnostic(stage: string, details: Record<string, unknown> = {}) {
+  if (process.env.NODE_ENV !== "production") {
+    console.info(`[buyer-voice] ${JSON.stringify({ stage, model: BUYER_GEMINI_LIVE_MODEL, ...details })}`);
+  }
+}
 
 const stateCopy: Record<VoiceOrbState, string> = {
   IDLE: "Ready when you are",
@@ -58,26 +59,25 @@ const stateCopy: Record<VoiceOrbState, string> = {
 };
 
 function tokenFailure(code?: string): string {
+  if (code === "GEMINI_API_KEY_MISSING") return "Voice is not configured in this environment. Continue by typing.";
   if (code === "GEMINI_QUOTA_OR_RATE_LIMIT") return "Voice is busy right now. Continue by typing below.";
   if (code === "GEMINI_AUTHENTICATION_FAILED") return "Voice could not authenticate. Continue by typing below.";
   if (code === "BUYER_AUTHENTICATION_REQUIRED" || code === "BUYER_AUTHORITY_REQUIRED") {
     return "Your Buyer session could not be verified. Continue by typing below.";
   }
+  if (code === "CSRF_VALIDATION_FAILED" || code === "CSRF_OR_BUYER_AUTHORITY_INVALID") {
+    return "Your secure Buyer session changed. Refresh the page and try voice again.";
+  }
+  if (code === "BUYER_SESSION_VALIDATION_UNAVAILABLE") return "The Buyer service is temporarily unavailable. Continue by typing.";
   return "Voice could not connect. Your text conversation is still available.";
 }
 
-function mergeStreamingText(current: string, incoming: string): string {
-  if (!current) return incoming;
-  if (incoming.startsWith(current)) return incoming;
-  if (current.endsWith(incoming)) return current;
-  return current + incoming;
-}
-
-export function BuyerVoice({ onClose, onCommerceRequest }: Props) {
+export function BuyerVoice({ onClose, onCommerceRequest, children }: Props) {
   const { actor } = useBuyerSession();
   const [session, dispatch] = useReducer(reduceVoiceSession, initialVoiceSessionState);
-  const [transcript, setTranscript] = useState<VoiceTurn[]>([]);
+  const [transcript, setTranscript] = useState<VoiceTranscriptTurn[]>([]);
   const [paused, setPaused] = useState(false);
+  const [muted, setMuted] = useState(false);
   const [starting, setStarting] = useState(false);
   const [rotationPending, setRotationPending] = useState(false);
   const [health, setHealth] = useState<"HEALTHY" | "SLOW" | "DEGRADED">("HEALTHY");
@@ -92,8 +92,7 @@ export function BuyerVoice({ onClose, onCommerceRequest }: Props) {
   const sessionGenerationRef = useRef(0);
   const rotationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const transcriptRef = useRef<VoiceTurn[]>([]);
-  const draftIdsRef = useRef<Record<VoiceTurn["role"], string | null>>({ USER: null, AMANA: null });
+  const transcriptTurnsRef = useRef(new VoiceTranscriptTurns());
   const transcriptFlushRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const toolGuardRef = useRef(new VoiceToolCallGuard());
   const modelAudioSeenRef = useRef(false);
@@ -116,39 +115,17 @@ export function BuyerVoice({ onClose, onCommerceRequest }: Props) {
     if (transcriptFlushRef.current) return;
     transcriptFlushRef.current = setTimeout(() => {
       transcriptFlushRef.current = null;
-      transcriptRef.current = transcriptRef.current.slice(-MAX_TRANSCRIPT_TURNS);
-      setTranscript([...transcriptRef.current]);
+      setTranscript(transcriptTurnsRef.current.snapshot(MAX_TRANSCRIPT_TURNS));
     }, 120);
   }, []);
 
-  const ingestTranscript = useCallback((role: VoiceTurn["role"], item: LiveTranscription, interim = false) => {
-    if (!item.text) return;
-    const existingId = draftIdsRef.current[role];
-    const existing = transcriptRef.current.find((turn) => turn.id === existingId);
-    if (existing) {
-      existing.text = interim ? item.text : mergeStreamingText(existing.text, item.text);
-      existing.languageCode = item.languageCode ?? existing.languageCode;
-      existing.final = Boolean(item.finished);
-    } else {
-      const turn: VoiceTurn = {
-        id: crypto.randomUUID(),
-        role,
-        text: item.text,
-        final: Boolean(item.finished),
-        languageCode: item.languageCode,
-      };
-      transcriptRef.current.push(turn);
-      draftIdsRef.current[role] = turn.id;
-    }
-    if (item.finished) draftIdsRef.current[role] = null;
+  const ingestTranscript = useCallback((role: VoiceTranscriptTurn["role"], item: LiveTranscription, interim = false) => {
+    transcriptTurnsRef.current.ingest(role, item, interim);
     publishTranscript();
   }, [publishTranscript]);
 
-  const finalizeTranscript = useCallback((role: VoiceTurn["role"]) => {
-    const id = draftIdsRef.current[role];
-    const turn = transcriptRef.current.find((candidate) => candidate.id === id);
-    if (turn) turn.final = true;
-    draftIdsRef.current[role] = null;
+  const finalizeTranscript = useCallback((role: VoiceTranscriptTurn["role"]) => {
+    transcriptTurnsRef.current.finalize(role);
     publishTranscript();
   }, [publishTranscript]);
 
@@ -178,7 +155,7 @@ export function BuyerVoice({ onClose, onCommerceRequest }: Props) {
 
   const sendToolResponse = useCallback((socket: GeminiLiveSocket, call: LiveFunctionCall, response: Record<string, unknown>) => {
     if (!call.id) return;
-    socket.sendToolResponse([{ id: call.id, name: COMMERCE_FUNCTION_NAME, response }]);
+    socket.sendToolResponse([{ id: call.id, name: COMMERCE_FUNCTION_NAME, response, scheduling: "SILENT" }]);
   }, []);
 
   const runCommerceTool = useCallback(async (call: LiveFunctionCall, socket: GeminiLiveSocket) => {
@@ -206,6 +183,8 @@ export function BuyerVoice({ onClose, onCommerceRequest }: Props) {
         awaitingAuthorization: Boolean(result.transactionProposalId && result.paymentReady),
       });
       if (socketRef.current === socket) {
+        // This application-owned client turn is the durable tool outcome. It deliberately follows
+        // the immediate STARTED function response so Gemini can narrate only grounded final facts.
         socket.sendClientContent({
           turns: [{
             role: "user",
@@ -238,6 +217,8 @@ export function BuyerVoice({ onClose, onCommerceRequest }: Props) {
   const handleMessage = useCallback((message: LiveServerMessage, socket: GeminiLiveSocket) => {
     if (message.goAway) setRotationPending(true);
     if (message.voiceActivity?.voiceActivityType === "ACTIVITY_START") {
+      transcriptTurnsRef.current.beginUserTurn();
+      publishTranscript();
       dispatch({ type: "USER_ACTIVITY", active: true });
     } else if (message.voiceActivity?.voiceActivityType === "ACTIVITY_END") {
       finalizeTranscript("USER");
@@ -247,6 +228,9 @@ export function BuyerVoice({ onClose, onCommerceRequest }: Props) {
     const content = message.serverContent;
     if (content?.interimInputTranscription) ingestTranscript("USER", content.interimInputTranscription, true);
     if (content?.inputTranscription) ingestTranscript("USER", content.inputTranscription);
+    if (content?.outputTranscription || content?.modelTurn || message.toolCall?.functionCalls?.length) {
+      transcriptTurnsRef.current.beginAssistantTurn();
+    }
     if (content?.outputTranscription) ingestTranscript("AMANA", content.outputTranscription);
     for (const part of content?.modelTurn?.parts ?? []) {
       if (part.inlineData?.data && part.inlineData.mimeType?.startsWith("audio/pcm")) {
@@ -255,15 +239,18 @@ export function BuyerVoice({ onClose, onCommerceRequest }: Props) {
       }
     }
     if (content?.generationComplete || content?.turnComplete) {
-      finalizeTranscript("AMANA");
+      transcriptTurnsRef.current.finishModelTurn();
+      publishTranscript();
       playerRef.current?.finishTurn();
     }
     if (content?.interrupted) {
+      transcriptTurnsRef.current.finishModelTurn();
+      publishTranscript();
       playerRef.current?.interrupt();
       dispatch({ type: "INTERRUPTED" });
     }
     for (const call of message.toolCall?.functionCalls ?? []) void runCommerceTool(call, socket);
-  }, [finalizeTranscript, ingestTranscript, runCommerceTool]);
+  }, [finalizeTranscript, ingestTranscript, publishTranscript, runCommerceTool]);
 
   const startSession = useCallback(async (reconnecting = false) => {
     if (startingRef.current || socketRef.current) return;
@@ -275,96 +262,93 @@ export function BuyerVoice({ onClose, onCommerceRequest }: Props) {
     consecutiveSlowTurnsRef.current = 0;
     speechEndedAtRef.current = null;
     const generation = ++sessionGenerationRef.current;
-    let stream: MediaStream | null = null;
     let ownedSocket: GeminiLiveSocket | null = null;
+    let stage: GeminiLiveRuntimeStage = "microphone-acquisition";
     try {
-      stream = await navigator.mediaDevices.getUserMedia({
-        audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true },
-        video: false,
-      });
-      if (generation !== sessionGenerationRef.current) throw new Error("SESSION_SUPERSEDED");
-      const context = new AudioContext({ latencyHint: "interactive" });
-      await context.resume();
-      audioContextRef.current = context;
-      playerRef.current = await PcmAudioPlayer.create(context, {
-        onStarted: () => {
-          const speechEndedAt = speechEndedAtRef.current;
-          speechEndedAtRef.current = null;
-          if (speechEndedAt !== null) {
-            const latency = performance.now() - speechEndedAt;
-            if (latency > 10_000) {
-              setHealth("DEGRADED");
-              setRotationPending(true);
-            } else if (latency > 5_000) {
-              consecutiveSlowTurnsRef.current += 1;
-              if (consecutiveSlowTurnsRef.current >= 2) {
+      developmentVoiceDiagnostic("session-start");
+      const runtime = await startGeminiLiveRuntime({
+        acquireToken: async () => {
+          const token = await buyerApi.createVoiceToken(preferredLanguage);
+          if (generation !== sessionGenerationRef.current) throw new Error("SESSION_SUPERSEDED");
+          if (token.model !== BUYER_GEMINI_LIVE_MODEL) throw new Error("LIVE_MODEL_CONSTRAINT_MISMATCH");
+          return { token: token.token, setup: buildBuyerGeminiLiveRawSetup(preferredLanguage, token.voiceName) };
+        },
+        playback: {
+          onStarted: () => {
+            const speechEndedAt = speechEndedAtRef.current;
+            speechEndedAtRef.current = null;
+            if (speechEndedAt !== null) {
+              const latency = performance.now() - speechEndedAt;
+              if (latency > 10_000) {
                 setHealth("DEGRADED");
                 setRotationPending(true);
+              } else if (latency > 5_000) {
+                consecutiveSlowTurnsRef.current += 1;
+                if (consecutiveSlowTurnsRef.current >= 2) {
+                  setHealth("DEGRADED");
+                  setRotationPending(true);
+                } else setHealth("SLOW");
               } else {
-                setHealth("SLOW");
+                consecutiveSlowTurnsRef.current = 0;
+                setHealth("HEALTHY");
               }
-            } else {
-              consecutiveSlowTurnsRef.current = 0;
-              setHealth("HEALTHY");
             }
-          }
-          dispatch({ type: "MODEL_AUDIO_STARTED" });
-        },
-        onCompleted: () => {
-          modelAudioSeenRef.current = false;
-          dispatch({ type: "MODEL_AUDIO_ENDED" });
-        },
-        onUnderrun: () => undefined,
-        onDepth: () => undefined,
-        onError: () => dispatch({ type: "FAIL", message: "Audio playback stopped. Continue by typing below." }),
-      });
-      const token = await buyerApi.createVoiceToken(preferredLanguage);
-      if (generation !== sessionGenerationRef.current) throw new Error("SESSION_SUPERSEDED");
-      if (token.model !== BUYER_GEMINI_LIVE_MODEL) throw new Error("LIVE_MODEL_CONSTRAINT_MISMATCH");
-      ownedSocket = await GeminiLiveSocket.connect(
-        token.token,
-        buildBuyerGeminiLiveRawSetup(preferredLanguage),
-        {
-          onmessage: handleMessage,
-          onerror: () => {
-            if (socketRef.current === ownedSocket) {
-              closeSocket("socket error");
-              dispatch({ type: "FAIL", message: "The voice session was interrupted. Continue by typing below." });
-            }
+            dispatch({ type: "MODEL_AUDIO_STARTED" });
           },
-          onclose: () => {
-            if (socketRef.current !== ownedSocket) return;
-            socketRef.current = null;
-            releaseMedia();
-            dispatch({ type: "FAIL", message: "The voice session ended. Continue by typing or reconnect." });
+          onCompleted: () => {
+            modelAudioSeenRef.current = false;
+            dispatch({ type: "MODEL_AUDIO_ENDED" });
           },
+          onUnderrun: () => undefined,
+          onDepth: () => undefined,
+          onError: () => dispatch({ type: "FAIL", message: "Audio playback stopped. Continue by typing below." }),
         },
-      );
-      if (generation !== sessionGenerationRef.current) throw new Error("SESSION_SUPERSEDED");
-      socketRef.current = ownedSocket;
-      recorderRef.current = await ContinuousPcmRecorder.create(context, stream, {
-        onAudio: (audio) => {
+        capture: {
+          onLevel: (level) => orbRef.current?.style.setProperty("--voice-level", String(Math.min(1, level * 7))),
+          // Local RMS drives the orb level only; Gemini server VAD owns speech boundaries.
+          onLocalActivity: () => undefined,
+          onError: () => dispatch({ type: "FAIL", message: "The microphone disconnected. Continue by typing below." }),
+        },
+        onMessage: handleMessage,
+        onDiagnostic: (diagnostic) => developmentVoiceDiagnostic(diagnostic.stage, diagnostic),
+        onSocketError: () => {
           if (socketRef.current === ownedSocket) {
-            try {
-              ownedSocket?.sendRealtimeInput({ audio: { data: audio, mimeType: "audio/pcm;rate=16000" } });
-            } catch {
-              dispatch({ type: "FAIL", message: "Microphone audio could not be sent. Continue by typing below." });
-            }
+            closeSocket("socket error");
+            dispatch({ type: "FAIL", message: "The voice session was interrupted. Continue by typing below." });
           }
         },
-        onLevel: (level) => orbRef.current?.style.setProperty("--voice-level", String(Math.min(1, level * 7))),
-        // Local RMS drives the orb level only; Gemini server VAD owns speech boundaries.
-        onLocalActivity: () => undefined,
-        onError: () => dispatch({ type: "FAIL", message: "The microphone disconnected. Continue by typing below." }),
+        onSocketClose: () => {
+          if (socketRef.current !== ownedSocket) return;
+          socketRef.current = null;
+          releaseMedia();
+          dispatch({ type: "FAIL", message: "The voice session ended. Continue by typing or reconnect." });
+        },
+        onAudioSendError: () => dispatch({ type: "FAIL", message: "Microphone audio could not be sent. Continue by typing below." }),
+        onStage: (nextStage, details) => {
+          stage = nextStage;
+          developmentVoiceDiagnostic(nextStage, details);
+        },
+        onAudioContextReady: (context) => { audioContextRef.current = context; },
+        onPlaybackReady: (player) => { playerRef.current = player; },
+        onSocketReady: (socket) => {
+          if (generation !== sessionGenerationRef.current) throw new Error("SESSION_SUPERSEDED");
+          ownedSocket = socket;
+          socketRef.current = socket;
+        },
+        onRecorderReady: (recorder) => { recorderRef.current = recorder; },
       });
-      recorderRef.current.start();
+      ownedSocket = runtime.socket;
+      setMuted(false);
       dispatch({ type: "CONNECTED" });
     } catch (error) {
-      stream?.getTracks().forEach((track) => track.stop());
       if (socketRef.current === ownedSocket) socketRef.current = null;
-      ownedSocket?.close("session start failed");
       releaseMedia();
       const code = error instanceof BuyerApiError ? error.code : error instanceof Error ? error.message : undefined;
+      developmentVoiceDiagnostic("session-start-failed", {
+        failedStage: stage,
+        exception: error instanceof Error ? error.constructor.name : "UnknownError",
+        code: code ?? "UNKNOWN",
+      });
       const message = error instanceof DOMException && error.name === "NotAllowedError"
         ? "Microphone permission was denied. You can continue by typing below."
         : tokenFailure(code);
@@ -392,8 +376,7 @@ export function BuyerVoice({ onClose, onCommerceRequest }: Props) {
       setRotationPending(false);
       closeSocket("fresh session rotation");
       toolGuardRef.current.clear();
-      transcriptRef.current = [];
-      draftIdsRef.current = { USER: null, AMANA: null };
+      transcriptTurnsRef.current.clear();
       setTranscript([]);
       void startSession(true);
     }, 0);
@@ -456,30 +439,55 @@ export function BuyerVoice({ onClose, onCommerceRequest }: Props) {
     onClose();
   }
 
+  function toggleMute() {
+    const recorder = recorderRef.current;
+    if (!recorder || !session.connected) return;
+    if (muted) recorder.start();
+    else recorder.stop({ stopTracks: false });
+    setMuted(!muted);
+  }
+
   return (
-    <section ref={containerRef} className={styles.voiceMode} aria-labelledby="amana-voice-title" data-paused={paused}>
+    <section ref={containerRef} className={styles.voiceMode} aria-labelledby="amana-voice-title" data-paused={paused} data-developed={transcript.length > 0}>
       <header className={styles.voiceHeader}>
-        <div><p>Gemini Live · Buyer voice</p><h2 id="amana-voice-title">Talk with Amana</h2></div>
-        <button type="button" onClick={exitVoice} aria-label="Close voice mode"><Icon name="close" /></button>
+        <div><span className={styles.liveDot} data-connected={session.connected} /><h2 id="amana-voice-title">Amana voice</h2></div>
+        <Tooltip content="Close voice mode" placement="bottom">
+          <IconButton icon={CloseIcon} accessibilityLabel="Close voice mode" size="medium" onClick={exitVoice} />
+        </Tooltip>
       </header>
-      <div className={styles.orbStage}>
+      <div className={styles.orbStage} data-tour="voice-controls">
         <div ref={orbRef} className={styles.voiceOrb} data-state={session.orb} aria-hidden="true">
           <i /><i /><i /><span />
         </div>
         <strong className={styles.stateLabel} role="status" aria-live="polite">{stateCopy[session.orb]}</strong>
-        <small>{session.connected ? `${BUYER_GEMINI_LIVE_MODEL} · microphone on · session ${health.toLowerCase()}` : "Microphone starts only when you choose Start voice"}</small>
+        <small>{session.connected ? `Microphone ${muted ? "muted" : "on"} · connection ${health.toLowerCase()}` : "Your microphone starts only after you choose Start"}</small>
       </div>
-      <div className={styles.transcript} aria-label="Live voice transcript" aria-live="polite">
-        {transcript.length === 0 ? <p className={styles.transcriptEmpty}>Your live transcript will appear here. Speak naturally and switch languages whenever you like.</p> : transcript.map((turn) => (
-          <p key={turn.id} data-role={turn.role} data-final={turn.final}>{turn.text}</p>
-        ))}
+      <div className={styles.voiceFlow}>
+        <div className={styles.transcript} aria-label="Live voice transcript" aria-live="polite">
+          {transcript.map((turn) => (
+            <p key={turn.id} data-role={turn.role} data-final={turn.final}>{turn.text}</p>
+          ))}
+        </div>
+        <div className={styles.commerceFlow}>{children}</div>
       </div>
       {session.error && <div className={styles.voiceError} role="alert">{session.error}</div>}
+      <div className={styles.trustRail}>
+        <span data-tour="grounding">Live catalogue grounding</span>
+        <span data-tour="proposal-boundary">On-screen approval only</span>
+      </div>
       <footer className={styles.voiceControls}>
-        {!session.connected ? <button className={styles.primary} type="button" onClick={() => void startSession(session.orb === "ERROR")} disabled={starting}><Icon name="mic" />{session.orb === "ERROR" ? "Try voice again" : "Start voice"}</button> : <button type="button" onClick={stopSession}>End voice session</button>}
-        <button type="button" onClick={exitVoice}>Continue by typing</button>
+        {!session.connected ? (
+          <Button icon={MicIcon} isLoading={starting} isDisabled={starting} onClick={() => void startSession(session.orb === "ERROR")}>{session.orb === "ERROR" ? "Try voice again" : "Start voice"}</Button>
+        ) : (
+          <Tooltip content={muted ? "Turn microphone on" : "Mute microphone"} placement="top">
+            <IconButton icon={muted ? MicOffIcon : MicIcon} accessibilityLabel={muted ? "Turn microphone on" : "Mute microphone"} size="large" onClick={toggleMute} />
+          </Tooltip>
+        )}
+        <span data-tour="mode-switch">
+          <Button variant="secondary" icon={KeyboardIcon} onClick={exitVoice}>Type instead</Button>
+        </span>
+        {session.connected && <Button variant="tertiary" icon={CloseIcon} onClick={stopSession}>End</Button>}
       </footer>
-      <p className={styles.boundary}><Icon name="shield" />Voice can search and prepare a proposal. Only the on-screen <strong>Authorize purchase</strong> control can approve spending.</p>
     </section>
   );
 }

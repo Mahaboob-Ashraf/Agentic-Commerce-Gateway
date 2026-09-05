@@ -7,6 +7,7 @@ import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,11 +25,14 @@ public class IntentCompilerService {
             ExactProductIdentityResolver identityResolver){this.compiler=compiler;this.canonical=canonical;this.mapper=mapper;this.identityResolver=identityResolver;}
     IntentCompilerService(BuyerIntentCompiler compiler,CanonicalJsonService canonical,ObjectMapper mapper){this(compiler,canonical,mapper,null);}
     public Compiled compile(ThreadMessage message){
+        return compile(message,BuyerIntentCompiler.ConversationContext.empty());
+    }
+    public Compiled compile(ThreadMessage message,BuyerIntentCompiler.ConversationContext context){
         long totalStarted=System.nanoTime();String feedback=null;
         for(int attempt=1;attempt<=2;attempt++){
             long attemptStarted=System.nanoTime();long compilerStarted=System.nanoTime();
             try{
-                CompiledIntent modelValue=compiler.compile(message,feedback);long compilerElapsed=elapsedMillis(compilerStarted);
+                CompiledIntent modelValue=compiler.compile(message,context,feedback);long compilerElapsed=elapsedMillis(compilerStarted);
                 long validationStarted=System.nanoTime();validate(message,modelValue);long validationElapsed=elapsedMillis(validationStarted);
                 var modelMaterial=mapper.valueToTree(modelValue);
                 long resolutionStarted=System.nanoTime();ExactProductIdentityResolver.Resolution resolution=identityResolver==null
@@ -41,7 +45,7 @@ public class IntentCompilerService {
                         attempt,compilerElapsed,validationElapsed,resolutionElapsed,resolution.outcome(),elapsedMillis(totalStarted),attempt>1);
                 return result;
             }catch(BuyerException e){
-                if(e.code().equals("INTENT_COMPILER_UNAVAILABLE")){
+                if(e.code().equals("AI_PROVIDER_UNAVAILABLE")||e.code().equals("AI_PROVIDER_RATE_LIMITED")){
                     log.warn("Buyer intent compilation unavailable attempt={} reason={} attemptElapsedMs={} totalElapsedMs={} repair={}",
                             attempt,bounded(e.getMessage()),elapsedMillis(attemptStarted),elapsedMillis(totalStarted),attempt>1);
                     throw e;
@@ -66,16 +70,20 @@ public class IntentCompilerService {
         if(v.prohibitedAllergen()!=null&&!"PEANUT".equals(v.prohibitedAllergen().toUpperCase(Locale.ROOT)))invalid("Unsupported allergen");
         if(v.ambiguityState()==AmbiguityState.AMBIGUOUS&&(v.clarificationQuestion()==null||v.clarificationQuestion().isBlank()))invalid("Ambiguity requires one clarification question");
         if(v.ambiguityState()==AmbiguityState.CLEAR&&v.clarificationQuestion()!=null)invalid("Clear intent cannot retain a clarification question");
-        if(v.softPreferences()==null||v.softPreferences().size()>16||v.materialFields()==null||v.materialFields().isEmpty()||v.materialFields().size()>32)invalid("Intent evidence is missing or unbounded");
+        if(v.excludedMaterials()==null||v.excludedMaterials().size()>8||v.excludedMaterials().stream().anyMatch(value->value==null||value.isBlank()||value.length()>64)
+                ||v.softPreferences()==null||v.softPreferences().size()>16||v.materialFields()==null||v.materialFields().isEmpty()||v.materialFields().size()>32)invalid("Intent evidence is missing or unbounded");
         if(v.goal()==IntentGoal.PURCHASE_PRODUCT&&!meaningfulProductIdentity(v))invalid("Generic purchase requires a category or sufficient exact product identity");
         Map<String,MaterialField> fields=new HashMap<>();for(MaterialField f:v.materialFields()){if(f==null||f.field()==null||f.classification()==null||f.ambiguity()==null||f.evidence()==null)invalid("Material field evidence is incomplete");
             if(!message.messageId().equals(f.evidence().sourceMessageId())||f.evidence().startOffset()<0||f.evidence().endOffset()<=f.evidence().startOffset()||f.evidence().endOffset()>message.normalizedText().length())invalid("Material field evidence span is invalid");
             if(f.modelSignal()==null||f.modelSignal().compareTo(BigDecimal.ZERO)<0||f.modelSignal().compareTo(BigDecimal.ONE)>0)invalid("Model signal must be an application signal from zero to one");
             MaterialFieldKey key;try{key=MaterialFieldKey.valueOf(f.field());}catch(IllegalArgumentException e){invalid("Unsupported canonical material field");return;}
-            if(f.classification()!=classification(key))invalid(key+" classification is invalid");
+            if(key==MaterialFieldKey.BRAND&&merchantQualifiedBrand(message.normalizedText(),v.exactBrand(),f.evidence()))
+                invalid("BRAND evidence identifies a merchant/store phrase, not a product brand");
+            if(key==MaterialFieldKey.CATEGORY){if(f.classification()!=ConstraintClassification.HARD&&f.classification()!=ConstraintClassification.SOFT)invalid(key+" classification is invalid");}
+            else if(f.classification()!=classification(key))invalid(key+" classification is invalid");
             if(fields.put(key.name(),f)!=null)invalid("Duplicate canonical material field");}
         requireClass(fields,v.budgetAmountMinor()!=null,"BUDGET",ConstraintClassification.HARD);
-        if(v.goal()==IntentGoal.PURCHASE_PRODUCT){requireClass(fields,v.categoryRequest()!=null,"CATEGORY",ConstraintClassification.HARD);
+        if(v.goal()==IntentGoal.PURCHASE_PRODUCT){if(v.categoryRequest()!=null&&!fields.containsKey("CATEGORY"))invalid("CATEGORY evidence is required");
             requireClass(fields,v.exactMerchantSku()!=null,"MERCHANT_SKU",ConstraintClassification.HARD);
             requireClass(fields,v.exactGtin()!=null,"GTIN",ConstraintClassification.HARD);
             requireClass(fields,v.exactBrand()!=null,"BRAND",ConstraintClassification.HARD);
@@ -84,9 +92,15 @@ public class IntentCompilerService {
             requireClass(fields,v.exactColour()!=null,"COLOUR",ConstraintClassification.HARD);}
         requireClass(fields,v.vegetarian()!=null,"VEGETARIAN",ConstraintClassification.HARD);
         requireClass(fields,v.prohibitedAllergen()!=null,"ALLERGEN",ConstraintClassification.HARD_SAFETY);
+        requireClass(fields,!v.excludedMaterials().isEmpty(),"EXCLUDED_MATERIAL",ConstraintClassification.HARD);
         if(!v.softPreferences().isEmpty()){MaterialField f=fields.get("PREFERENCES");if(f==null||f.classification()!=ConstraintClassification.SOFT)invalid("Preferences require SOFT evidence");}
         if(v.ambiguityState()==AmbiguityState.CLEAR&&v.materialFields().stream().anyMatch(f->f.ambiguity()==AmbiguityState.AMBIGUOUS))invalid("Clear intent contains ambiguous material fields");}
     private static boolean meaningfulProductIdentity(CompiledIntent v){return present(v.categoryRequest())||present(v.exactMerchantSku())||present(v.exactGtin())||(present(v.exactBrand())&&present(v.exactVariant()));}
+    private static boolean merchantQualifiedBrand(String text,String brand,EvidenceSpan evidence){String prefix=text.substring(0,evidence.startOffset()).toLowerCase(Locale.ROOT).stripTrailing();
+        if(prefix.matches(".*\\b(?:from|at|via|through)\\s*"))return true;
+        if(!present(brand))return false;String normalizedText=text.toLowerCase(Locale.ROOT).replaceAll("[^\\p{L}\\p{N}]+"," ").strip();
+        String normalizedBrand=brand.toLowerCase(Locale.ROOT).replaceAll("[^\\p{L}\\p{N}]+"," ").strip();
+        return normalizedText.matches(".*\\b(?:from|at|via|through)\\s+"+Pattern.quote(normalizedBrand)+"$");}
     private static ConstraintClassification classification(MaterialFieldKey key){return switch(key){
         case ALLERGEN->ConstraintClassification.HARD_SAFETY;
         case PREFERENCES->ConstraintClassification.SOFT;

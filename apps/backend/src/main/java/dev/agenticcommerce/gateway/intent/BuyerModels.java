@@ -22,7 +22,7 @@ public final class BuyerModels {
     public enum ConstraintClassification { HARD, HARD_SAFETY, SOFT }
     public enum MaterialFieldKey {
         BUDGET, CATEGORY, MERCHANT_SKU, GTIN, BRAND, VARIANT, SIZE_STORAGE, COLOUR,
-        VEGETARIAN, ALLERGEN, PREFERENCES
+        VEGETARIAN, ALLERGEN, EXCLUDED_MATERIAL, PREFERENCES
     }
     public enum AmbiguityState { CLEAR, AMBIGUOUS }
     public enum SubstitutionPolicy { ALLOW, PROHIBIT, UNKNOWN }
@@ -38,9 +38,21 @@ public final class BuyerModels {
             String currency, String exactMerchantSku, String exactGtin, String exactBrand,
             String exactVariant, String exactSizeStorage, String exactColour,
             Boolean vegetarian, String prohibitedAllergen, Integer quantity, Integer people,
-            SubstitutionPolicy substitutionPolicy, String deliveryHint, List<String> softPreferences,
+            SubstitutionPolicy substitutionPolicy, String deliveryHint, List<String> excludedMaterials,List<String> softPreferences,
             List<MaterialField> materialFields, AmbiguityState ambiguityState,
             String clarificationQuestion, String provider, String model) {
+        public CompiledIntent(IntentGoal goal, String categoryRequest, Long budgetAmountMinor,
+                String currency, String exactMerchantSku, String exactGtin, String exactBrand,
+                String exactVariant, String exactSizeStorage, String exactColour,
+                Boolean vegetarian, String prohibitedAllergen, Integer quantity, Integer people,
+                SubstitutionPolicy substitutionPolicy, String deliveryHint, List<String> softPreferences,
+                List<MaterialField> materialFields, AmbiguityState ambiguityState,
+                String clarificationQuestion, String provider, String model) {
+            this(goal,categoryRequest,budgetAmountMinor,currency,exactMerchantSku,exactGtin,exactBrand,
+                    exactVariant,exactSizeStorage,exactColour,vegetarian,prohibitedAllergen,quantity,people,
+                    substitutionPolicy,deliveryHint,List.of(),softPreferences,materialFields,ambiguityState,
+                    clarificationQuestion,provider,model);
+        }
         public CompiledIntent(IntentGoal goal, String categoryRequest, Long budgetAmountMinor,
                 String currency, String exactMerchantSku, String exactGtin, String exactVariant,
                 Boolean vegetarian, String prohibitedAllergen, Integer quantity, Integer people,
@@ -49,7 +61,7 @@ public final class BuyerModels {
                 String clarificationQuestion, String provider, String model) {
             this(goal, categoryRequest, budgetAmountMinor, currency, exactMerchantSku, exactGtin,
                     null, exactVariant, null, null, vegetarian, prohibitedAllergen, quantity, people,
-                    substitutionPolicy, deliveryHint, softPreferences, materialFields, ambiguityState,
+                    substitutionPolicy, deliveryHint, List.of(),softPreferences, materialFields, ambiguityState,
                     clarificationQuestion, provider, model);
         }
     }

@@ -38,7 +38,7 @@ public final class CommerceRequestModels {
             boolean clarificationRequired,String clarificationQuestion,Integer currentIntentVersion,
             IntentGoal goal,String category,Long budgetAmountMinor,String budgetCurrency,
             List<MaterialRequirement> hardRequirements,List<String> softPreferences,
-            UUID merchantId,String merchantDisplayName,UUID catalogueVersionId,String catalogueVersion,
+            UUID merchantId,String merchantDisplayName,String merchantLogoUrl,UUID catalogueVersionId,String catalogueVersion,
             UUID cartId,String cartHash,List<AuthoritativeProductLine> products,
             UUID quoteRecordId,String merchantQuoteId,String merchantQuoteVersion,
             Long subtotalMinor,Long taxMinor,Long deliveryMinor,Long feesMinor,
@@ -49,5 +49,7 @@ public final class CommerceRequestModels {
             List<ConstraintSummary> constraints,UUID transactionProposalId,String transactionProposalHash,
             Instant proposalExpiresAt,ReversibilityOutcome riskOutcome,List<String> riskReasonCodes,
             boolean explicitAuthorizationRequired,boolean paymentReady,String authorizationState,String nextAction,
-            List<CommerceProgressStep> progress,List<String> evidenceReferences,String failureCode) {}
+            List<CommerceProgressStep> progress,List<String> evidenceReferences,String failureCode,
+            VisualCommerceModels.VisionObservationView visualObservation,String visualMatchType,
+            List<String> visualMatchReasons) {}
 }

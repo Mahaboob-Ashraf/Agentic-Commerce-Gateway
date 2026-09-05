@@ -51,13 +51,17 @@ public class ConstraintCertificateService {
                     return state==AllergenState.PRESENT?ConstraintOutcome.FAIL:state==AllergenState.ABSENT?ConstraintOutcome.PASS:ConstraintOutcome.UNKNOWN;}).toList();
             ObjectNode req=mapper.createObjectNode().put("allergen",intent.compiled().prohibitedAllergen()).put("requirement","PROHIBITED");
             results.add(result("ALLERGEN_"+intent.compiled().prohibitedAllergen(),ConstraintType.SAFETY_COMPLIANCE,req,reduce(outcomes),true,productRefs(cart,"allergen"),now));}
-        addIdentity(results,cart,"CATEGORY",intent.compiled().categoryRequest(),Product::category,now);
+        if(isHard(intent,"CATEGORY"))addIdentity(results,cart,"CATEGORY",intent.compiled().categoryRequest(),Product::category,now);
         addIdentity(results,cart,"MERCHANT_SKU",intent.compiled().exactMerchantSku(),Product::merchantSku,now);
         addIdentity(results,cart,"GTIN",intent.compiled().exactGtin(),Product::gtin,now);
         addIdentity(results,cart,"BRAND",intent.compiled().exactBrand(),Product::brand,now);
         addIdentity(results,cart,"VARIANT",intent.compiled().exactVariant(),Product::variant,now);
         addIdentity(results,cart,"SIZE_STORAGE",intent.compiled().exactSizeStorage(),Product::sizeStorage,now);
         addIdentity(results,cart,"COLOUR",intent.compiled().exactColour(),Product::colour,now);
+        if(!intent.compiled().excludedMaterials().isEmpty()){List<ConstraintOutcome> outcomes=cart.items().stream()
+                .map(item->excludedMaterialOutcome(cart,item.productId(),intent.compiled().excludedMaterials(),now)).toList();
+            ObjectNode req=mapper.createObjectNode();req.set("excluded",mapper.valueToTree(intent.compiled().excludedMaterials()));
+            results.add(result("EXCLUDED_MATERIAL",ConstraintType.MERCHANT_PRODUCT,req,reduce(outcomes),false,productRefs(cart,"material"),now));}
         List<ConstraintOutcome> identities=cart.items().stream().map(i->{IdentityOutcome identity=catalogues.latestIdentity(cart.merchantId(),cart.catalogueVersionId(),i.productId());
             return identity==IdentityOutcome.EXACT?ConstraintOutcome.PASS:identity==IdentityOutcome.CONFLICT?ConstraintOutcome.UNKNOWN:ConstraintOutcome.UNKNOWN;}).toList();
         results.add(result("EXACT_IDENTITY",ConstraintType.MERCHANT_PRODUCT,mapper.createObjectNode().put("required","EXACT"),reduce(identities),false,productRefs(cart,"identity"),now));
@@ -85,6 +89,15 @@ public class ConstraintCertificateService {
                 .map(product->compare(requested,field.apply(product))).orElse(ConstraintOutcome.UNKNOWN)).toList();
         results.add(result(key,ConstraintType.MERCHANT_PRODUCT,mapper.createObjectNode().put("required",requested),reduce(outcomes),false,productRefs(cart,key.toLowerCase(Locale.ROOT)),now));}
     private static ConstraintOutcome compare(String required,String actual){if(actual==null||actual.isBlank())return ConstraintOutcome.UNKNOWN;return normalize(required).equals(normalize(actual))?ConstraintOutcome.PASS:ConstraintOutcome.FAIL;}
+    private static boolean isHard(BuyerIntent intent,String field){return intent.compiled().materialFields().stream().anyMatch(value->field.equals(value.field())&&value.classification()!=ConstraintClassification.SOFT);}
+    private ConstraintOutcome excludedMaterialOutcome(CandidateCart cart,UUID productId,List<String> excluded,Instant now){
+        var facts=catalogues.factsForProduct(cart.merchantId(),cart.catalogueVersionId(),productId).stream()
+                .filter(f->"SPECIFICATION".equals(f.type())&&"ACTIVE".equals(f.state())&&(f.expiresAt()==null||f.expiresAt().isAfter(now)))
+                .filter(f->f.value().isObject()&&f.value().get("material")!=null&&f.value().get("material").isTextual()).toList();
+        if(facts.isEmpty())return ConstraintOutcome.UNKNOWN;boolean primary=facts.stream().anyMatch(f->"PRIMARY".equals(f.authority()));
+        String material=facts.stream().filter(f->!primary||"PRIMARY".equals(f.authority())).map(f->f.value().get("material").asText()).findFirst().orElse(null);
+        if(material==null||material.isBlank())return ConstraintOutcome.UNKNOWN;String actual=normalize(material);
+        return excluded.stream().map(ConstraintCertificateService::normalize).anyMatch(actual::contains)?ConstraintOutcome.FAIL:ConstraintOutcome.PASS;}
     private static String normalize(String value){return Normalizer.normalize(value,Normalizer.Form.NFKC).toLowerCase(Locale.ROOT).replaceAll("[^\\p{L}\\p{N}]+"," ").strip();}
     private static ConstraintOutcome gate(GateOutcome value){return value==GateOutcome.PASS?ConstraintOutcome.PASS:value==GateOutcome.FAIL?ConstraintOutcome.FAIL:ConstraintOutcome.UNKNOWN;}
     private static ConstraintOutcome outcome(EvidenceOutcome value){return value==EvidenceOutcome.PASS?ConstraintOutcome.PASS:value==EvidenceOutcome.FAIL?ConstraintOutcome.FAIL:ConstraintOutcome.UNKNOWN;}

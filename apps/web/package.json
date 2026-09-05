@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint . --max-warnings=0",
     "typecheck": "tsc --noEmit",
-    "test:commerce": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types --test src/lib/buyer/commerce-state.test.ts src/lib/buyer/voice-state.test.ts"
+    "test:commerce": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types --test src/lib/buyer/commerce-state.test.ts src/lib/buyer/commerce-contract.test.ts src/lib/buyer/buyer-experience.test.ts src/lib/buyer/buyer-ux-contract.test.ts src/lib/buyer/image-upload.test.ts src/lib/buyer/visual-commerce.test.ts src/lib/buyer/voice-state.test.ts src/lib/buyer/voice-transcript.test.ts src/lib/gemini-live/buyer-config.test.ts src/lib/gemini-live/socket.test.ts"
   },
   "dependencies": {
     "@google/genai": "2.19.0",

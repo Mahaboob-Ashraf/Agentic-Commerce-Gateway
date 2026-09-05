@@ -12,6 +12,10 @@ spring:
     timeout: ${SESSION_TIMEOUT:30m}
     jdbc:
       initialize-schema: never
+  servlet:
+    multipart:
+      max-file-size: 6MB
+      max-request-size: 6MB
   task:
     scheduling:
       pool:
@@ -42,7 +46,7 @@ agentization:
   gemini:
     enabled: ${GEMINI_ENABLED:false}
     api-key: ${GEMINI_API_KEY:}
-    model: ${GEMINI_MODEL:gemini-3.6-flash}
+    model: ${GEMINI_AGENTIZATION_MODEL:${GEMINI_MODEL:gemini-3.5-flash-lite}}
 
 catalogue:
   open-food-facts:
@@ -55,7 +59,11 @@ buyer:
   gemini:
     enabled: ${GEMINI_ENABLED:false}
     api-key: ${GEMINI_API_KEY:}
-    model: ${GEMINI_MODEL:gemini-3.6-flash}
+    model: ${GEMINI_BUYER_INTENT_MODEL:gemini-3.1-flash-lite}
+  vision:
+    enabled: ${GEMINI_VISION_ENABLED:${GEMINI_ENABLED:false}}
+    api-key: ${GEMINI_API_KEY:}
+    model: ${GEMINI_VISION_MODEL:gemini-3.5-flash-lite}
 
 merchant-link:
   demo:

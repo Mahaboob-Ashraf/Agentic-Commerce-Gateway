@@ -52,7 +52,12 @@ public class DemoMerchantRepository {
             FROM merchant_product p JOIN merchant_product_commerce_state c
               ON c.merchant_id=p.merchant_id AND c.catalogue_version_id=p.catalogue_version_id AND c.product_id=p.product_id
             WHERE p.merchant_id=:m AND p.catalogue_version_id=:v
-            ON CONFLICT (merchant_id,product_id) DO NOTHING
+            ON CONFLICT (merchant_id,merchant_sku) DO UPDATE SET
+                catalogue_version_id=EXCLUDED.catalogue_version_id,
+                product_id=EXCLUDED.product_id,
+                updated_at=CURRENT_TIMESTAMP
+            WHERE demo_merchant_inventory.catalogue_version_id IS DISTINCT FROM EXCLUDED.catalogue_version_id
+               OR demo_merchant_inventory.product_id IS DISTINCT FROM EXCLUDED.product_id
             """).param("m",merchantId).param("v",catalogueVersionId).update();}
 
     public Optional<InventoryProduct> product(UUID merchantId,String sku,UUID productId,boolean lock){

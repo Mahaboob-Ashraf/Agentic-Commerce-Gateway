@@ -74,4 +74,15 @@ public class AuthenticationApiController {
             @AuthenticationPrincipal VerifiedActorPrincipal principal) {
         return ActorSessionResponse.from(principal);
     }
+
+    /**
+     * Same-session proof for server-side browser adapters. Unlike comparing two
+     * masked CSRF response values, reaching this method proves that Spring
+     * Security accepted the submitted token for the authenticated BUYER session.
+     */
+    @PostMapping("/buyer-session-validation")
+    public ActorSessionResponse validateBuyerSession(
+            @AuthenticationPrincipal VerifiedActorPrincipal principal) {
+        return ActorSessionResponse.from(principal);
+    }
 }

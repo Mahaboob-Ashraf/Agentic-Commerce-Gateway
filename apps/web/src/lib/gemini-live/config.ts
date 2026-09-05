@@ -20,6 +20,16 @@ export const DEFAULT_ASYNC_MODE: GeminiLiveAsyncMode = "APP_MANAGED";
 export const DEFAULT_PROACTIVE_AUDIO = false;
 export const COMMERCE_FUNCTION_NAME = "start_commerce_request";
 
+const LIVE_AUDIO_ACTIVITY_CONFIG = {
+  automaticActivityDetection: {
+    disabled: false,
+    startOfSpeechSensitivity: "START_SENSITIVITY_LOW" as StartSensitivity,
+    endOfSpeechSensitivity: "END_SENSITIVITY_LOW" as EndSensitivity,
+    prefixPaddingMs: 100,
+    silenceDurationMs: 700,
+  },
+} as const;
+
 export interface GeminiLiveSessionOptions {
   model: GeminiLiveModel;
   asyncMode: GeminiLiveAsyncMode;
@@ -97,31 +107,58 @@ function functionDeclaration(asyncMode: GeminiLiveAsyncMode) {
   };
 }
 
+export function buildSharedLiveAudioConfig(
+  model: GeminiLiveModel,
+  instruction: string,
+  declaration: ReturnType<typeof functionDeclaration>,
+  voiceName?: string,
+): LiveConnectConfig {
+  return {
+    responseModalities: ["AUDIO" as Modality],
+    systemInstruction: instruction,
+    inputAudioTranscription: {},
+    outputAudioTranscription: {},
+    realtimeInputConfig: LIVE_AUDIO_ACTIVITY_CONFIG,
+    ...(voiceName ? { speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName } } } } : {}),
+    ...(model === "gemini-2.5-flash-native-audio-preview-12-2025"
+      ? { thinkingConfig: { thinkingBudget: 0 } }
+      : {}),
+    tools: [{ functionDeclarations: [declaration] }],
+  };
+}
+
+export function buildSharedLiveAudioRawSetup(
+  model: GeminiLiveModel,
+  instruction: string,
+  declaration: ReturnType<typeof functionDeclaration>,
+  voiceName?: string,
+) {
+  return {
+    model: `models/${model}`,
+    generationConfig: {
+      responseModalities: ["AUDIO"],
+      ...(voiceName ? { speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName } } } } : {}),
+      ...(model === "gemini-2.5-flash-native-audio-preview-12-2025"
+        ? { thinkingConfig: { thinkingBudget: 0 } }
+        : {}),
+    },
+    systemInstruction: { parts: [{ text: instruction }] },
+    inputAudioTranscription: {},
+    outputAudioTranscription: {},
+    realtimeInputConfig: LIVE_AUDIO_ACTIVITY_CONFIG,
+    tools: [{ functionDeclarations: [declaration] }],
+  } as const;
+}
+
 export function buildGeminiLiveConfig(
   rawOptions: GeminiLiveSessionOptions,
 ): LiveConnectConfig {
   const options = normalizeSessionOptions(rawOptions);
-  return {
-    responseModalities: ["AUDIO" as Modality],
-    systemInstruction: systemInstruction(options.asyncMode),
-    inputAudioTranscription: {},
-    outputAudioTranscription: {},
-    realtimeInputConfig: {
-      automaticActivityDetection: {
-        disabled: false,
-        startOfSpeechSensitivity: "START_SENSITIVITY_LOW" as StartSensitivity,
-        endOfSpeechSensitivity: "END_SENSITIVITY_LOW" as EndSensitivity,
-        prefixPaddingMs: 100,
-        silenceDurationMs: 700,
-      },
-    },
-    ...(options.model === "gemini-2.5-flash-native-audio-preview-12-2025"
-      ? {
-          thinkingConfig: { thinkingBudget: 0 },
-        }
-      : {}),
-    tools: [{ functionDeclarations: [functionDeclaration(options.asyncMode)] }],
-  };
+  return buildSharedLiveAudioConfig(
+    options.model,
+    systemInstruction(options.asyncMode),
+    functionDeclaration(options.asyncMode),
+  );
 }
 
 export function buildGeminiLiveTokenConstraintConfig(
@@ -133,28 +170,9 @@ export function buildGeminiLiveTokenConstraintConfig(
 
 export function buildGeminiLiveRawSetup(rawOptions: GeminiLiveSessionOptions) {
   const options = normalizeSessionOptions(rawOptions);
-  return {
-    model: `models/${options.model}`,
-    generationConfig: {
-      responseModalities: ["AUDIO"],
-      ...(options.model === "gemini-2.5-flash-native-audio-preview-12-2025"
-        ? { thinkingConfig: { thinkingBudget: 0 } }
-        : {}),
-    },
-    systemInstruction: {
-      parts: [{ text: systemInstruction(options.asyncMode) }],
-    },
-    inputAudioTranscription: {},
-    outputAudioTranscription: {},
-    realtimeInputConfig: {
-      automaticActivityDetection: {
-        disabled: false,
-        startOfSpeechSensitivity: "START_SENSITIVITY_LOW",
-        endOfSpeechSensitivity: "END_SENSITIVITY_LOW",
-        prefixPaddingMs: 100,
-        silenceDurationMs: 700,
-      },
-    },
-    tools: [{ functionDeclarations: [functionDeclaration(options.asyncMode)] }],
-  } as const;
+  return buildSharedLiveAudioRawSetup(
+    options.model,
+    systemInstruction(options.asyncMode),
+    functionDeclaration(options.asyncMode),
+  );
 }

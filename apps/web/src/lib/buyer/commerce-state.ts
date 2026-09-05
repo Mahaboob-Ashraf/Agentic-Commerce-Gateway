@@ -25,6 +25,16 @@ export type JourneySnapshot = {
   canReconcile: boolean;
 };
 
+export type CommerceSubmissionPhase = "IDLE" | "SUBMITTING" | "PROCESSING";
+
+export function isSubmissionBusy(phase: CommerceSubmissionPhase) {
+  return phase !== "IDLE";
+}
+
+export function isUserMessageSending(phase: CommerceSubmissionPhase) {
+  return phase === "SUBMITTING";
+}
+
 export function hasSafetyCriticalUnknown(result: CommerceRequestResult | null) {
   return Boolean(result?.constraints.some((constraint) => constraint.safetyCritical && constraint.result === "UNKNOWN"));
 }
@@ -39,33 +49,41 @@ export function deriveJourneySnapshot(
   now = Date.now(),
 ): JourneySnapshot {
   if (!result) return { phase: "EMPTY", canAuthorize: false, canOpenCheckout: false, canReconcile: false };
+  const currentProposalId = result.transactionProposalId;
+  const currentAuthorization = authorization?.proposalId === currentProposalId ? authorization : null;
+  const currentPayment = payment?.proposalId === currentProposalId ? payment : null;
+  const currentFulfillment = currentPayment?.paymentState === "PAYMENT_CONFIRMED"
+    && fulfillment?.paymentState === "PAYMENT_CONFIRMED"
+    && fulfillment.executionId === currentPayment.executionId
+    ? fulfillment
+    : null;
   const expired = result.proposalExpiresAt ? new Date(result.proposalExpiresAt).getTime() <= now : true;
   const unsafeUnknown = hasSafetyCriticalUnknown(result);
   const canAuthorize = Boolean(
-    result.paymentReady && result.transactionProposalId && !expired && !unsafeUnknown && !authorization,
+    result.paymentReady && result.transactionProposalId && !expired && !unsafeUnknown && !currentAuthorization,
   );
   const canOpenCheckout = Boolean(
-    authorization?.decision === "AUTHORIZED" &&
+    currentAuthorization?.decision === "AUTHORIZED" &&
       checkout &&
       !callbackAccepted &&
-      (!payment || ["NOT_STARTED", "ORDER_CREATED"].includes(payment.paymentState)),
+      (!currentPayment || ["NOT_STARTED", "ORDER_CREATED"].includes(currentPayment.paymentState)),
   );
   const canReconcile = Boolean(
-    payment &&
-      ["PAYMENT_PENDING", "PAYMENT_UNCERTAIN"].includes(payment.paymentState) &&
-      payment.reconciliationAttempts < payment.reconciliationMaximumAttempts,
+    currentPayment &&
+      ["PAYMENT_PENDING", "PAYMENT_UNCERTAIN"].includes(currentPayment.paymentState) &&
+      currentPayment.reconciliationAttempts < currentPayment.reconciliationMaximumAttempts,
   );
 
-  if (payment?.paymentState === "PAYMENT_CONFIRMED") {
-    if (fulfillment?.fulfillmentState === "FULFILLED") return { phase: "FULFILLED", canAuthorize: false, canOpenCheckout: false, canReconcile: false };
-    if (fulfillment?.fulfillmentState === "TERMINAL_FAILURE" || fulfillment?.fulfillmentState === "COMPENSATION_REQUIRED") {
+  if (currentPayment?.paymentState === "PAYMENT_CONFIRMED") {
+    if (currentFulfillment?.fulfillmentState === "FULFILLED") return { phase: "FULFILLED", canAuthorize: false, canOpenCheckout: false, canReconcile: false };
+    if (currentFulfillment?.fulfillmentState === "TERMINAL_FAILURE" || currentFulfillment?.fulfillmentState === "COMPENSATION_REQUIRED") {
       return { phase: "PAYMENT_VERIFIED", canAuthorize: false, canOpenCheckout: false, canReconcile: false };
     }
     return { phase: "FINALIZING", canAuthorize: false, canOpenCheckout: false, canReconcile: false };
   }
-  if (payment?.paymentState === "PAYMENT_FAILED") return { phase: "PAYMENT_FAILED", canAuthorize: false, canOpenCheckout: false, canReconcile: false };
-  if (payment?.paymentState === "PAYMENT_UNCERTAIN") return { phase: "PAYMENT_UNCERTAIN", canAuthorize: false, canOpenCheckout, canReconcile };
-  if (callbackAccepted || payment?.paymentState === "PAYMENT_PENDING") return { phase: "PAYMENT_SUBMITTED", canAuthorize: false, canOpenCheckout, canReconcile };
+  if (currentPayment?.paymentState === "PAYMENT_FAILED") return { phase: "PAYMENT_FAILED", canAuthorize: false, canOpenCheckout: false, canReconcile: false };
+  if (currentPayment?.paymentState === "PAYMENT_UNCERTAIN") return { phase: "PAYMENT_UNCERTAIN", canAuthorize: false, canOpenCheckout, canReconcile };
+  if (callbackAccepted || currentPayment?.paymentState === "PAYMENT_PENDING") return { phase: "PAYMENT_SUBMITTED", canAuthorize: false, canOpenCheckout, canReconcile };
   if (checkout) return { phase: "CHECKOUT_READY", canAuthorize: false, canOpenCheckout, canReconcile: false };
   if (result.transactionProposalId) return { phase: unsafeUnknown || !result.paymentReady ? "BLOCKED" : "PROPOSAL", canAuthorize, canOpenCheckout: false, canReconcile: false };
   if (result.clarificationRequired) return { phase: "NO_MATCH", canAuthorize: false, canOpenCheckout: false, canReconcile: false };

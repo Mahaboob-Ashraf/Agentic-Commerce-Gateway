@@ -31,7 +31,7 @@ class GeminiBuyerDecisionProviderTest {
 
         assertThatThrownBy(() -> provider.chooseCandidate(context,null))
                 .isInstanceOfSatisfying(BuyerException.class, failure ->
-                        assertThat(failure.code()).isEqualTo("BUYER_DECISION_UNAVAILABLE"));
+                        assertThat(failure.code()).isEqualTo("AI_PROVIDER_RATE_LIMITED"));
 
         assertThat(calls).hasValue(1);
         assertThat(output.getAll())

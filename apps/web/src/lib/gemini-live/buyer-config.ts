@@ -1,7 +1,19 @@
-import type { EndSensitivity, LiveConnectConfig, Modality, StartSensitivity, Type } from "@google/genai";
-import { COMMERCE_FUNCTION_NAME, type GeminiLiveModel } from "./config";
+import type { LiveConnectConfig, Type } from "@google/genai";
+import {
+  buildSharedLiveAudioConfig,
+  buildSharedLiveAudioRawSetup,
+  COMMERCE_FUNCTION_NAME,
+  type GeminiLiveModel,
+} from "./config";
 
 export const BUYER_GEMINI_LIVE_MODEL: GeminiLiveModel = "gemini-3.1-flash-live-preview";
+export const BUYER_LIVE_VOICES = ["Kore", "Aoede", "Puck", "Charon"] as const;
+export type BuyerLiveVoice = (typeof BUYER_LIVE_VOICES)[number];
+export const DEFAULT_BUYER_LIVE_VOICE: BuyerLiveVoice = "Kore";
+
+export function isBuyerLiveVoice(value: unknown): value is BuyerLiveVoice {
+  return typeof value === "string" && BUYER_LIVE_VOICES.some((voice) => voice === value);
+}
 
 function systemInstruction(preferredLanguage: string | null): string {
   return `
@@ -23,6 +35,12 @@ Commerce sequence:
 5. If a proposal is present, tell the user to review it on screen before authorizing. Never call another tool to authorize or pay.
 6. If the application reports clarification, failure, BLOCK, FAIL, or UNKNOWN, explain that safely and do not imply the purchase can proceed.
 
+Tool-channel rules:
+- Use the declared commerce function only through a genuine function-call event.
+- Never speak, transcribe, spell, quote, print, or describe the function name, its arguments, JSON, or call syntax.
+- Never imitate a function call in conversational text. If a genuine function call cannot be produced, ask the user to retry or type instead.
+- A STARTED function response is silent internal coordination. Wait for APP_COMMERCE_RESULT before narrating commerce facts.
+
 Never state that an item was found, purchasable, paid, or fulfilled until the corresponding authoritative application result explicitly says so.
 `;
 }
@@ -31,7 +49,7 @@ function functionDeclaration() {
   return {
     name: COMMERCE_FUNCTION_NAME,
     description:
-      "Starts the authenticated application's Safe Buyer request after the spoken acknowledgement. Query must faithfully preserve the user's request and must not include invented commerce facts.",
+      "Call only through the function-call channel after the spoken acknowledgement. Starts the authenticated application's Safe Buyer request. Query must faithfully preserve the latest user request and must not include invented commerce facts.",
     parameters: {
       type: "OBJECT" as Type,
       properties: {
@@ -45,41 +63,20 @@ function functionDeclaration() {
   };
 }
 
-export function buildBuyerGeminiLiveConfig(preferredLanguage: string | null): LiveConnectConfig {
-  return {
-    responseModalities: ["AUDIO" as Modality],
-    systemInstruction: systemInstruction(preferredLanguage),
-    inputAudioTranscription: {},
-    outputAudioTranscription: {},
-    realtimeInputConfig: {
-      automaticActivityDetection: {
-        disabled: false,
-        startOfSpeechSensitivity: "START_SENSITIVITY_LOW" as StartSensitivity,
-        endOfSpeechSensitivity: "END_SENSITIVITY_LOW" as EndSensitivity,
-        prefixPaddingMs: 100,
-        silenceDurationMs: 700,
-      },
-    },
-    tools: [{ functionDeclarations: [functionDeclaration()] }],
-  };
+export function buildBuyerGeminiLiveConfig(preferredLanguage: string | null, voiceName: BuyerLiveVoice = DEFAULT_BUYER_LIVE_VOICE): LiveConnectConfig {
+  return buildSharedLiveAudioConfig(
+    BUYER_GEMINI_LIVE_MODEL,
+    systemInstruction(preferredLanguage),
+    functionDeclaration(),
+    voiceName,
+  );
 }
 
-export function buildBuyerGeminiLiveRawSetup(preferredLanguage: string | null) {
-  return {
-    model: `models/${BUYER_GEMINI_LIVE_MODEL}`,
-    generationConfig: { responseModalities: ["AUDIO"] },
-    systemInstruction: { parts: [{ text: systemInstruction(preferredLanguage) }] },
-    inputAudioTranscription: {},
-    outputAudioTranscription: {},
-    realtimeInputConfig: {
-      automaticActivityDetection: {
-        disabled: false,
-        startOfSpeechSensitivity: "START_SENSITIVITY_LOW",
-        endOfSpeechSensitivity: "END_SENSITIVITY_LOW",
-        prefixPaddingMs: 100,
-        silenceDurationMs: 700,
-      },
-    },
-    tools: [{ functionDeclarations: [functionDeclaration()] }],
-  } as const;
+export function buildBuyerGeminiLiveRawSetup(preferredLanguage: string | null, voiceName: BuyerLiveVoice = DEFAULT_BUYER_LIVE_VOICE) {
+  return buildSharedLiveAudioRawSetup(
+    BUYER_GEMINI_LIVE_MODEL,
+    systemInstruction(preferredLanguage),
+    functionDeclaration(),
+    voiceName,
+  );
 }

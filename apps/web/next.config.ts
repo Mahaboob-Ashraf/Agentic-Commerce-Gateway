@@ -10,6 +10,9 @@ const nextConfig: NextConfig = {
   async rewrites() {
     return [
       { source: "/api/auth/:path*", destination: `${backendOrigin}/api/auth/:path*` },
+      // Keep Buyer mutations on the same transparent proxy path as authentication. This preserves
+      // the browser's session cookie, CSRF header, and multipart boundary/body without buffering
+      // and reconstructing uploads in a Route Handler.
       { source: "/api/buyer/:path*", destination: `${backendOrigin}/api/buyer/:path*` },
     ];
   },
