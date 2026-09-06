@@ -35,8 +35,9 @@ export default function Home() {
           <a className={styles.brandLink} href="#top" aria-label="Amana home"><Brand /></a>
           <div className={styles.navLinks}>
             <a href="#how-it-works">How it works</a>
+            <Link href="/proof">Proof</Link>
             <Link href="/buyer/chat">Buyer</Link>
-            <a href="#merchant">Merchant</a>
+            <Link href="/merchant">Merchant</Link>
           </div>
           <Link className={styles.navAction} href="/buyer/chat">Enter as Buyer <Arrow /></Link>
         </nav>
@@ -53,7 +54,7 @@ export default function Home() {
             </p>
             <div className={styles.heroActions}>
               <Link className={styles.primaryAction} href="/buyer/chat">Enter as Buyer <Arrow /></Link>
-              <a className={styles.textAction} href="#merchant">Enter as Merchant <Arrow /></a>
+              <Link className={styles.secondaryAction} href="/merchant">Enter as Merchant <Arrow /></Link>
             </div>
           </div>
 
@@ -152,9 +153,27 @@ export default function Home() {
         </article>
       </section>
 
+      <section className={styles.proof} aria-labelledby="proof-title" id="proof">
+        <header className={styles.proofHeader}>
+          <p className={styles.kicker}>03 / Deterministic proof</p>
+          <h2 id="proof-title">Trust, <span>tested.</span></h2>
+          <p>
+            Amana&apos;s payment and authority boundaries are backed by a deterministic safety
+            harness—not just UI claims.
+          </p>
+        </header>
+        <dl className={styles.proofMetrics}>
+          <div><dt>250 / 250</dt><dd>Cases passed</dd></div>
+          <div><dt>0</dt><dd>Hard safety violations</dd></div>
+          <div><dt>100%</dt><dd>Fail-closed</dd></div>
+          <div><dt>15</dt><dd>Invariants</dd></div>
+        </dl>
+        <Link className={styles.proofAction} href="/proof">Explore the safety proof <Arrow /></Link>
+      </section>
+
       <section className={styles.experience} aria-labelledby="experience-title" id="ways-to-ask">
         <header className={styles.experienceHeader}>
-          <p className={styles.kicker}>02 / The interaction</p>
+          <p className={styles.kicker}>04 / The interaction</p>
           <h2 id="experience-title">Talk it. Show it. Buy it.</h2>
         </header>
 
@@ -213,7 +232,7 @@ export default function Home() {
           <Image alt="" height={1254} src={`${assets}/amana-mark.png`} width={1254} />
         </div>
         <header>
-          <p className={styles.kicker}>03 / Enter Amana</p>
+          <p className={styles.kicker}>05 / Enter Amana</p>
           <h2 id="entry-title">Built for both sides<br />of commerce.</h2>
           <p>Agentic commerce you can trust.</p>
         </header>
@@ -221,9 +240,9 @@ export default function Home() {
           <Link href="/buyer/chat">
             <span>Buyer</span><strong>Shop through Amana</strong><Arrow />
           </Link>
-          <a href="#merchant">
+          <Link href="/merchant">
             <span>Merchant</span><strong>Make your store agent-ready</strong><Arrow />
-          </a>
+          </Link>
         </div>
         <footer><Brand /><span>Merchant Agentization Agent + Safe AI Buyer</span></footer>
       </section>

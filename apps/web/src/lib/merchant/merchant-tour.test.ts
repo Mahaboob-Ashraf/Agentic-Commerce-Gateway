@@ -1,7 +1,99 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 // @ts-expect-error Node's native type-stripping runner requires the explicit extension.
+import { applyAmazingDemoPreset, isAmazingDemoActor, resolveAmazingDemoMerchant } from "./amazing-demo.ts";
+// @ts-expect-error Node's native type-stripping runner requires the explicit extension.
 import { MERCHANT_TOUR_STEPS, clearMerchantTourSeen, markMerchantTourSeen, merchantTourSeenKey, positionTourCard, selectVisibleTourTarget, shouldStartMerchantTour } from "./merchant-tour.ts";
+import type { MerchantAccess, MerchantSetup } from "./types";
+
+const onboardingSource = readFileSync(new URL("../../components/merchant/merchant-onboarding.tsx", import.meta.url), "utf8");
+const merchantLayoutSource = readFileSync(new URL("../../app/merchant/layout.tsx", import.meta.url), "utf8");
+const merchantSessionSource = readFileSync(new URL("../../components/merchant/merchant-session.tsx", import.meta.url), "utf8");
+
+function access(merchantId: string, merchantKey: string, displayName: string): MerchantAccess {
+  return { merchantId, merchantKey, displayName };
+}
+
+function setup(): MerchantSetup {
+  return {
+    version: 1,
+    merchantId: null,
+    store: { name: "", category: "", baseUrl: "" },
+    sources: { openApiReference: "", catalogueReference: "", policyReference: "" },
+    connection: { approvedEndpoint: "", credentialReference: "" },
+    status: "DRAFT",
+    updatedAt: new Date(0).toISOString(),
+  };
+}
+
+test("a unique authorized Amazing merchant resolves regardless of ordering", () => {
+  const amazing = access("merchant-amazing", "amazing", "Amazing");
+  const random = access("merchant-random", "random", "Random Store");
+  assert.equal(resolveAmazingDemoMerchant([amazing, random]), amazing);
+  assert.equal(resolveAmazingDemoMerchant([random, amazing]), amazing);
+});
+
+test("missing or malformed Amazing access fails closed", () => {
+  assert.equal(resolveAmazingDemoMerchant(undefined), null);
+  assert.equal(resolveAmazingDemoMerchant([]), null);
+  assert.equal(resolveAmazingDemoMerchant([
+    access("", "amazing", "Amazing"),
+    access("merchant-lookalike", "not-amazing", "Amazing"),
+  ]), null);
+});
+
+test("duplicate Amazing records are ambiguous and fail closed", () => {
+  assert.equal(resolveAmazingDemoMerchant([
+    access("merchant-amazing-a", "amazing", "Amazing"),
+    access("merchant-amazing-b", "amazing", "Amazing"),
+  ]), null);
+});
+
+test("random merchants never become the Amazing fallback", () => {
+  assert.equal(resolveAmazingDemoMerchant([
+    access("merchant-test", "test-store", "Test Store"),
+    access("merchant-abc", "abc", "ABC Merchant"),
+    access("merchant-random", "random", "Random Store"),
+  ]), null);
+});
+
+test("the preset is restricted to the configured canonical demo actor", () => {
+  const canonical = "demo-amazing-admin@agentic-commerce.invalid";
+  assert.equal(isAmazingDemoActor(canonical, canonical), true);
+  assert.equal(isAmazingDemoActor(canonical, undefined), false);
+  assert.equal(isAmazingDemoActor("another-admin@example.test", canonical), false);
+  assert.equal(isAmazingDemoActor(canonical, "another-admin@example.test"), false);
+});
+
+test("the preset copies only grounded merchant identity into local presentation state", () => {
+  const current = setup();
+  const amazing = access("merchant-amazing", "amazing", "Amazing");
+  assert.deepEqual(applyAmazingDemoPreset(current, amazing), {
+    ...current,
+    merchantId: "merchant-amazing",
+    store: { ...current.store, name: "Amazing" },
+  });
+});
+
+test("demo load is explicit, fill-only, and demo continue selects existing Amazing", () => {
+  assert.match(onboardingSource, />Load Amazing demo setup<\/AmanaButton>/);
+  assert.match(onboardingSource, /onClick=\{loadAmazingDemoSetup\}[\s\S]*?type="button"/);
+  const loadStart = onboardingSource.indexOf("function loadAmazingDemoSetup()");
+  const loadEnd = onboardingSource.indexOf("function validateCurrent()", loadStart);
+  const loadHandler = onboardingSource.slice(loadStart, loadEnd);
+  assert.doesNotMatch(loadHandler, /selectMerchant|persist\(|saveMerchantSetup|merchantApi|router\.push|localStorage|sessionStorage|document\.cookie/);
+  assert.match(onboardingSource, /if \(amazingDemoSelected\)[\s\S]*?resolveAmazingDemoMerchant\(merchants\)[\s\S]*?selectMerchant\(amazing\.merchantId\)[\s\S]*?router\.push\("\/merchant\/overview"\)/);
+  assert.match(onboardingSource, /Amazing demo merchant is unavailable\. Please verify demo setup\./);
+});
+
+test("manual onboarding and shared authorized merchant context remain intact", () => {
+  assert.match(onboardingSource, /if \(!validateCurrent\(\)\) return;\s*let nextSetup = persist\(setup\)/);
+  assert.match(onboardingSource, /const authorizedSetup = selectedMerchant[\s\S]*?merchantId: selectedMerchant\.merchantId/);
+  assert.match(merchantSessionSource, /const selected = merchants\.find\(\(merchant\) => merchant\.merchantId === merchantId\)/);
+  assert.match(merchantSessionSource, /setSelectedMerchant\(selected\)/);
+  assert.match(merchantLayoutSource, /<MerchantSessionProvider>\{children\}<\/MerchantSessionProvider>/);
+});
 
 function memoryStorage() {
   const values = new Map<string, string>();

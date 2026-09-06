@@ -249,6 +249,53 @@ li[data-complete] .progressMarker {
   gap: 1.5rem;
 }
 
+.demoPreset {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  border: 1px solid #cfdcf3;
+  border-radius: 0.55rem;
+  background: #f4f8ff;
+}
+
+.demoPreset[data-loaded] {
+  border-color: #8faee1;
+  background: #eef5ff;
+}
+
+.demoPreset > div {
+  min-width: 0;
+  display: grid;
+  gap: 0.3rem;
+}
+
+.demoPreset p,
+.demoPreset strong,
+.demoPreset span {
+  margin: 0;
+}
+
+.demoPreset p {
+  color: var(--amana-brand-strong);
+  font-size: 0.68rem;
+  font-weight: 780;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.demoPreset strong {
+  color: #2f4565;
+  font-size: 0.88rem;
+}
+
+.demoPreset span {
+  color: #63728a;
+  font-size: 0.74rem;
+  line-height: 1.5;
+}
+
 .formHeading {
   display: flex;
   align-items: flex-start;
@@ -667,6 +714,15 @@ li[data-complete] .progressMarker {
   .credentialRule,
   .reviewDetails {
     grid-template-columns: 1fr;
+  }
+
+  .demoPreset {
+    align-items: stretch;
+    grid-template-columns: 1fr;
+  }
+
+  .demoPreset button {
+    width: 100%;
   }
 
   .formHeading h2 {

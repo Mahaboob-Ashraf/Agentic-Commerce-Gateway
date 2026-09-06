@@ -190,7 +190,7 @@
 }
 
 .primaryAction,
-.textAction {
+.secondaryAction {
   display: inline-flex;
   min-height: 3.2rem;
   align-items: center;
@@ -216,14 +216,22 @@
   transform: translateY(-2px);
 }
 
-.textAction {
-  border-bottom: 1px solid #90a5c0;
+.secondaryAction {
+  border: 1px solid #8ba7ca;
+  border-radius: 0.35rem;
+  background: rgb(255 255 255 / 82%);
   color: #18375f;
-  transition: border-color 180ms ease, color 180ms ease;
+  padding-inline: 1.4rem;
+  transition: background-color 180ms ease, border-color 180ms ease, color 180ms ease, transform 180ms ease;
 }
 
-.textAction:hover,
-.textAction:focus-visible { border-color: var(--blue); color: var(--blue-dark); }
+.secondaryAction:hover,
+.secondaryAction:focus-visible {
+  border-color: var(--blue);
+  background: #f4f9ff;
+  color: var(--blue-dark);
+  transform: translateY(-1px);
+}
 
 .heroVisual {
   position: relative;
@@ -571,6 +579,107 @@
   height: auto;
   border-radius: 0 1.5rem 1.5rem 0;
   box-shadow: 0 2.5rem 5rem -3.4rem rgb(6 30 70 / 58%);
+}
+
+.proof {
+  display: grid;
+  width: var(--grid);
+  align-items: end;
+  gap: clamp(2.5rem, 5vw, 5rem) 2rem;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  margin-inline: auto;
+  padding-block: clamp(6rem, 9vw, 9rem);
+}
+
+.proofHeader {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  column-gap: 2rem;
+}
+
+.proofHeader .kicker { grid-column: 1 / -1; }
+
+.proofHeader h2 {
+  grid-column: 1 / span 7;
+  margin: 1rem 0 0;
+  font-family: var(--amana-font-display);
+  font-size: clamp(3.5rem, 6.6vw, 7rem);
+  font-variation-settings: "wdth" 103;
+  font-weight: 510;
+  letter-spacing: -0.065em;
+  line-height: 0.92;
+}
+
+.proofHeader h2 span { color: var(--blue); }
+
+.proofHeader > p:last-child {
+  grid-column: 9 / -1;
+  margin: 0 0 0.45rem;
+  color: var(--muted);
+  font-size: 1rem;
+  line-height: 1.65;
+}
+
+.proofMetrics {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin: 0;
+  border-block: 1px solid var(--rule);
+}
+
+.proofMetrics div {
+  min-height: 10rem;
+  border-right: 1px solid var(--rule);
+  padding: 1.6rem clamp(1rem, 2vw, 1.8rem);
+}
+
+.proofMetrics div:first-child { border-left: 1px solid var(--rule); }
+
+.proofMetrics dt {
+  color: #0c4fb5;
+  font-family: var(--amana-font-display);
+  font-size: clamp(2.35rem, 4vw, 4.25rem);
+  font-weight: 560;
+  letter-spacing: -0.055em;
+  line-height: 1;
+}
+
+.proofMetrics dd {
+  margin: 1.1rem 0 0;
+  color: #536b8c;
+  font-size: 0.67rem;
+  font-weight: 720;
+  letter-spacing: 0.11em;
+  line-height: 1.5;
+  text-transform: uppercase;
+}
+
+.proofAction {
+  display: inline-flex;
+  min-height: 3.2rem;
+  align-items: center;
+  gap: 0.85rem;
+  grid-column: 1 / span 4;
+  justify-self: start;
+  border: 1px solid #8ba7ca;
+  border-radius: 0.35rem;
+  background: rgb(255 255 255 / 82%);
+  color: #123b70;
+  font-size: 0.84rem;
+  font-weight: 680;
+  padding-inline: 1.4rem;
+  text-decoration: none;
+  transition: background-color 180ms ease, border-color 180ms ease, color 180ms ease, transform 180ms ease;
+}
+
+.proofAction:hover,
+.proofAction:focus-visible {
+  border-color: var(--blue);
+  background: #f4f9ff;
+  color: var(--blue-dark);
+  transform: translateY(-1px);
 }
 
 .experience {
@@ -1105,7 +1214,7 @@
   .heroSupport { margin-top: 1.5rem; font-size: 1rem; line-height: 1.58; }
   .heroActions { gap: 1.2rem; margin-top: 1.7rem; }
   .primaryAction { min-height: 3rem; padding-inline: 1.05rem; }
-  .textAction { min-height: 3rem; }
+  .secondaryAction { min-height: 3rem; }
   .heroVisual { height: 22.5rem; grid-column: 1 / -1; }
   .visualField { top: 0; right: 0; width: 87%; }
   .storeVisual { bottom: 0; left: -5%; width: 65%; }
@@ -1152,6 +1261,16 @@
   .buyerArchitecture img { width: 100%; border-radius: 0; }
   .buyerStory .storyCopy { order: 1; }
 
+  .proof { display: block; padding-block: 5.5rem 6rem; }
+  .proofHeader { display: block; }
+  .proofHeader h2 { margin-top: 0.9rem; font-size: clamp(3.25rem, 15vw, 4.8rem); }
+  .proofHeader > p:last-child { max-width: 28rem; margin: 1.4rem 0 0; }
+  .proofMetrics { grid-template-columns: 1fr 1fr; margin-top: 3rem; }
+  .proofMetrics div { min-height: 8rem; }
+  .proofMetrics div:nth-child(2n) { border-right: 1px solid var(--rule); }
+  .proofMetrics div:nth-child(n + 3) { border-top: 1px solid var(--rule); }
+  .proofAction { margin-top: 2.5rem; }
+
   .experience { padding-block: 5.8rem 6.5rem; }
   .experienceHeader { display: block; }
   .experienceHeader h2 { font-size: clamp(3.25rem, 14.5vw, 4.7rem); line-height: 0.9; }
@@ -1195,7 +1314,7 @@
   .heroCopy h1 { font-size: clamp(2.8rem, 12.6vw, 3.3rem); }
   .heroActions { align-items: flex-start; flex-direction: column; gap: 0.5rem; }
   .primaryAction,
-  .textAction { width: fit-content; }
+  .secondaryAction { width: fit-content; }
   .heroVisual { height: 20rem; }
   .heroConnection { left: 17%; }
   .heroRail p { letter-spacing: 0.025em; }

@@ -22,6 +22,11 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState, type ReactNode } from "react";
 import { AmanaButton } from "@/components/amana/blade";
 import {
+  applyAmazingDemoPreset,
+  isAmazingDemoActor,
+  resolveAmazingDemoMerchant,
+} from "@/lib/merchant/amazing-demo";
+import {
   emptyMerchantSetup,
   hasApprovedSource,
   loadMerchantSetup,
@@ -47,13 +52,25 @@ function FieldNote({ children }: { children: ReactNode }) {
 }
 
 export function MerchantOnboarding() {
-  const { actor, selectedMerchant } = useMerchantSession();
+  const {
+    actor,
+    merchantLoading,
+    merchants,
+    selectedMerchant,
+    selectMerchant,
+  } = useMerchantSession();
   const router = useRouter();
   const [step, setStep] = useState(0);
   const [setup, setSetup] = useState<MerchantSetup>(() =>
     actor ? loadMerchantSetup(actor.actorId) : emptyMerchantSetup(),
   );
   const [error, setError] = useState("");
+  const [amazingDemoSelected, setAmazingDemoSelected] = useState(false);
+
+  const showAmazingDemoPreset = isAmazingDemoActor(
+    actor?.identityHandle,
+    process.env.NEXT_PUBLIC_DEMO_MERCHANT_IDENTITY,
+  );
 
   const configuredSources = useMemo(
     () => Object.values(setup.sources).filter((value) => value.trim()).length,
@@ -68,15 +85,31 @@ export function MerchantOnboarding() {
   }
 
   function patchStore(key: keyof MerchantSetup["store"], value: string) {
+    setAmazingDemoSelected(false);
     setSetup((current) => ({ ...current, store: { ...current.store, [key]: value }, status: "DRAFT" }));
   }
 
   function patchSource(key: SourceKey, value: string) {
+    setAmazingDemoSelected(false);
     setSetup((current) => ({ ...current, sources: { ...current.sources, [key]: value }, status: "DRAFT" }));
   }
 
   function patchConnection(key: keyof MerchantSetup["connection"], value: string) {
+    setAmazingDemoSelected(false);
     setSetup((current) => ({ ...current, connection: { ...current.connection, [key]: value }, status: "DRAFT" }));
+  }
+
+  function loadAmazingDemoSetup() {
+    const amazing = resolveAmazingDemoMerchant(merchants);
+    if (!amazing) {
+      setAmazingDemoSelected(false);
+      setError("Amazing demo merchant is unavailable. Please verify demo setup.");
+      return;
+    }
+    setSetup((current) => applyAmazingDemoPreset(current, amazing));
+    setAmazingDemoSelected(true);
+    setStep(0);
+    setError("");
   }
 
   function validateCurrent() {
@@ -97,6 +130,17 @@ export function MerchantOnboarding() {
   }
 
   function next() {
+    if (amazingDemoSelected) {
+      const amazing = resolveAmazingDemoMerchant(merchants);
+      if (!amazing) {
+        setAmazingDemoSelected(false);
+        setError("Amazing demo merchant is unavailable. Please verify demo setup.");
+        return;
+      }
+      selectMerchant(amazing.merchantId);
+      router.push("/merchant/overview");
+      return;
+    }
     if (!validateCurrent()) return;
     let nextSetup = persist(setup);
     if (step === 3) nextSetup = persist({ ...nextSetup, status: "REVIEWED" });
@@ -172,6 +216,25 @@ export function MerchantOnboarding() {
           <div className={styles.formInner}>
             {step === 0 && (
               <div className={styles.stepContent}>
+                {showAmazingDemoPreset && (
+                  <section className={styles.demoPreset} data-loaded={amazingDemoSelected || undefined}>
+                    <div>
+                      <p>Reviewer demo</p>
+                      <strong>{amazingDemoSelected ? "Amazing demo setup loaded" : "Open the canonical Amazing merchant"}</strong>
+                      <span>
+                        {amazingDemoSelected
+                          ? "Amazing was resolved from your authorized merchant access. Continue to open its existing console state."
+                          : "Loads only server-authorized Amazing identity data. Nothing is created or submitted."}
+                      </span>
+                    </div>
+                    <AmanaButton
+                      isDisabled={merchantLoading}
+                      onClick={loadAmazingDemoSetup}
+                      type="button"
+                      variant="secondary"
+                    >Load Amazing demo setup</AmanaButton>
+                  </section>
+                )}
                 <div className={styles.formHeading}>
                   <span className={styles.headingIcon}><StorefrontIcon size="medium" /></span>
                   <div><p>Commerce identity</p><h2>Tell Amana what this store represents.</h2></div>

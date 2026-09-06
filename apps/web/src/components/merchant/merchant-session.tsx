@@ -13,6 +13,7 @@ import {
 } from "react";
 import { AmanaButton } from "@/components/amana/blade";
 import { merchantApi, MerchantApiError } from "@/lib/merchant/api";
+import { configuredDemoMerchant } from "@/lib/merchant/demo-access";
 import type { MerchantAccess, MerchantActor } from "@/lib/merchant/types";
 import styles from "./merchant-session.module.css";
 
@@ -115,9 +116,10 @@ export function useMerchantSession() {
 
 export function MerchantAuthBoundary({ children }: { children: ReactNode }) {
   const { actor, loading, signIn, signOut } = useMerchantSession();
-  const demoIdentity = process.env.NEXT_PUBLIC_DEMO_MERCHANT_IDENTITY?.trim() ?? "";
-  const demoPassword = process.env.NEXT_PUBLIC_DEMO_MERCHANT_PASSWORD ?? "";
-  const hasDemoAccess = Boolean(demoIdentity && demoPassword);
+  const demoMerchant = configuredDemoMerchant(
+    process.env.NEXT_PUBLIC_DEMO_MERCHANT_IDENTITY,
+    process.env.NEXT_PUBLIC_DEMO_MERCHANT_PASSWORD,
+  );
   const [identity, setIdentity] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -176,32 +178,35 @@ export function MerchantAuthBoundary({ children }: { children: ReactNode }) {
               autoCompleteSuggestionType="username"
               isRequired
               label="Identity handle"
+              name="merchant-identity"
               onChange={({ value }) => setIdentity(value ?? "")}
               placeholder="merchant@example.com"
               value={identity}
             />
             <PasswordInput
+              autoCompleteSuggestionType="password"
               isRequired
               label="Password"
+              name="merchant-password"
               onChange={({ value }) => setPassword(value ?? "")}
               value={password}
             />
-            {hasDemoAccess && (
+            {demoMerchant && (
               <section className={styles.demoAccess} aria-label="Demo access">
                 <div>
                   <p>Demo access</p>
-                  <strong title={demoIdentity}>{demoIdentity}</strong>
+                  <strong title={demoMerchant.identity}>{demoMerchant.identity}</strong>
                   <span>Fills the real Merchant Admin sign-in form. Authentication is still required.</span>
                 </div>
                 <AmanaButton
                   onClick={() => {
-                    setIdentity(demoIdentity);
-                    setPassword(demoPassword);
+                    setIdentity(demoMerchant.identity);
+                    setPassword(demoMerchant.password);
                     setError("");
                   }}
                   type="button"
                   variant="secondary"
-                >Use demo account</AmanaButton>
+                >Use Amazing demo account</AmanaButton>
               </section>
             )}
             {error && <p className={styles.formError} role="alert">{error}</p>}
