@@ -11,14 +11,16 @@ import org.springframework.stereotype.Component;
 @ConditionalOnProperty(name="demo.bootstrap.enabled",havingValue="true")
 public class DemoBootstrapRunner implements ApplicationRunner {
     private static final Logger log=LoggerFactory.getLogger(DemoBootstrapRunner.class);
-    private final DemoBootstrapService service;private final String publicBase;private final String buyerIdentity;private final String buyerPassword;private final Path fixtureRoot;
+    private final DemoBootstrapService service;private final String publicBase;private final String buyerIdentity;private final String buyerPassword;
+    private final String merchantAdminPassword;private final Path fixtureRoot;
     public DemoBootstrapRunner(DemoBootstrapService service,@Value("${demo.bootstrap.public-base-url:}") String publicBase,
             @Value("${demo.bootstrap.buyer-identity:}") String buyerIdentity,@Value("${demo.bootstrap.buyer-password:}") String buyerPassword,
+            @Value("${demo.bootstrap.merchant-admin-password:}") String merchantAdminPassword,
             @Value("${demo.bootstrap.fixture-root:../../evaluation/demo-data}") String fixtureRoot){this.service=service;this.publicBase=publicBase;
-        this.buyerIdentity=buyerIdentity;this.buyerPassword=buyerPassword;this.fixtureRoot=Path.of(fixtureRoot);}
+        this.buyerIdentity=buyerIdentity;this.buyerPassword=buyerPassword;this.merchantAdminPassword=merchantAdminPassword;this.fixtureRoot=Path.of(fixtureRoot);}
     @Override public void run(ApplicationArguments args){log.info("P0 demo bootstrap starting deploymentPrecondition={} merchantPublicBaseUrl={}",
                 DemoBootstrapService.DEPLOYMENT_PRECONDITION,publicBase);
-        var s=service.bootstrap(publicBase,buyerIdentity,buyerPassword,fixtureRoot);
+        var s=service.bootstrap(publicBase,buyerIdentity,buyerPassword,merchantAdminPassword,fixtureRoot);
         if(!s.blockers().isEmpty()){
             log.error("P0 demo bootstrap failed closed deploymentPrecondition={} merchantPublicBaseUrl={} blockers={}",
                     s.deploymentPrecondition(),s.merchantPublicBaseUrl(),s.blockers());

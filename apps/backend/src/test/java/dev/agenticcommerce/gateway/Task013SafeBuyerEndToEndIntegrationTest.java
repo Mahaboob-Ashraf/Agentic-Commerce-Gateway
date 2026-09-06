@@ -60,12 +60,15 @@ class Task013SafeBuyerEndToEndIntegrationTest {
     @LocalServerPort int port;
     private UUID buyerId;
 
-    @BeforeAll void seed()throws Exception{jdbc.sql("TRUNCATE TABLE merchant,application_actor CASCADE").update();
+    @BeforeAll void seed()throws Exception{
+        jdbc.sql("TRUNCATE TABLE merchant,application_actor CASCADE").update();
+        String merchantAdminPassword=UUID.randomUUID().toString();
         bootstrap.bootstrap("https://merchant.example.test","task013-evaluator@demo.invalid",
-                "task013-not-a-real-password",legacyFixtureRoot());
+                "task013-not-a-real-password",merchantAdminPassword,legacyFixtureRoot());
         var summary=bootstrap.bootstrap("https://merchant.example.test","task013-evaluator@demo.invalid",
-                "task013-not-a-real-password",Path.of("..","..","evaluation","demo-data"));
-        assertThat(summary.blockers()).isEmpty();buyerId=summary.buyerActorId();}
+                "task013-not-a-real-password",merchantAdminPassword,Path.of("..","..","evaluation","demo-data"));
+        assertThat(summary.blockers()).isEmpty();buyerId=summary.buyerActorId();
+    }
     @BeforeEach void clearRequests(){transport.resetRuntimeModes();paymentProvider.reset();
         jdbc.sql("TRUNCATE TABLE commerce_thread CASCADE").update();jdbc.sql("TRUNCATE TABLE demo_merchant_order").update();
         jdbc.sql("""
@@ -396,3 +399,5 @@ class Task013SafeBuyerEndToEndIntegrationTest {
         @Override public String providerAccountReference(){return "default-test-account";}
     }
 }
+
+

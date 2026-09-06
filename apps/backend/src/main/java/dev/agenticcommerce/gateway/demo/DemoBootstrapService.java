@@ -76,23 +76,43 @@ public class DemoBootstrapService {
         this.canonical=canonical;
         this.demoPolicyExtractor=new DemoPolicyExtractionProvider(mapper);}
 
-    public BootstrapSummary bootstrap(String publicBaseUrl,String buyerIdentity,String buyerPassword,Path fixtureRoot){
+    public BootstrapSummary bootstrap(String publicBaseUrl,String buyerIdentity,String buyerPassword,String merchantAdminPassword,Path fixtureRoot){
         require(publicBaseUrl!=null&&publicBaseUrl.matches("https://[^\\s/]+(?:/[A-Za-z0-9._~/-]*)?"),
                 "DEMO_MERCHANT_PUBLIC_BASE_URL must be the deployed public HTTPS base URL for the current service");
         require(buyerIdentity!=null&&!buyerIdentity.isBlank()&&buyerIdentity.length()<=320,"DEMO_BUYER_IDENTITY is required");
         require(buyerPassword!=null&&buyerPassword.length()>=12&&buyerPassword.length()<=1024,"DEMO_BUYER_PASSWORD must contain 12 to 1024 characters");
+        require(merchantAdminPassword!=null&&merchantAdminPassword.length()>=12&&merchantAdminPassword.length()<=1024,
+                "DEMO_MERCHANT_ADMIN_PASSWORD must contain 12 to 1024 characters");
         credentialProvider.require(EnvironmentMerchantCredentialProvider.DEMO_CREDENTIAL_REFERENCE);
         String normalizedBaseUrl=publicBaseUrl.replaceAll("/+$","");
-        var completed=completion();if(completed.isPresent()&&completionReusable(completed.get(),normalizedBaseUrl,buyerIdentity,fixtureRoot)){
+        var completed=completion();
+        if(completed.isPresent()&&completionReusable(completed.get(),normalizedBaseUrl,buyerIdentity,fixtureRoot)){
             Merchant amazing=merchants.findByKey("amazing").orElseThrow();
             if(!AMAZING_LOGO_URL.equals(amazing.logoUrl()))amazing=merchants.updateLogoUrl(amazing.id(),AMAZING_LOGO_URL);
+            ensureMerchantAdminAccess(amazing,merchantAdminPassword);
+
+            Merchant fresh=merchants.findByKey("freshbasket").orElseThrow();
+            ensureMerchantAdminAccess(fresh,merchantAdminPassword);
+
             ensurePaymentConfiguration(amazing);
             return reused(completed.get());
         }
+
         if(completionMarkerExists())clearCompletion();
-        BuyerSeed buyer=buyer(buyerIdentity,buyerPassword);MerchantSeed amazing=merchant("amazing","Amazing",AMAZING_LOGO_URL,"AMAZING",true,true,true,2880,
-                fixtureRoot.resolve("amazing-catalogue-v1.json"));MerchantSeed fresh=merchant("freshbasket","FreshBasket",null,"FRESH_BASKET",false,false,false,30,
-                fixtureRoot.resolve("freshbasket-catalogue-v1.json"));
+
+        BuyerSeed buyer=buyer(buyerIdentity,buyerPassword);
+
+        MerchantSeed amazing=merchant(
+                "amazing","Amazing",AMAZING_LOGO_URL,"AMAZING",
+                true,true,true,2880,
+                fixtureRoot.resolve("amazing-catalogue-v1.json"),
+                merchantAdminPassword);
+
+        MerchantSeed fresh=merchant(
+                "freshbasket","FreshBasket",null,"FRESH_BASKET",
+                false,false,false,30,
+                fixtureRoot.resolve("freshbasket-catalogue-v1.json"),
+                merchantAdminPassword);
         ensurePaymentConfiguration(amazing.merchant());
         seedBuyer(buyer.actor(),List.of(amazing.merchant(),fresh.merchant()),buyerIdentity,buyerPassword);
         List<String> blockers=new ArrayList<>();
@@ -115,11 +135,23 @@ public class DemoBootstrapService {
                 paymentProvider.providerAccountReference());
     }
 
-    private MerchantSeed merchant(String key,String display,String logoUrl,String code,boolean cancel,boolean returns,boolean perishable,int delivery,Path fixture){
-        var existingMerchant=merchants.findByKey(key);Merchant merchant=existingMerchant.orElseGet(()->merchants.create(key,display));String adminHandle="demo-"+key+"-admin@agentic-commerce.invalid";
-        if(logoUrl!=null&&!logoUrl.equals(merchant.logoUrl()))merchant=merchants.updateLogoUrl(merchant.id(),logoUrl);
-        ApplicationActor admin=actors.findByIdentityHandle(adminHandle).orElseGet(()->actors.create(adminHandle,PlatformRole.MERCHANT_ADMIN));
+    private ApplicationActor ensureMerchantAdminAccess(Merchant merchant,String password){
+        String adminHandle="demo-"+merchant.merchantKey()+"-admin@agentic-commerce.invalid";
+        ApplicationActor admin=actors.findByIdentityHandle(adminHandle)
+                .orElseGet(()->actors.create(adminHandle,PlatformRole.MERCHANT_ADMIN));
+        require(admin.role()==PlatformRole.MERCHANT_ADMIN,
+                "Demo Merchant Admin identity belongs to a non-merchant actor");
         if(!memberships.existsByMerchantAndActor(merchant.id(),admin.id()))memberships.create(merchant.id(),admin.id());
+        var existing=credentials.findByActorId(admin.id());
+        if(existing.isEmpty())credentials.createArgon2Credential(admin.id(),passwords.encode(password),true);
+        else require(existing.orElseThrow().enabled(),"Existing demo Merchant Admin credential is disabled and was not overwritten");
+        return admin;
+    }
+
+    private MerchantSeed merchant(String key,String display,String logoUrl,String code,boolean cancel,boolean returns,boolean perishable,int delivery,Path fixture,String merchantAdminPassword){
+        var existingMerchant=merchants.findByKey(key);Merchant merchant=existingMerchant.orElseGet(()->merchants.create(key,display));
+        if(logoUrl!=null&&!logoUrl.equals(merchant.logoUrl()))merchant=merchants.updateLogoUrl(merchant.id(),logoUrl);
+        ApplicationActor admin=ensureMerchantAdminAccess(merchant,merchantAdminPassword);
         demo.saveProfile(merchant.id(),code,cancel,returns,perishable,delivery);
         String payload=read(fixture);String fixtureHash=canonical.hashText(payload);
         var published=catalogueRepository.latestPublished(merchant.id());int count;
@@ -350,3 +382,4 @@ public class DemoBootstrapService {
     private record Stats(int primaryFacts,int embeddingsReady,int embeddingFailures){}
     private record AuthorityStats(int mappings,int ready,int manifests){}
 }
+

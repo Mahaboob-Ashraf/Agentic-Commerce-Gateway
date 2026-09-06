@@ -95,6 +95,7 @@ public class AuthenticationSecurityConfiguration {
                         .hasRole("BUYER")
                         .requestMatchers("/api/auth/me", "/api/auth/logout").authenticated()
                         .requestMatchers("/api/buyer/**").hasRole("BUYER")
+                        .requestMatchers(HttpMethod.GET, "/api/merchants").hasRole("MERCHANT_ADMIN")
                         .requestMatchers("/api/merchants/*/agentization/**")
                         .hasRole("MERCHANT_ADMIN")
                         .requestMatchers("/api/merchants/*/catalogue/**").hasRole("MERCHANT_ADMIN")

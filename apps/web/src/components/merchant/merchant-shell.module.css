@@ -1,0 +1,531 @@
+.shell {
+  min-height: 100svh;
+  background: #f6f8fb;
+}
+
+.skipLink {
+  position: fixed;
+  z-index: 2000;
+  top: 0.5rem;
+  left: 0.5rem;
+  transform: translateY(-150%);
+  padding: 0.7rem 1rem;
+  border-radius: 0.4rem;
+  background: var(--amana-brand);
+  color: white;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.skipLink:focus {
+  transform: translateY(0);
+}
+
+.sidebar {
+  position: fixed;
+  z-index: 10;
+  inset: 0 auto 0 0;
+  width: 16.5rem;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid #dfe5ee;
+  background: #fff;
+}
+
+.brand {
+  min-height: 4.65rem;
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0 1.25rem;
+  border-bottom: 1px solid #edf0f5;
+  color: var(--amana-ink);
+  text-decoration: none;
+}
+
+.brandMark {
+  width: 2.25rem;
+  height: 2.25rem;
+  flex: 0 0 auto;
+  display: block;
+  object-fit: contain;
+}
+
+.brandName {
+  font-family: var(--amana-font-display);
+  font-size: 1.06rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.brandProduct {
+  margin-left: auto;
+  padding: 0.18rem 0.42rem;
+  border: 1px solid #d8e2f5;
+  border-radius: 0.3rem;
+  color: #4e6385;
+  font-size: 0.62rem;
+  font-weight: 750;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.storeContext {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  margin: 1rem 0.8rem 0.5rem;
+  padding: 0.75rem;
+  border: 1px solid #e2e7ef;
+  border-radius: 0.5rem;
+  background: #f8fafd;
+}
+
+.merchantSelect,
+.drawerMerchantSelect {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  min-height: 2.75rem;
+  border: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.drawerMerchantSelect {
+  position: static;
+  margin-bottom: 1rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--amana-border);
+  border-radius: 0.4rem;
+  opacity: 1;
+  background: #fff;
+  color: var(--amana-ink);
+}
+
+.storeIcon {
+  width: 2rem;
+  height: 2rem;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border-radius: 0.4rem;
+  background: #e8efff;
+  color: var(--amana-brand-strong);
+}
+
+.storeLogo,
+.drawerStoreLogo,
+.mobileMerchantLogo {
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid #e2e7ef;
+  border-radius: 0.35rem;
+  background: #fff;
+}
+
+.storeLogo {
+  width: 3.25rem;
+  height: 2rem;
+  flex: 0 0 auto;
+}
+
+.storeLogo img,
+.drawerStoreLogo img,
+.mobileMerchantLogo img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  object-fit: contain;
+}
+
+.storeContext > span:last-child,
+.drawerStore span,
+.identityText {
+  min-width: 0;
+  display: grid;
+  line-height: 1.3;
+}
+
+.storeContext strong,
+.drawerStore strong {
+  overflow: hidden;
+  font-size: 0.77rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.storeContext small,
+.drawerStore small,
+.identity small {
+  color: var(--amana-ink-soft);
+  font-size: 0.66rem;
+}
+
+.navigation {
+  min-height: 0;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  overflow-y: auto;
+  padding: 0.7rem 0.8rem;
+}
+
+.navSection {
+  display: grid;
+  gap: 0.16rem;
+}
+
+.navSectionBottom {
+  margin-top: auto;
+  padding-top: 1.25rem;
+}
+
+.navLabel {
+  margin: 0 0 0.35rem;
+  padding: 0 0.65rem;
+  color: #8a96a8;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.navLink {
+  position: relative;
+  min-height: 2.6rem;
+  display: flex;
+  align-items: center;
+  gap: 0.72rem;
+  padding: 0.55rem 0.65rem;
+  border-radius: 0.42rem;
+  color: #536078;
+  font-size: 0.79rem;
+  font-weight: 610;
+  text-decoration: none;
+  transition: background-color 140ms ease, color 140ms ease;
+}
+
+.navLink:hover {
+  background: #f3f6fa;
+  color: var(--amana-ink);
+}
+
+.navLink[data-active] {
+  background: #edf3ff;
+  color: #1749d4;
+}
+
+.navLink[data-active]::before {
+  position: absolute;
+  left: -0.8rem;
+  width: 0.2rem;
+  height: 1.35rem;
+  border-radius: 0 0.2rem 0.2rem 0;
+  background: var(--amana-brand);
+  content: "";
+}
+
+.identity {
+  min-height: 4.8rem;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.85rem 1rem;
+  border-top: 1px solid #edf0f5;
+}
+
+.avatar {
+  width: 2rem;
+  height: 2rem;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #e7edf7;
+  color: #435574;
+  font-size: 0.75rem;
+  font-weight: 750;
+}
+
+.identityText strong {
+  overflow: hidden;
+  font-size: 0.68rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.signOut {
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #63718a;
+  font-size: 0.64rem;
+  cursor: pointer;
+}
+
+.signOut:hover {
+  color: var(--amana-negative);
+}
+
+.workspace {
+  min-height: 100svh;
+  margin-left: 16.5rem;
+}
+
+.main {
+  min-height: 100svh;
+}
+
+.mobileHeader {
+  display: none;
+}
+
+.drawerStore {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  margin-bottom: 0.5rem;
+  padding: 0.9rem;
+  border: 1px solid var(--amana-border);
+  background: #f8fafd;
+}
+
+.drawerStoreLogo {
+  width: 4.25rem;
+  height: 2.4rem;
+  flex: 0 0 auto;
+}
+
+.drawerLayer {
+  position: fixed;
+  z-index: 900;
+  inset: 0;
+  display: none;
+}
+
+.drawerBackdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: rgb(9 20 40 / 52%);
+  cursor: pointer;
+}
+
+.mobileDrawer {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: min(22rem, calc(100vw - 2.75rem));
+  min-width: 17.5rem;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--amana-border);
+  background: #fff;
+  box-shadow: 1.25rem 0 3rem rgb(10 24 48 / 22%);
+  animation: drawer-in 180ms ease-out;
+}
+
+.drawerHeader {
+  min-height: 4.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--amana-border);
+}
+
+.drawerBrand {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  font-family: var(--amana-font-display);
+  font-size: 0.9rem;
+}
+
+.drawerClose {
+  width: 2.75rem;
+  height: 2.75rem;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 0.4rem;
+  background: transparent;
+  color: #52617a;
+  cursor: pointer;
+}
+
+.drawerClose:hover {
+  background: #f1f4f8;
+}
+
+.drawerClose:focus-visible,
+.drawerFooter button:focus-visible {
+  outline: 3px solid rgb(43 95 245 / 28%);
+  outline-offset: 2px;
+}
+
+.drawerBody {
+  min-height: 0;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  overflow-y: auto;
+  padding: 1rem;
+}
+
+.drawerFooter {
+  display: grid;
+  gap: 0.75rem;
+  padding: 0.9rem 1rem max(0.9rem, env(safe-area-inset-bottom));
+  border-top: 1px solid var(--amana-border);
+  background: #fafbfd;
+}
+
+.drawerFooter > div {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.drawerFooter > div > span:last-child {
+  min-width: 0;
+  display: grid;
+}
+
+.drawerFooter strong {
+  overflow: hidden;
+  font-size: 0.72rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.drawerFooter small {
+  color: var(--amana-ink-soft);
+  font-size: 0.66rem;
+}
+
+.drawerFooter button {
+  min-height: 2.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  border: 1px solid #d6dee9;
+  border-radius: 0.4rem;
+  background: #fff;
+  color: #a53737;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+@keyframes drawer-in {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
+}
+
+@media (max-width: 64rem) {
+  .sidebar {
+    width: 14.5rem;
+  }
+
+  .workspace {
+    margin-left: 14.5rem;
+  }
+
+  .brandProduct {
+    display: none;
+  }
+}
+
+@media (max-width: 48rem) {
+  .sidebar {
+    display: none;
+  }
+
+  .workspace {
+    margin-left: 0;
+  }
+
+  .mobileHeader {
+    position: sticky;
+    z-index: 8;
+    top: 0;
+    min-height: 4rem;
+    display: grid;
+    grid-template-columns: 2.75rem minmax(0, 1fr) 4.75rem;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem 1rem;
+    border-bottom: 1px solid var(--amana-border);
+    background: rgb(255 255 255 / 94%);
+    backdrop-filter: blur(12px);
+  }
+
+  .mobileBrand {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    color: var(--amana-ink);
+    font-family: var(--amana-font-display);
+    font-size: 0.9rem;
+    font-weight: 700;
+    text-decoration: none;
+  }
+
+  .mobileMerchantLogo {
+    width: 4.75rem;
+    height: 2.15rem;
+    justify-self: end;
+  }
+
+  .mobileStatus {
+    width: 0.55rem;
+    height: 0.55rem;
+    justify-self: center;
+    border-radius: 50%;
+    background: #d39a12;
+    box-shadow: 0 0 0 0.25rem #fff5d6;
+  }
+
+  .navigation {
+    overflow: visible;
+    padding: 0;
+  }
+
+  .drawerLayer {
+    display: block;
+  }
+
+  .navSectionBottom {
+    margin-top: 1.5rem;
+  }
+
+  .navLink {
+    min-height: 3rem;
+    font-size: 0.88rem;
+  }
+
+  .navLink[data-active]::before {
+    left: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .navLink {
+    transition: none;
+  }
+
+  .mobileDrawer {
+    animation: none;
+  }
+}

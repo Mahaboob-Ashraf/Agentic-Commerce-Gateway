@@ -14,6 +14,7 @@ const nextConfig: NextConfig = {
       // the browser's session cookie, CSRF header, and multipart boundary/body without buffering
       // and reconstructing uploads in a Route Handler.
       { source: "/api/buyer/:path*", destination: `${backendOrigin}/api/buyer/:path*` },
+      { source: "/api/merchants/:path*", destination: `${backendOrigin}/api/merchants/:path*` },
     ];
   },
 };

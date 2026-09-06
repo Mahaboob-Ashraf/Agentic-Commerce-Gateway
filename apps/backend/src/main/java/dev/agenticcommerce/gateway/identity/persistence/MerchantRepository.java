@@ -5,6 +5,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
@@ -85,6 +86,22 @@ public class MerchantRepository {
         return (value.startsWith("/") && !value.startsWith("//")) || value.startsWith("https://");
     }
 
+    /** Returns only merchant tenants explicitly administered by the authenticated actor. */
+    public List<Merchant> findAllAdministeredByActor(UUID actorId) {
+        Objects.requireNonNull(actorId, "actorId");
+        return jdbcClient.sql("""
+                        SELECT m.merchant_id, m.merchant_key, m.display_name, m.logo_url, m.created_at
+                        FROM merchant m
+                        INNER JOIN merchant_admin_membership membership
+                            ON membership.merchant_id = m.merchant_id
+                        WHERE membership.actor_id = :actorId
+                        ORDER BY lower(m.display_name), m.merchant_id
+                        """)
+                .param("actorId", actorId)
+                .query(MerchantRepository::mapMerchant)
+                .list();
+    }
+
     private static Merchant mapMerchant(ResultSet resultSet, int rowNumber) throws SQLException {
         return new Merchant(
                 resultSet.getObject("merchant_id", UUID.class),
@@ -94,3 +111,5 @@ public class MerchantRepository {
                 resultSet.getObject("created_at", OffsetDateTime.class).toInstant());
     }
 }
+
+
