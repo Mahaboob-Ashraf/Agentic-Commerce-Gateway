@@ -1,12 +1,12 @@
 <p align="center">
-
-  <img src="docs/readme/12_amana-logo.png" width="300" alt="Amana logo">
-
+  <img src="apps/web/public/amana/amana-mark.png" width="140" alt="Amana mark">
 </p>
 
 <h1 align="center">Amana</h1>
 
-<p align="center"><strong>Commerce you can trust agents with.</strong></p>
+<p align="center">
+  <strong>Commerce you can trust agents with.</strong>
+</p>
 
 Amana turns existing merchants into verified AI-transactable businesses, then lets customers discover, reason, and purchase through a multimodal AI Buyer. Language models interpret and plan; deterministic application logic controls capability readiness, product and policy evidence, transaction authority, payment truth, and recovery.
 
