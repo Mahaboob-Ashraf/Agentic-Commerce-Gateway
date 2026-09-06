@@ -7,6 +7,9 @@ import static org.assertj.core.api.Assertions.*;
 
 import dev.agenticcommerce.gateway.agentization.execution.*;
 import dev.agenticcommerce.gateway.catalogue.*;
+import dev.agenticcommerce.gateway.commerce.ServiceabilityProvider;
+import dev.agenticcommerce.gateway.commerce.TransactionModels.EvidenceOutcome;
+import dev.agenticcommerce.gateway.commerce.TransactionModels.ServiceabilitySource;
 import dev.agenticcommerce.gateway.identity.model.*;
 import dev.agenticcommerce.gateway.identity.persistence.*;
 import dev.agenticcommerce.gateway.intent.*;
@@ -47,6 +50,8 @@ import tools.jackson.databind.ObjectMapper;
 @Testcontainers
 @Import(Task012GenericCommerceRequestIntegrationTest.Fakes.class)
 class Task012GenericCommerceRequestIntegrationTest {
+    @Autowired
+    dev.agenticcommerce.gateway.onboarding.OnboardingService onboarding;
     @Container @ServiceConnection static final PostgreSQLContainer POSTGRES=new PostgreSQLContainer("pgvector/pgvector:0.8.1-pg17");
     @Autowired JdbcClient jdbc;@Autowired MerchantRepository merchants;@Autowired ApplicationActorRepository actors;
     @Autowired MerchantAdminMembershipRepository memberships;@Autowired CatalogueService catalogueService;
@@ -64,7 +69,7 @@ class Task012GenericCommerceRequestIntegrationTest {
 
     @Test void genericFoodRequestUsesPrimarySafetyFactsQuoteAndStopsBeforeMoney(){Fixture f=fixture("food");UUID request=UUID.randomUUID();
         CommerceRequestResult result=commerceRequests.execute(f.buyer.id(),request,null,"high-protein vegetarian snacks under 500 rupees, peanuts prohibited");
-        assertThat(result.requestStatus()).isEqualTo(RequestStatus.COMPLETED);assertThat(result.state()).isEqualTo(BuyerState.CONSTRAINTS_VERIFIED);
+        assertThat(result.requestStatus()).isEqualTo(RequestStatus.COMPLETED);assertThat(result.state()).isEqualTo(BuyerState.WAITING_FOR_USER);
         assertThat(result.goal()).isEqualTo(IntentGoal.PURCHASE_PRODUCT);assertThat(result.merchantId()).isEqualTo(f.grocery.id());assertThat(result.catalogueVersion()).startsWith("v1:");assertThat(result.products()).singleElement().satisfies(line->{
             assertThat(line.merchantSku()).isEqualTo("SYN-GROCERY-CHANA-200");assertThat(line.lineAmountMinor()).isEqualTo(21_500L);
             assertThat(line.facts()).anySatisfy(fact->{assertThat(fact.type()).isEqualTo("IMAGE");assertThat(fact.value().asText()).isEqualTo("/demo/products/roasted-chana.svg");});
@@ -156,6 +161,37 @@ class Task012GenericCommerceRequestIntegrationTest {
         CookieManager adminCookies=new CookieManager(null,CookiePolicy.ACCEPT_ALL);HttpClient adminClient=HttpClient.newBuilder().cookieHandler(adminCookies).build();login(adminClient,admin);assertThat(post(adminClient,"/api/buyer/commerce-requests",csrf(adminClient),body).statusCode()).isEqualTo(403);}
 
     private Fixture fixture(String key){Merchant grocery=merchants.create("synthetic-grocery-"+key,"Synthetic Grocery "+key),electronics=merchants.create("synthetic-electronics-"+key,"Synthetic Electronics "+key);ApplicationActor groceryAdmin=actors.create(key+"-grocery-admin@test",PlatformRole.MERCHANT_ADMIN),electronicsAdmin=actors.create(key+"-electronics-admin@test",PlatformRole.MERCHANT_ADMIN),buyer=actors.create(key+"-buyer@test",PlatformRole.BUYER);memberships.create(grocery.id(),groceryAdmin.id());memberships.create(electronics.id(),electronicsAdmin.id());
+        onboarding.updateProfile(
+                buyer.id(),
+                new dev.agenticcommerce.gateway.onboarding.OnboardingModels.ProfileInput(
+                        "Task012 Buyer",
+                        "9999999999",
+                        "task012-" + key + "@example.invalid"));
+
+        var address = onboarding.addAddress(
+                buyer.id(),
+                new dev.agenticcommerce.gateway.onboarding.OnboardingModels.AddressInput(
+                        "Test",
+                        "Task012 Buyer",
+                        "9999999999",
+                        "1 Test Lane",
+                        null,
+                        "Indiranagar",
+                        "Bengaluru",
+                        "Karnataka",
+                        "560001"));
+
+        onboarding.selectAddress(buyer.id(),address.id());
+
+        onboarding.link(
+                buyer.id(),
+                new dev.agenticcommerce.gateway.onboarding.OnboardingModels.LinkRequest(
+                        grocery.id(),"demo-user","demo-password"));
+
+        onboarding.link(
+                buyer.id(),
+                new dev.agenticcommerce.gateway.onboarding.OnboardingModels.LinkRequest(
+                        electronics.id(),"demo-user","demo-password"));
         CatalogueVersion groceryVersion=catalogueService.ingest(groceryAdmin.id(),grocery.id(),"JSON",demo("synthetic-grocery-catalogue-v1.json")).version();CatalogueVersion electronicsVersion=catalogueService.ingest(electronicsAdmin.id(),electronics.id(),"JSON",demo("synthetic-electronics-catalogue-v1.json")).version();publishReady(grocery,groceryAdmin,groceryVersion);publishReady(electronics,electronicsAdmin,electronicsVersion);return new Fixture(grocery,electronics,buyer,groceryVersion.id(),electronicsVersion.id());}
     private String demo(String name){try{return Files.readString(Path.of("..","..","evaluation","demo-data",name));}catch(Exception e){throw new IllegalStateException(e);}}
     private UUID product(Merchant merchant,String sku){CatalogueVersion version=catalogueRepository.latestPublished(merchant.id()).orElseThrow();return catalogueRepository.products(merchant.id(),version.id(),20).stream().filter(p->p.merchantSku().equals(sku)).findFirst().orElseThrow().id();}
@@ -163,10 +199,48 @@ class Task012GenericCommerceRequestIntegrationTest {
     private UUID publishReady(Merchant merchant,ApplicationActor admin,CatalogueVersion version){UUID endpoint=jdbc.sql("INSERT INTO merchant_approved_endpoint(merchant_id,base_uri,hostname,approved_at,dns_validated_at) VALUES(:m,'https://merchant.example.test','merchant.example.test',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP) RETURNING endpoint_id").param("m",merchant.id()).query(UUID.class).single();UUID artifact=jdbc.sql("INSERT INTO openapi_artifact(merchant_id,endpoint_id,artifact_type,artifact_version,content_hash,document) VALUES(:m,:e,'OPENAPI','v1',:h,'{}') RETURNING artifact_id").param("m",merchant.id()).param("e",endpoint).param("h","1".repeat(64)).query(UUID.class).single();UUID run=jdbc.sql("INSERT INTO agentization_run(merchant_id,created_by_actor_id,source_artifact_id,target_capability,current_capability,orchestration_state,max_step_budget,wall_clock_deadline) VALUES(:m,:a,:artifact,'GET_QUOTE','GET_QUOTE','READY_CANDIDATE',20,CURRENT_TIMESTAMP+interval '1 hour') RETURNING run_id").param("m",merchant.id()).param("a",admin.id()).param("artifact",artifact).query(UUID.class).single();UUID mapping=jdbc.sql("""
             INSERT INTO capability_mapping_proposal(merchant_id,run_id,capability,mapping_version,source_artifact_id,endpoint_id,source_operation_id,http_method,path_template,request_bindings,response_bindings,transformations,amount_interpretation,currency_interpretation,model_provider,model_name,proposal_status,validation_status)
             VALUES(:m,:run,'GET_QUOTE',1,:artifact,:endpoint,'quote','POST','/quotes','{"cartId":"body.cartId"}','{"amount":"body.finalAmountMinor","currency":"body.currency","quoteId":"body.quoteId"}','{"amount":"IDENTITY"}','{"unit":"minor"}','{"field":"body.currency"}','TEST','fixture','AWAITING_APPROVAL','VALID') RETURNING mapping_proposal_id
-            """).param("m",merchant.id()).param("run",run).param("artifact",artifact).param("endpoint",endpoint).query(UUID.class).single();UUID searchEval=readiness(merchant.id(),run,"SEARCH_PRODUCTS",null),quoteEval=readiness(merchant.id(),run,"GET_QUOTE",mapping);UUID manifest=jdbc.sql("INSERT INTO agent_commerce_manifest(merchant_id,agentization_run_id,manifest_version,catalogue_version,publication_actor_id,publication_component,manifest_hash) VALUES(:m,:run,1,:catalogue,:actor,'DETERMINISTIC_READINESS_REDUCER',:hash) RETURNING manifest_id").param("m",merchant.id()).param("run",run).param("catalogue","v"+version.version()+":"+version.contentHash()).param("actor",admin.id()).param("hash","3".repeat(64)).query(UUID.class).single();
-        jdbc.sql("INSERT INTO agent_commerce_manifest_capability(manifest_id,merchant_id,capability,advertised,readiness,executable_mapping_proposal_id,readiness_evaluation_id) VALUES(:manifest,:m,'SEARCH_PRODUCTS',true,'READY',NULL,:evaluation)").param("manifest",manifest).param("m",merchant.id()).param("evaluation",searchEval).update();jdbc.sql("INSERT INTO agent_commerce_manifest_capability(manifest_id,merchant_id,capability,advertised,readiness,executable_mapping_proposal_id,readiness_evaluation_id) VALUES(:manifest,:m,'GET_QUOTE',true,'READY',:mapping,:evaluation)").param("manifest",manifest).param("m",merchant.id()).param("mapping",mapping).param("evaluation",quoteEval).update();return mapping;}
-    private UUID readiness(UUID merchant,UUID run,String capability,UUID mapping){return jdbc.sql("INSERT INTO capability_readiness_evaluation(merchant_id,agentization_run_id,capability,readiness,mapping_proposal_id,mapping_version,mapping_content_hash,required_evidence,satisfied_evidence,missing_requirements,blocking_evidence,evidence_references,evaluation_hash) VALUES(:m,:run,:capability,'READY',:mapping,:version,:mappingHash,'[]','[]','[]','[]','[]',:hash) RETURNING readiness_evaluation_id").param("m",merchant).param("run",run).param("capability",capability).param("mapping",mapping).param("version",mapping==null?null:1).param("mappingHash",mapping==null?null:"4".repeat(64)).param("hash",capability.equals("SEARCH_PRODUCTS")?"5".repeat(64):"6".repeat(64)).query(UUID.class).single();}
-    private void assertMoneyBoundary(){for(String table:List.of("transaction_proposal","authorization_decision","transaction_execution","payment_provider_order","payment_control"))assertThat(jdbc.sql("SELECT count(*)::int FROM "+table).query(Integer.class).single()).as(table).isZero();}
+            """).param("m",merchant.id()).param("run",run).param("artifact",artifact).param("endpoint",endpoint).query(UUID.class).single();
+        UUID availabilityMapping=jdbc.sql("""
+            INSERT INTO capability_mapping_proposal(merchant_id,run_id,capability,mapping_version,source_artifact_id,endpoint_id,source_operation_id,http_method,path_template,request_bindings,response_bindings,transformations,amount_interpretation,currency_interpretation,model_provider,model_name,proposal_status,validation_status)
+            VALUES(:m,:run,'GET_AVAILABILITY',1,:artifact,:endpoint,'availability','POST','/products','{"merchantSku":"body.merchantSku","requestedQuantity":"body.requestedQuantity"}','{"availableQuantity":"body.availableQuantity","available":"body.available","observedAt":"body.observedAt"}','{}','{"unit":"minor"}','{"field":""}','TEST','fixture','AWAITING_APPROVAL','VALID') RETURNING mapping_proposal_id
+            """).param("m",merchant.id()).param("run",run).param("artifact",artifact).param("endpoint",endpoint).query(UUID.class).single();
+
+        UUID policySnapshot = jdbc.sql("""
+                INSERT INTO merchant_policy_snapshot(
+                    merchant_id,snapshot_version,snapshot_hash,published_by_actor_id
+                )
+                VALUES(:m,1,:hash,:actor)
+                RETURNING policy_snapshot_id
+                """)
+                .param("m",merchant.id())
+                .param("hash","2".repeat(64))
+                .param("actor",admin.id())
+                .query(UUID.class)
+                .single();
+
+        UUID searchEval=readiness(merchant.id(),run,"SEARCH_PRODUCTS",null);
+        UUID quoteEval=readiness(merchant.id(),run,"GET_QUOTE",mapping);
+        UUID availabilityEval=readiness(merchant.id(),run,"GET_AVAILABILITY",availabilityMapping);
+
+        UUID manifest=jdbc.sql("""
+                INSERT INTO agent_commerce_manifest(
+                    merchant_id,agentization_run_id,manifest_version,catalogue_version,
+                    policy_snapshot_id,publication_actor_id,publication_component,manifest_hash
+                )
+                VALUES(:m,:run,1,:catalogue,:policy,:actor,'DETERMINISTIC_READINESS_REDUCER',:hash)
+                RETURNING manifest_id
+                """)
+                .param("m",merchant.id())
+                .param("run",run)
+                .param("catalogue","v"+version.version()+":"+version.contentHash())
+                .param("policy",policySnapshot)
+                .param("actor",admin.id())
+                .param("hash","3".repeat(64))
+                .query(UUID.class)
+                .single();
+        jdbc.sql("INSERT INTO agent_commerce_manifest_capability(manifest_id,merchant_id,capability,advertised,readiness,executable_mapping_proposal_id,readiness_evaluation_id) VALUES(:manifest,:m,'SEARCH_PRODUCTS',true,'READY',NULL,:evaluation)").param("manifest",manifest).param("m",merchant.id()).param("evaluation",searchEval).update();jdbc.sql("INSERT INTO agent_commerce_manifest_capability(manifest_id,merchant_id,capability,advertised,readiness,executable_mapping_proposal_id,readiness_evaluation_id) VALUES(:manifest,:m,'GET_QUOTE',true,'READY',:mapping,:evaluation)").param("manifest",manifest).param("m",merchant.id()).param("mapping",mapping).param("evaluation",quoteEval).update();jdbc.sql("INSERT INTO agent_commerce_manifest_capability(manifest_id,merchant_id,capability,advertised,readiness,executable_mapping_proposal_id,readiness_evaluation_id) VALUES(:manifest,:m,'GET_AVAILABILITY',true,'READY',:mapping,:evaluation)").param("manifest",manifest).param("m",merchant.id()).param("mapping",availabilityMapping).param("evaluation",availabilityEval).update();return mapping;}
+    private UUID readiness(UUID merchant,UUID run,String capability,UUID mapping){return jdbc.sql("INSERT INTO capability_readiness_evaluation(merchant_id,agentization_run_id,capability,readiness,mapping_proposal_id,mapping_version,mapping_content_hash,required_evidence,satisfied_evidence,missing_requirements,blocking_evidence,evidence_references,evaluation_hash) VALUES(:m,:run,:capability,'READY',:mapping,:version,:mappingHash,'[]','[]','[]','[]','[]',:hash) RETURNING readiness_evaluation_id").param("m",merchant).param("run",run).param("capability",capability).param("mapping",mapping).param("version",mapping==null?null:1).param("mappingHash",mapping==null?null:"4".repeat(64)).param("hash",switch(capability){case "SEARCH_PRODUCTS"->"5".repeat(64);case "GET_QUOTE"->"6".repeat(64);default->"7".repeat(64);}).query(UUID.class).single();}
+    private void assertMoneyBoundary(){assertThat(jdbc.sql("SELECT count(*)::int FROM transaction_proposal").query(Integer.class).single()).as("transaction_proposal").isOne();for(String table:List.of("authorization_decision","transaction_execution","payment_provider_order","payment_control"))assertThat(jdbc.sql("SELECT count(*)::int FROM "+table).query(Integer.class).single()).as(table).isZero();}
     private void login(HttpClient client,ApplicationActor actor)throws Exception{String token=csrf(client);assertThat(post(client,"/api/auth/login",token,mapper.writeValueAsString(Map.of("identityHandle",actor.identityHandle(),"password","task012-password"))).statusCode()).isEqualTo(200);}
     private String csrf(HttpClient client)throws Exception{HttpResponse<String> response=get(client,"/api/auth/csrf");assertThat(response.statusCode()).isEqualTo(200);return mapper.readTree(response.body()).path("token").asText();}
     private HttpResponse<String> get(HttpClient client,String path)throws Exception{return client.send(HttpRequest.newBuilder(URI.create("http://localhost:"+port+path)).GET().build(),HttpResponse.BodyHandlers.ofString());}
@@ -192,10 +266,23 @@ class Task012GenericCommerceRequestIntegrationTest {
                     "Could you please specify the product category for the Synthetic Sonic A1 black?","FAKE","task0134-intent-v1");}
         private static MaterialField field(String name,ConstraintClassification classification,EvidenceSpan span){return new MaterialField(name,classification,span,BigDecimal.ONE,AmbiguityState.CLEAR);}
         private static MaterialField ambiguous(String name,EvidenceSpan span){return new MaterialField(name,ConstraintClassification.HARD,span,BigDecimal.ONE,AmbiguityState.AMBIGUOUS);}
+        @Bean
+        @Primary
+        dev.agenticcommerce.gateway.onboarding.MerchantCustomerLinkProvider links() {
+            return (merchant, username, password) ->
+                    new dev.agenticcommerce.gateway.onboarding.MerchantCustomerLinkProvider.LinkResult(
+                            true,
+                            "task012-customer-" + merchant,
+                            "task012-credential-" + merchant,
+                            "TRUSTED_DEMO",
+                            java.time.Instant.now().plusSeconds(3600),
+                            null);
+        }
         @Bean @Primary CatalogueProvider catalogueProvider(){return barcode->Optional.empty();}
         @Bean @Primary EmbeddingProvider embeddings(){return input->{List<Float> values=new ArrayList<>(Collections.nCopies(768,0f));values.set(Math.floorMod(input.hashCode(),32),1f);return List.copyOf(values);};}
         @Bean @Primary MerchantDnsResolver dns()throws Exception{return host->List.of(InetAddress.getByName("93.184.216.34"));}
         @Bean @Primary FakeTransport transport(ObjectMapper mapper){return new FakeTransport(mapper);}
+        @Bean @Primary ServiceabilityProvider serviceability(ObjectMapper mapper){return request->{Instant now=Instant.now();return new ServiceabilityProvider.ServiceabilityResult(EvidenceOutcome.PASS,ServiceabilitySource.TRUSTED_DEMO_FIXTURE,"task012-bengaluru-v1",request.postalCode(),"TRUSTED_DEMO_SERVICEABLE",now,now.plusSeconds(300),mapper.createObjectNode().put("fixture","task012-bengaluru-v1"));};}
     }
-    static class FakeTransport implements MerchantTransport {final ObjectMapper mapper;final AtomicInteger calls=new AtomicInteger();FakeTransport(ObjectMapper mapper){this.mapper=mapper;}public MerchantTransportResponse execute(ValidatedEndpointResolution resolution,MerchantTransportRequest request){calls.incrementAndGet();JsonNode input=mapper.readTree(request.jsonBody());var output=mapper.createObjectNode();output.put("quoteId","task012-"+input.path("cartId").asText());output.put("quoteVersion","v1");output.put("cartId",input.path("cartId").asText());output.put("currency","INR");output.put("expiresAt",Instant.now().plusSeconds(600).toString());output.put("stockGuaranteed",true);output.put("priceGuaranteed",true);var lines=output.putArray("lineItems");long total=0;for(JsonNode item:input.path("lineItems")){String sku=item.path("merchantSku").asText();int quantity=item.path("quantity").asInt();long unit=sku.contains("CHANA")?21_500:sku.contains("MANGO")?13_900:sku.contains("WHT")?429_900:sku.contains("A1-BLK")?459_900:319_900;total+=unit*quantity;var line=lines.addObject();line.put("merchantSku",sku);line.put("quantity",quantity);line.put("unitAmountMinor",unit);line.put("lineAmountMinor",unit*quantity);}output.put("subtotalMinor",total);output.put("finalAmountMinor",total);return new MerchantTransportResponse(200,"application/json",mapper.writeValueAsBytes(output));}}
+    static class FakeTransport implements MerchantTransport {final ObjectMapper mapper;final AtomicInteger calls=new AtomicInteger();FakeTransport(ObjectMapper mapper){this.mapper=mapper;}public MerchantTransportResponse execute(ValidatedEndpointResolution resolution,MerchantTransportRequest request){int callNumber=calls.incrementAndGet();JsonNode input=mapper.readTree(request.jsonBody());var output=mapper.createObjectNode();if(request.uri().getPath().endsWith("/products")){output.put("merchantId",input.path("merchantId").asText());output.put("productId",input.path("productId").asText());output.put("merchantSku",input.path("merchantSku").asText());output.set("variant",input.path("variant"));output.put("requestedQuantity",input.path("requestedQuantity").asInt());output.put("availableQuantity",8);output.put("observedAt",Instant.now().toString());output.put("expiresAt",Instant.now().plusSeconds(300).toString());return new MerchantTransportResponse(200,"application/json",mapper.writeValueAsBytes(output));}output.put("quoteId","task012-"+input.path("cartId").asText()+"-"+callNumber);output.put("quoteVersion","v1");output.put("cartId",input.path("cartId").asText());output.put("currency","INR");output.put("expiresAt",Instant.now().plusSeconds(600).toString());output.put("stockGuaranteed",true);output.put("priceGuaranteed",true);var lines=output.putArray("lineItems");long total=0;for(JsonNode item:input.path("lineItems")){String sku=item.path("merchantSku").asText();int quantity=item.path("quantity").asInt();long unit=sku.contains("CHANA")?21_500:sku.contains("MANGO")?13_900:sku.contains("WHT")?429_900:sku.contains("A1-BLK")?459_900:319_900;total+=unit*quantity;var line=lines.addObject();line.put("productId",item.path("productId").asText());line.put("merchantSku",sku);line.put("quantity",quantity);line.put("unitAmountMinor",unit);line.put("lineAmountMinor",unit*quantity);}output.put("subtotalMinor",total);output.put("taxMinor",0);output.put("deliveryMinor",0);output.put("feesMinor",0);output.put("finalAmountMinor",total);return new MerchantTransportResponse(200,"application/json",mapper.writeValueAsBytes(output));}}
 }
