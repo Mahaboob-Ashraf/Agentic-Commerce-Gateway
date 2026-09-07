@@ -14,6 +14,13 @@ Amana turns existing merchants into verified AI-transactable businesses, then le
 
 ## Live Demo
 
+> **Note:** The backend runs on Render’s free tier and may be asleep after inactivity.
+> If the demo shows `429 Too Many Requests` or login temporarily fails:
+>
+> 1. Open: https://agentic-commerce-gateway.onrender.com/actuator/health
+> 2. Wait up to 2–3 minutes for the backend to wake.
+> 3. Once it returns `{"status":"UP"}`, reopen Amana and continue.
+
 | Experience | Link |
 |---|---|
 | **Live product** | [agentic-commerce-gateway-web.vercel.app](https://agentic-commerce-gateway-web.vercel.app/) |
