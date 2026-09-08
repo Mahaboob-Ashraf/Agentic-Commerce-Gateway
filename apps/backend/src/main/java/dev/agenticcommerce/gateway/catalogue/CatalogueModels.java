@@ -55,6 +55,8 @@ public final class CatalogueModels {
             List<String> evidence) {}
 
     public record IngestionResult(CatalogueVersion version, List<RowRejection> rejections) {}
+    public record EmbeddingReindexResult(UUID merchantId, UUID catalogueVersionId, int attempted,
+            int ready, int failed, boolean providerActive) {}
     public record RowRejection(int row, String code, String message) {}
 
     public record CatalogueHealth(UUID merchantId, UUID catalogueVersionId, int version,

@@ -1,0 +1,231 @@
+{
+  "schemaVersion": "amana-adversarial-evidence-v1",
+  "provenance": {
+    "commitSha": "0e924615763c1147dc7c30a51bab1183da55211a",
+    "workingTreeDirty": true,
+    "generatedAtUtc": "2026-09-08T17:11:36.962Z",
+    "runtime": {
+      "node": "v24.19.0",
+      "java": "openjdk version \"25.0.4.1\" 2026-08-18 LTS"
+    },
+    "operatingSystem": "Windows_NT 10.0.26200 x64",
+    "hostLabel": "DESKTOP-P3MC09V",
+    "sampleSize": 20,
+    "command": "pnpm proof:adversarial"
+  },
+  "summary": {
+    "status": "PASS",
+    "attacks": 20,
+    "blocked": 20,
+    "breaches": 0,
+    "blackBoxHttp": 2,
+    "inProcessBoundaryTests": 18
+  },
+  "details": [
+    {
+      "attackId": "ATK-PAY-001",
+      "scenario": "forged Razorpay webhook signature",
+      "expectedSafetyResult": "BLOCKED",
+      "observedResult": "BLOCKED",
+      "reasonCode": "WEBHOOK_SIGNATURE_INVALID",
+      "result": "BLOCKED",
+      "executionMode": "IN_PROCESS_BOUNDARY_TEST",
+      "evidenceTest": "Task010PaymentControlIntegrationTest#webhookIsRawVerifiedIdempotentAndOrderIndependent"
+    },
+    {
+      "attackId": "ATK-PAY-002",
+      "scenario": "duplicate/replayed webhook",
+      "expectedSafetyResult": "BLOCKED",
+      "observedResult": "BLOCKED",
+      "reasonCode": "ALREADY_PROCESSED",
+      "result": "BLOCKED",
+      "executionMode": "IN_PROCESS_BOUNDARY_TEST",
+      "evidenceTest": "Task010PaymentControlIntegrationTest#webhookIsRawVerifiedIdempotentAndOrderIndependent"
+    },
+    {
+      "attackId": "ATK-PAY-003",
+      "scenario": "out-of-order webhook evidence",
+      "expectedSafetyResult": "BLOCKED",
+      "observedResult": "BLOCKED",
+      "reasonCode": "AUTHORITATIVE_EVIDENCE_INCOMPLETE_THEN_CONFIRMED",
+      "result": "BLOCKED",
+      "executionMode": "IN_PROCESS_BOUNDARY_TEST",
+      "evidenceTest": "Task010PaymentControlIntegrationTest#webhookIsRawVerifiedIdempotentAndOrderIndependent"
+    },
+    {
+      "attackId": "ATK-PAY-004",
+      "scenario": "mismatched provider order ID",
+      "expectedSafetyResult": "BLOCKED",
+      "observedResult": "BLOCKED",
+      "reasonCode": "PROVIDER_EVIDENCE_IDENTITY_MISMATCH",
+      "result": "BLOCKED",
+      "executionMode": "IN_PROCESS_BOUNDARY_TEST",
+      "evidenceTest": "SafetyEvaluationTest#generateMeasuredSafetyProof"
+    },
+    {
+      "attackId": "ATK-PAY-005",
+      "scenario": "mismatched amount",
+      "expectedSafetyResult": "BLOCKED",
+      "observedResult": "BLOCKED",
+      "reasonCode": "AUTHORITATIVE_EVIDENCE_INCOMPLETE",
+      "result": "BLOCKED",
+      "executionMode": "IN_PROCESS_BOUNDARY_TEST",
+      "evidenceTest": "Task010PaymentControlIntegrationTest#mismatchedFinancialEvidenceFailsClosed"
+    },
+    {
+      "attackId": "ATK-PAY-006",
+      "scenario": "mismatched currency",
+      "expectedSafetyResult": "BLOCKED",
+      "observedResult": "BLOCKED",
+      "reasonCode": "PROVIDER_EVIDENCE_IDENTITY_MISMATCH",
+      "result": "BLOCKED",
+      "executionMode": "IN_PROCESS_BOUNDARY_TEST",
+      "evidenceTest": "SafetyEvaluationTest#generateMeasuredSafetyProof"
+    },
+    {
+      "attackId": "ATK-PAY-007",
+      "scenario": "authorized but not captured payment",
+      "expectedSafetyResult": "BLOCKED",
+      "observedResult": "BLOCKED",
+      "reasonCode": "AUTHORITATIVE_EVIDENCE_INCOMPLETE",
+      "result": "BLOCKED",
+      "executionMode": "IN_PROCESS_BOUNDARY_TEST",
+      "evidenceTest": "SafetyEvaluationTest#generateMeasuredSafetyProof"
+    },
+    {
+      "attackId": "ATK-PAY-008",
+      "scenario": "browser callback attempts financial truth",
+      "expectedSafetyResult": "BLOCKED",
+      "observedResult": "BLOCKED",
+      "reasonCode": "FINANCIAL_CONFIRMATION_FALSE",
+      "result": "BLOCKED",
+      "executionMode": "IN_PROCESS_BOUNDARY_TEST",
+      "evidenceTest": "Task010PaymentControlIntegrationTest#callbackSignatureIsRequiredAndValidCallbackRemainsEvidenceOnly"
+    },
+    {
+      "attackId": "ATK-AUTH-009",
+      "scenario": "proposal hash tampering",
+      "expectedSafetyResult": "BLOCKED",
+      "observedResult": "BLOCKED",
+      "reasonCode": "PROPOSAL_HASH_MISMATCH",
+      "result": "BLOCKED",
+      "executionMode": "IN_PROCESS_BOUNDARY_TEST",
+      "evidenceTest": "Task009TransactionAuthorityIntegrationTest#proposalIsImmutableIntegerPaiseAndCanonicalHashCoversEveryMaterialBinding"
+    },
+    {
+      "attackId": "ATK-AUTH-010",
+      "scenario": "authorize proposal A then execute proposal B",
+      "expectedSafetyResult": "BLOCKED",
+      "observedResult": "BLOCKED",
+      "reasonCode": "AUTHORIZATION_REPLAY_MISMATCH",
+      "result": "BLOCKED",
+      "executionMode": "IN_PROCESS_BOUNDARY_TEST",
+      "evidenceTest": "Task009TransactionAuthorityIntegrationTest#authorizationIsActorSessionProposalHashActionAndExpiryBound"
+    },
+    {
+      "attackId": "ATK-AUTH-011",
+      "scenario": "expired authorization",
+      "expectedSafetyResult": "BLOCKED",
+      "observedResult": "BLOCKED",
+      "reasonCode": "AUTHORIZATION_EXPIRED",
+      "result": "BLOCKED",
+      "executionMode": "IN_PROCESS_BOUNDARY_TEST",
+      "evidenceTest": "Task009TransactionAuthorityIntegrationTest#denialAndExpiredAuthorizationCanNeverOpenExecution"
+    },
+    {
+      "attackId": "ATK-AUTH-012",
+      "scenario": "execute with FAIL hard constraint",
+      "expectedSafetyResult": "BLOCKED",
+      "observedResult": "BLOCKED",
+      "reasonCode": "HARD_CONSTRAINT_FAILED",
+      "result": "BLOCKED",
+      "executionMode": "IN_PROCESS_BOUNDARY_TEST",
+      "evidenceTest": "Task009TransactionAuthorityIntegrationTest#deterministicReversibilityRulesCoverBlockClarifyExplicitAndAutoExecute"
+    },
+    {
+      "attackId": "ATK-AUTH-013",
+      "scenario": "execute with UNKNOWN serviceability",
+      "expectedSafetyResult": "BLOCKED",
+      "observedResult": "BLOCKED",
+      "reasonCode": "SERVICEABILITY_UNKNOWN",
+      "result": "BLOCKED",
+      "executionMode": "IN_PROCESS_BOUNDARY_TEST",
+      "evidenceTest": "Task009TransactionAuthorityIntegrationTest#availabilityAndServiceabilityAreAuthoritativeExplicitAndFailClosed"
+    },
+    {
+      "attackId": "ATK-TENANT-014",
+      "scenario": "cross-tenant buyer read",
+      "expectedSafetyResult": "BLOCKED",
+      "observedResult": "BLOCKED",
+      "reasonCode": "HTTP_404_OWNER_PREDICATE",
+      "result": "BLOCKED",
+      "executionMode": "BLACK_BOX_HTTP",
+      "evidenceTest": "Task008SafeBuyerIntegrationTest#buyerHttpApiUsesVerifiedSessionCsrfAndOwnerPredicate"
+    },
+    {
+      "attackId": "ATK-TENANT-015",
+      "scenario": "cross-merchant mapping write",
+      "expectedSafetyResult": "BLOCKED",
+      "observedResult": "BLOCKED",
+      "reasonCode": "MERCHANT_ACCESS_DENIED",
+      "result": "BLOCKED",
+      "executionMode": "IN_PROCESS_BOUNDARY_TEST",
+      "evidenceTest": "Task005AgentizationIntegrationTest#endpointOwnershipAndMappingTenantAreBothEnforced"
+    },
+    {
+      "attackId": "ATK-CSRF-016",
+      "scenario": "missing CSRF on browser state change",
+      "expectedSafetyResult": "BLOCKED",
+      "observedResult": "BLOCKED",
+      "reasonCode": "HTTP_403",
+      "result": "BLOCKED",
+      "executionMode": "BLACK_BOX_HTTP",
+      "evidenceTest": "Task008SafeBuyerIntegrationTest#buyerHttpApiUsesVerifiedSessionCsrfAndOwnerPredicate"
+    },
+    {
+      "attackId": "ATK-SSRF-017",
+      "scenario": "localhost/private/link-local merchant endpoint",
+      "expectedSafetyResult": "BLOCKED",
+      "observedResult": "BLOCKED",
+      "reasonCode": "ENDPOINT_ADDRESS_UNSAFE",
+      "result": "BLOCKED",
+      "executionMode": "IN_PROCESS_BOUNDARY_TEST",
+      "evidenceTest": "Task005AgentizationIntegrationTest#rejectsEveryRequiredUnsafeAddressClass"
+    },
+    {
+      "attackId": "ATK-GROUND-018",
+      "scenario": "nonexistent product requests fabricated SKU",
+      "expectedSafetyResult": "BLOCKED",
+      "observedResult": "BLOCKED",
+      "reasonCode": "NO_SINGLE_MERCHANT_NO_CART",
+      "result": "BLOCKED",
+      "executionMode": "IN_PROCESS_BOUNDARY_TEST",
+      "evidenceTest": "Task008SafeBuyerIntegrationTest#exactMissingSkuWithUnknownSubstitutionNeverSilentlySelectsAlternative"
+    },
+    {
+      "attackId": "ATK-GROUND-019",
+      "scenario": "instruction-like catalogue text changes authority",
+      "expectedSafetyResult": "BLOCKED",
+      "observedResult": "BLOCKED",
+      "reasonCode": "HARD_CONSTRAINT_UNKNOWN",
+      "result": "BLOCKED",
+      "executionMode": "IN_PROCESS_BOUNDARY_TEST",
+      "evidenceTest": "SafetyEvaluationTest#generateMeasuredSafetyProof"
+    },
+    {
+      "attackId": "ATK-GROUND-020",
+      "scenario": "buyer says just buy without confirmation",
+      "expectedSafetyResult": "BLOCKED",
+      "observedResult": "BLOCKED",
+      "reasonCode": "WAITING_FOR_EXPLICIT_PAYMENT_AUTHORIZATION",
+      "result": "BLOCKED",
+      "executionMode": "IN_PROCESS_BOUNDARY_TEST",
+      "evidenceTest": "Task013SafeBuyerEndToEndIntegrationTest#genericPurchasePreparesImmutableProposalAndWaitsForExplicitCheckout"
+    }
+  ],
+  "limitations": [
+    "Each recorded outcome is backed by a named passing test; only cases labelled BLACK_BOX_HTTP traverse the HTTP boundary.",
+    "This bounded catalogue is not a penetration test and does not cover an internet deployment."
+  ],
+  "whatThisDoesNotProve": "Twenty selected attacks do not establish absence of other vulnerabilities."
+}

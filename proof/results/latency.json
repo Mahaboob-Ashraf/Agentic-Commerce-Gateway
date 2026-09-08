@@ -1,0 +1,105 @@
+{
+  "schemaVersion" : "amana-latency-evidence-v1",
+  "provenance" : {
+    "commitSha" : "0e924615763c1147dc7c30a51bab1183da55211a",
+    "workingTreeDirty" : true,
+    "generatedAtUtc" : "2026-09-08T17:07:15.759572Z",
+    "runtime" : {
+      "java" : "25.0.4.1+1-LTS",
+      "node" : "v24.19.0"
+    },
+    "operatingSystem" : "Windows 11 10.0 amd64",
+    "hostLabel" : "DESKTOP-P3MC09V",
+    "sampleSize" : 80,
+    "command" : "pnpm proof:latency"
+  },
+  "summary" : {
+    "status" : "PASS",
+    "metricCount" : 8,
+    "samplesPerMetric" : 10,
+    "coldStartTreatment" : "ONE_WARMUP_JOURNEY_EXCLUDED"
+  },
+  "details" : [ {
+    "metric" : "BUYER_INTENT_COMPILATION",
+    "environment" : "TESTCONTAINERS_POSTGRESQL_17_LOCAL_STUB_PROVIDERS",
+    "providerBacked" : false,
+    "n" : 10,
+    "minMillis" : 8.4727,
+    "p50Millis" : 9.658,
+    "p95Millis" : 10.6855,
+    "p99Millis" : 10.6855,
+    "maxMillis" : 10.6855
+  }, {
+    "metric" : "CATALOGUE_RETRIEVAL",
+    "environment" : "TESTCONTAINERS_POSTGRESQL_17_LOCAL_STUB_PROVIDERS",
+    "providerBacked" : false,
+    "n" : 10,
+    "minMillis" : 11.8998,
+    "p50Millis" : 12.6643,
+    "p95Millis" : 14.8864,
+    "p99Millis" : 14.8864,
+    "maxMillis" : 14.8864
+  }, {
+    "metric" : "CANDIDATE_CART_CONSTRUCTION",
+    "environment" : "TESTCONTAINERS_POSTGRESQL_17_LOCAL_STUB_PROVIDERS",
+    "providerBacked" : false,
+    "n" : 10,
+    "minMillis" : 23.2515,
+    "p50Millis" : 24.4747,
+    "p95Millis" : 30.572,
+    "p99Millis" : 30.572,
+    "maxMillis" : 30.572
+  }, {
+    "metric" : "AUTHORITATIVE_QUOTE",
+    "environment" : "TESTCONTAINERS_POSTGRESQL_17_LOCAL_STUB_PROVIDERS",
+    "providerBacked" : false,
+    "n" : 10,
+    "minMillis" : 12.0641,
+    "p50Millis" : 12.551,
+    "p95Millis" : 13.3592,
+    "p99Millis" : 13.3592,
+    "maxMillis" : 13.3592
+  }, {
+    "metric" : "CONSTRAINT_VERIFICATION",
+    "environment" : "TESTCONTAINERS_POSTGRESQL_17_LOCAL_STUB_PROVIDERS",
+    "providerBacked" : false,
+    "n" : 10,
+    "minMillis" : 17.2931,
+    "p50Millis" : 17.9502,
+    "p95Millis" : 19.0145,
+    "p99Millis" : 19.0145,
+    "maxMillis" : 19.0145
+  }, {
+    "metric" : "PROPOSAL_CONSTRUCTION",
+    "environment" : "TESTCONTAINERS_POSTGRESQL_17_LOCAL_STUB_PROVIDERS",
+    "providerBacked" : false,
+    "n" : 10,
+    "minMillis" : 16.1674,
+    "p50Millis" : 16.9382,
+    "p95Millis" : 22.7294,
+    "p99Millis" : 22.7294,
+    "maxMillis" : 22.7294
+  }, {
+    "metric" : "EXECUTION_GATE",
+    "environment" : "TESTCONTAINERS_POSTGRESQL_17_LOCAL_STUB_PROVIDERS",
+    "providerBacked" : false,
+    "n" : 10,
+    "minMillis" : 14.8223,
+    "p50Millis" : 15.5169,
+    "p95Millis" : 23.6677,
+    "p99Millis" : 23.6677,
+    "maxMillis" : 23.6677
+  }, {
+    "metric" : "RAZORPAY_ORDER_CREATE_STUB",
+    "environment" : "TESTCONTAINERS_POSTGRESQL_17_LOCAL_STUB_PROVIDERS",
+    "providerBacked" : false,
+    "n" : 10,
+    "minMillis" : 9.5719,
+    "p50Millis" : 9.8282,
+    "p95Millis" : 12.5448,
+    "p99Millis" : 12.5448,
+    "maxMillis" : 12.5448
+  } ],
+  "limitations" : [ "Local repeatable measurement uses PostgreSQL Testcontainers plus deterministic merchant/payment adapters.", "Gemini and live Razorpay latency are not mixed into these measurements." ],
+  "whatThisDoesNotProve" : "These measurements are not SLAs, production load results, Render cold starts, or live-provider latency."
+}

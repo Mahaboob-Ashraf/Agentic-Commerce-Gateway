@@ -7,6 +7,7 @@ import dev.agenticcommerce.gateway.agentization.authority.AgentizationAuthorityR
 import dev.agenticcommerce.gateway.agentization.service.CanonicalJsonService;
 import dev.agenticcommerce.gateway.catalogue.CatalogueRepository;
 import dev.agenticcommerce.gateway.catalogue.HybridCatalogueRetrievalService;
+import dev.agenticcommerce.gateway.catalogue.RetrievalHintMatcher;
 import dev.agenticcommerce.gateway.commerce.TransactionModels.AvailabilityRefresh;
 import dev.agenticcommerce.gateway.commerce.TransactionModels.EvidenceOutcome;
 import dev.agenticcommerce.gateway.commerce.TransactionModels.ServiceabilityEvidence;
@@ -51,10 +52,10 @@ public class ConstraintCertificateService {
                     return state==AllergenState.PRESENT?ConstraintOutcome.FAIL:state==AllergenState.ABSENT?ConstraintOutcome.PASS:ConstraintOutcome.UNKNOWN;}).toList();
             ObjectNode req=mapper.createObjectNode().put("allergen",intent.compiled().prohibitedAllergen()).put("requirement","PROHIBITED");
             results.add(result("ALLERGEN_"+intent.compiled().prohibitedAllergen(),ConstraintType.SAFETY_COMPLIANCE,req,reduce(outcomes),true,productRefs(cart,"allergen"),now));}
-        if(isHard(intent,"CATEGORY"))addIdentity(results,cart,"CATEGORY",intent.compiled().categoryRequest(),Product::category,now);
+        if(isHard(intent,"CATEGORY"))addCategory(results,cart,intent.compiled().categoryRequest(),now);
         addIdentity(results,cart,"MERCHANT_SKU",intent.compiled().exactMerchantSku(),Product::merchantSku,now);
         addIdentity(results,cart,"GTIN",intent.compiled().exactGtin(),Product::gtin,now);
-        addIdentity(results,cart,"BRAND",intent.compiled().exactBrand(),Product::brand,now);
+        addBrand(results,cart,intent.compiled().exactBrand(),now);
         addIdentity(results,cart,"VARIANT",intent.compiled().exactVariant(),Product::variant,now);
         addIdentity(results,cart,"SIZE_STORAGE",intent.compiled().exactSizeStorage(),Product::sizeStorage,now);
         addIdentity(results,cart,"COLOUR",intent.compiled().exactColour(),Product::colour,now);
@@ -88,6 +89,16 @@ public class ConstraintCertificateService {
         List<ConstraintOutcome> outcomes=cart.items().stream().map(item->catalogues.findProduct(cart.merchantId(),cart.catalogueVersionId(),item.productId())
                 .map(product->compare(requested,field.apply(product))).orElse(ConstraintOutcome.UNKNOWN)).toList();
         results.add(result(key,ConstraintType.MERCHANT_PRODUCT,mapper.createObjectNode().put("required",requested),reduce(outcomes),false,productRefs(cart,key.toLowerCase(Locale.ROOT)),now));}
+    private void addCategory(List<ConstraintResult> results,CandidateCart cart,String requested,Instant now){if(requested==null||requested.isBlank())return;
+        List<ConstraintOutcome> outcomes=cart.items().stream().map(item->catalogues.findProduct(cart.merchantId(),cart.catalogueVersionId(),item.productId())
+                .map(product->RetrievalHintMatcher.categoryCompatible(requested,product)?ConstraintOutcome.PASS:ConstraintOutcome.FAIL)
+                .orElse(ConstraintOutcome.UNKNOWN)).toList();
+        results.add(result("CATEGORY",ConstraintType.MERCHANT_PRODUCT,mapper.createObjectNode().put("required",requested),reduce(outcomes),false,productRefs(cart,"category"),now));}
+    private void addBrand(List<ConstraintResult> results,CandidateCart cart,String requested,Instant now){if(requested==null||requested.isBlank())return;
+        List<ConstraintOutcome> outcomes=cart.items().stream().map(item->catalogues.findProduct(cart.merchantId(),cart.catalogueVersionId(),item.productId())
+                .map(product->RetrievalHintMatcher.brandEquivalent(requested,product.brand())?ConstraintOutcome.PASS:ConstraintOutcome.FAIL)
+                .orElse(ConstraintOutcome.UNKNOWN)).toList();
+        results.add(result("BRAND",ConstraintType.MERCHANT_PRODUCT,mapper.createObjectNode().put("required",requested),reduce(outcomes),false,productRefs(cart,"brand"),now));}
     private static ConstraintOutcome compare(String required,String actual){if(actual==null||actual.isBlank())return ConstraintOutcome.UNKNOWN;return normalize(required).equals(normalize(actual))?ConstraintOutcome.PASS:ConstraintOutcome.FAIL;}
     private static boolean isHard(BuyerIntent intent,String field){return intent.compiled().materialFields().stream().anyMatch(value->field.equals(value.field())&&value.classification()!=ConstraintClassification.SOFT);}
     private ConstraintOutcome excludedMaterialOutcome(CandidateCart cart,UUID productId,List<String> excluded,Instant now){

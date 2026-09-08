@@ -25,8 +25,6 @@ import dev.agenticcommerce.gateway.payment.PaymentProvider;
 import dev.agenticcommerce.gateway.payment.PaymentRepository;
 import dev.agenticcommerce.gateway.risk.ReversibilityEngine;
 import dev.agenticcommerce.gateway.risk.TransactionAuthorityPolicy;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -544,7 +542,11 @@ class SafetyEvaluationTest {
             return value;
         }).toList();
 
-        ObjectNode report = MAPPER.createObjectNode();
+        ObjectNode report = EvidenceSupport.envelope(MAPPER, "amana-deterministic-safety-evidence-v1", results.size(),
+                ".\\apps\\backend\\mvnw.cmd \"-Dtest=dev.agenticcommerce.gateway.proof.SafetyEvaluationTest\" test",
+                MAPPER.createObjectNode(), MAPPER.valueToTree(results),
+                List.of("Offline deterministic component proof with inert persistence/provider boundaries."),
+                "This does not prove mutation sensitivity, HTTP security, PostgreSQL concurrency, provider behavior, or production traffic safety.");
         report.put("timestamp", Instant.now().toString());
         report.put("suite", "Amana deterministic safety evaluation");
         report.put("version", SUITE_VERSION);
@@ -554,6 +556,8 @@ class SafetyEvaluationTest {
         report.put("hardSafetyViolations", failed);
         report.put("failClosedRate", percentage(failClosedPassed, results.size()));
         report.put("defendedInvariantCount", invariants.size());
+        ((ObjectNode) report.path("summary")).put("status", failed == 0 ? "PASS" : "FAIL")
+                .put("passed", passed).put("failed", failed).put("hardSafetyViolations", failed);
         report.set("categoryCounts", MAPPER.valueToTree(categories));
         report.set("metrics", MAPPER.valueToTree(metrics));
         report.set("invariants", MAPPER.valueToTree(invariants));
@@ -564,11 +568,6 @@ class SafetyEvaluationTest {
         methodology.put("productionPaymentMutation", false);
         methodology.put("aiGradesSafety", false);
         methodology.put("externalInfrastructureRequired", false);
-
-        Path root = Path.of("..").resolve("..").normalize().toAbsolutePath();
-        Path output = root.resolve("proof/results");
-        Files.createDirectories(output);
-        MAPPER.writerWithDefaultPrettyPrinter().writeValue(output.resolve("latest.json").toFile(), report);
 
         String summary = """
                 # Amana deterministic safety proof
@@ -599,7 +598,7 @@ class SafetyEvaluationTest {
                 The suite runs offline. It uses production deterministic reducers and guards with inert repository/provider boundaries. It does not call Gemini, Docker, PostgreSQL, Razorpay, or any external API, and it does not mutate a production payment.
                 """.formatted(SUITE_VERSION, report.get("timestamp").asText(), results.size(), passed, failed, failed,
                 report.get("failClosedRate").asText(), invariants.size(), categoryMarkdown(categories));
-        Files.writeString(output.resolve("SUMMARY.md"), summary);
+        EvidenceSupport.write(MAPPER, "latest.json", "SUMMARY.md", report, summary);
     }
 
     private long passedInMetric(String metric) {

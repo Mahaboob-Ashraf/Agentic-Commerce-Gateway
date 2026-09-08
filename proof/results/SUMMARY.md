@@ -3,7 +3,7 @@
 Safety is measured, not claimed.
 
 - Suite: `amana-safety-proof-v1`
-- Generated: `2026-09-06T07:15:17.056323600Z`
+- Generated: `2026-09-08T17:11:36.667836800Z`
 - Total cases: **250**
 - Passed: **250**
 - Failed: **0**
@@ -31,3 +31,23 @@ From the repository root:
 ```
 
 The suite runs offline. It uses production deterministic reducers and guards with inert repository/provider boundaries. It does not call Gemini, Docker, PostgreSQL, Razorpay, or any external API, and it does not mutate a production payment.
+
+## Provenance
+
+- Schema version: `amana-deterministic-safety-evidence-v1`
+- Commit SHA: `0e924615763c1147dc7c30a51bab1183da55211a`
+- Working tree dirty: `true`
+- Generated UTC: `2026-09-08T17:11:36.632120700Z`
+- Runtime: Java `25.0.4.1+1-LTS`; Node `v24.19.0`
+- OS / host: `Windows 11 10.0 amd64` / `DESKTOP-P3MC09V`
+- Sample size: 250
+- Exact command: `.\apps\backend\mvnw.cmd "-Dtest=dev.agenticcommerce.gateway.proof.SafetyEvaluationTest" test`
+- Summary: **PASS**
+
+## Limitations
+
+- Offline deterministic component proof with inert persistence/provider boundaries.
+
+## What this does not prove
+
+This does not prove mutation sensitivity, HTTP security, PostgreSQL concurrency, provider behavior, or production traffic safety.

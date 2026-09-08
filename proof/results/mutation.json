@@ -1,0 +1,99 @@
+{
+  "schemaVersion" : "amana-mutation-evidence-v1",
+  "provenance" : {
+    "commitSha" : "0e924615763c1147dc7c30a51bab1183da55211a",
+    "workingTreeDirty" : true,
+    "generatedAtUtc" : "2026-09-08T17:06:19.773137200Z",
+    "runtime" : {
+      "java" : "25.0.4.1+1-LTS",
+      "node" : "v24.19.0"
+    },
+    "operatingSystem" : "Windows 11 10.0 amd64",
+    "hostLabel" : "DESKTOP-P3MC09V",
+    "sampleSize" : 12,
+    "command" : "pnpm proof:mutation"
+  },
+  "summary" : {
+    "status" : "PASS",
+    "mutationsAttempted" : 12,
+    "killed" : 12,
+    "survived" : 0,
+    "killRate" : 1.0,
+    "implementation" : "EXPLICIT_TEST_SOURCE_ONLY_MUTANTS"
+  },
+  "details" : [ {
+    "mutationId" : "MUT-001",
+    "guardWeakened" : "proposal hash validation",
+    "testsExpectedToDetectIt" : "PROPOSAL-001..060",
+    "detected" : true,
+    "result" : "KILLED"
+  }, {
+    "mutationId" : "MUT-002",
+    "guardWeakened" : "authorization expiry",
+    "testsExpectedToDetectIt" : "AUTH-013..016",
+    "detected" : true,
+    "result" : "KILLED"
+  }, {
+    "mutationId" : "MUT-003",
+    "guardWeakened" : "authorization/proposal binding",
+    "testsExpectedToDetectIt" : "AUTH-005..012",
+    "detected" : true,
+    "result" : "KILLED"
+  }, {
+    "mutationId" : "MUT-004",
+    "guardWeakened" : "captured versus authorized payment",
+    "testsExpectedToDetectIt" : "MONEY-001..048",
+    "detected" : true,
+    "result" : "KILLED"
+  }, {
+    "mutationId" : "MUT-005",
+    "guardWeakened" : "browser callback truth boundary",
+    "testsExpectedToDetectIt" : "CALLBACK-001..012",
+    "detected" : true,
+    "result" : "KILLED"
+  }, {
+    "mutationId" : "MUT-006",
+    "guardWeakened" : "webhook signature validation",
+    "testsExpectedToDetectIt" : "webhookIsRawVerifiedIdempotentAndOrderIndependent",
+    "detected" : true,
+    "result" : "KILLED"
+  }, {
+    "mutationId" : "MUT-007",
+    "guardWeakened" : "payment amount comparison",
+    "testsExpectedToDetectIt" : "MONEY-001..008",
+    "detected" : true,
+    "result" : "KILLED"
+  }, {
+    "mutationId" : "MUT-008",
+    "guardWeakened" : "payment currency comparison",
+    "testsExpectedToDetectIt" : "MONEY-009..016",
+    "detected" : true,
+    "result" : "KILLED"
+  }, {
+    "mutationId" : "MUT-009",
+    "guardWeakened" : "capability READY evidence",
+    "testsExpectedToDetectIt" : "CAPABILITY-001..036",
+    "detected" : true,
+    "result" : "KILLED"
+  }, {
+    "mutationId" : "MUT-010",
+    "guardWeakened" : "current mapping/version binding",
+    "testsExpectedToDetectIt" : "CAPABILITY-025..036",
+    "detected" : true,
+    "result" : "KILLED"
+  }, {
+    "mutationId" : "MUT-011",
+    "guardWeakened" : "refund over-allocation prevention",
+    "testsExpectedToDetectIt" : "REFUND-001..020",
+    "detected" : true,
+    "result" : "KILLED"
+  }, {
+    "mutationId" : "MUT-012",
+    "guardWeakened" : "serviceability UNKNOWN fail-closed",
+    "testsExpectedToDetectIt" : "EVIDENCE-021..028",
+    "detected" : true,
+    "result" : "KILLED"
+  } ],
+  "limitations" : [ "Mutants are narrow test-source predicates representing selected domain guard removals; production code has no mutation switch.", "PIT 1.25.8 Java 25 compatibility was investigated, but generic bytecode operators did not provide the required bounded one-mutant-per-domain-guard catalogue." ],
+  "whatThisDoesNotProve" : "A killed selected mutant does not establish exhaustive mutation coverage of the repository."
+}

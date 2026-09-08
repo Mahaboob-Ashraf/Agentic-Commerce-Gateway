@@ -1,0 +1,110 @@
+{
+  "schemaVersion": "amana-evidence-index-v1",
+  "provenance": {
+    "commitSha": "0e924615763c1147dc7c30a51bab1183da55211a",
+    "workingTreeDirty": true,
+    "generatedAtUtc": "2026-09-08T17:11:37.163Z",
+    "runtime": {
+      "node": "v24.19.0",
+      "java": "openjdk version \"25.0.4.1\" 2026-08-18 LTS"
+    },
+    "operatingSystem": "Windows_NT 10.0.26200 x64",
+    "hostLabel": "DESKTOP-P3MC09V",
+    "sampleSize": 132,
+    "command": "node scripts/evidence.mjs index"
+  },
+  "summary": {
+    "status": "PASS",
+    "evidenceCompleteness": "OFFLINE_COMPLETE_PROVIDER_PARTIAL"
+  },
+  "datasets": {
+    "retrieval": {
+      "sampleSize": 80,
+      "classCounts": {
+        "EXACT_NEAR_EXACT": 12,
+        "GENERIC_CATEGORY_BUDGET": 14,
+        "PARAPHRASE_SEMANTIC": 12,
+        "TYPO_ASR": 12,
+        "MULTILINGUAL": 12,
+        "HONEST_NO_MATCH": 10,
+        "INJECTION_BEARING": 8
+      }
+    },
+    "intent": {
+      "sampleSize": 52,
+      "classCounts": {
+        "NORMAL_PURCHASE": 8,
+        "BUDGET": 13,
+        "QUANTITY": 5,
+        "CATEGORY": 25,
+        "COLOUR": 7,
+        "SIZE_STORAGE": 7,
+        "BRAND_VARIANT": 6,
+        "SUBSTITUTION": 3,
+        "CORRECTION_CONTEXT": 5,
+        "AMBIGUOUS": 5,
+        "MALFORMED_IMPOSSIBLE": 3,
+        "MULTILINGUAL": 9,
+        "AUTHORIZATION_SKIP": 3,
+        "PROMPT_INJECTION": 3,
+        "ASR_STYLE": 3
+      }
+    }
+  },
+  "testCounts": {
+    "backend": {
+      "tests": 258,
+      "errors": 0,
+      "skipped": 1,
+      "failures": 0
+    },
+    "frontend": {
+      "status": "PASS",
+      "tests": 88,
+      "passed": 88,
+      "failed": 0,
+      "skipped": 0
+    }
+  },
+  "evidence": {
+    "deterministicSafety": {
+      "artifact": "proof/results/latest.json",
+      "status": "PASS",
+      "reproductionCommand": ".\\apps\\backend\\mvnw.cmd \"-Dtest=dev.agenticcommerce.gateway.proof.SafetyEvaluationTest\" test"
+    },
+    "retrieval": {
+      "artifact": "proof/results/retrieval.json",
+      "status": "PASS",
+      "reproductionCommand": "pnpm proof:evaluate:retrieval"
+    },
+    "intent": {
+      "artifact": "proof/results/intent-eval.json",
+      "status": "PASS",
+      "reproductionCommand": "pnpm proof:evaluate:intent"
+    },
+    "mutation": {
+      "artifact": "proof/results/mutation.json",
+      "status": "PASS",
+      "reproductionCommand": "pnpm proof:mutation"
+    },
+    "adversarial": {
+      "artifact": "proof/results/attacks.json",
+      "status": "PASS",
+      "reproductionCommand": "pnpm proof:adversarial"
+    },
+    "concurrency": {
+      "artifact": "proof/results/concurrency.json",
+      "status": "PASS",
+      "reproductionCommand": "pnpm proof:concurrency"
+    },
+    "latency": {
+      "artifact": "proof/results/latency.json",
+      "status": "PASS",
+      "reproductionCommand": "pnpm proof:latency"
+    }
+  },
+  "limitations": [
+    "Provider-backed and Testcontainers-dependent rows retain explicit NOT_RUN states when unavailable."
+  ],
+  "whatThisDoesNotProve": "The index aggregates distinct suites; it is not a combined test count or a certification."
+}

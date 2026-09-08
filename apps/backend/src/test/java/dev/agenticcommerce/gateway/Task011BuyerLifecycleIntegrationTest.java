@@ -3,6 +3,7 @@ package dev.agenticcommerce.gateway;
 import static dev.agenticcommerce.gateway.lifecycle.AutoBuyModels.*;
 import static dev.agenticcommerce.gateway.lifecycle.LifecycleModels.*;
 import static dev.agenticcommerce.gateway.onboarding.OnboardingModels.*;
+import static dev.agenticcommerce.gateway.intent.BuyerModels.*;
 import static org.assertj.core.api.Assertions.*;
 import dev.agenticcommerce.gateway.agentization.service.AgentizationGoalService;
 import dev.agenticcommerce.gateway.lifecycle.*;
@@ -11,6 +12,7 @@ import java.time.Instant;import java.util.*;import java.util.concurrent.*;
 import org.junit.jupiter.api.Test;import org.springframework.beans.factory.annotation.Autowired;import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.*;
 import dev.agenticcommerce.gateway.agentization.service.CanonicalJsonService;
+import dev.agenticcommerce.gateway.proof.EvidenceSupport;
 
 @Import(Task011BuyerLifecycleIntegrationTest.LifecycleFakes.class)
 class Task011BuyerLifecycleIntegrationTest extends Task010PaymentControlIntegrationTest {
@@ -80,6 +82,98 @@ class Task011BuyerLifecycleIntegrationTest extends Task010PaymentControlIntegrat
   Evaluation first=autobuy.evaluate(fixture.buyer().id(),plan.plan().id(),"trigger-1",authorizations.bindSession("auto-session"));Evaluation duplicate=autobuy.evaluate(fixture.buyer().id(),plan.plan().id(),"trigger-1",authorizations.bindSession("auto-session"));assertThat(duplicate.id()).isEqualTo(first.id());assertThat(autobuy.evaluation(fixture.buyer().id(),plan.plan().id(),"trigger-1").id()).isEqualTo(first.id());assertThat(first.outcome()).isEqualTo(Outcome.PAUSED);assertThat(first.reasonCode()).isEqualTo("PRICE_EXCEEDS_PLAN_MAXIMUM");assertThat(first.executionId()).isNull();assertThat(jdbc.sql("SELECT count(*)::int FROM autobuy_evaluation").query(Integer.class).single()).isOne();}
 
  @Test void oneHighLevelAgentizationGoalOwnsIsolatedCapabilityTargets(){Fixture fixture=fixture("goal");UUID artifact=jdbc.sql("SELECT source_artifact_id FROM agentization_run WHERE merchant_id=:m LIMIT 1").param("m",fixture.merchant().id()).query(UUID.class).single();var goal=goals.start(fixture.admin().id(),fixture.merchant().id(),new AgentizationGoalService.StartGoal(artifact,80));assertThat(goal.targets()).hasSize(8);var advanced=goals.advance(fixture.admin().id(),fixture.merchant().id(),goal.goal().id());assertThat(advanced.targets().stream().filter(t->"READY".equals(t.status())).count()).isGreaterThanOrEqualTo(3);assertThat(advanced.targets().stream().filter(t->"IN_PROGRESS".equals(t.status())).count()).isEqualTo(1);}
+
+ @Test void boundedConcurrencyEvidenceAtEightAndThirtyTwo() throws Exception {
+  var scenarios=mapper.createArrayNode();boolean allPass=true;
+  for(int callers:List.of(8,32)){
+   clear();Ready execution=ready("evidence-execution-"+callers);String executionSession=authorizations.bindSession("evidence-execution-"+callers+"-session");
+   List<dev.agenticcommerce.gateway.commerce.TransactionModels.ExecutionGateResult> executionResults=concurrently(callers,
+     ()->gate.reserve(execution.buyerId(),execution.proposalId(),executionSession));
+   int executionRows=jdbc.sql("SELECT count(*)::int FROM transaction_execution WHERE proposal_id=:proposal").param("proposal",execution.proposalId()).query(Integer.class).single();
+   boolean executionPass=executionRows==1&&executionResults.stream().allMatch(result->result.execution()!=null&&result.execution().executionId().equals(execution.executionId()));
+   scenarios.add(scenario("EXECUTION_RESERVATION",callers,1,executionRows,0,0,executionPass));allPass&=executionPass;
+
+   clear();Ready order=ready("evidence-order-"+callers);int providerBefore=provider.createCalls.get();
+   List<dev.agenticcommerce.gateway.payment.PaymentModels.PaymentStateView> orderResults=concurrently(callers,
+     ()->payments.initiate(order.buyerId(),order.threadId(),order.proposalId()));
+   int orderRows=jdbc.sql("SELECT count(*)::int FROM payment_provider_order WHERE execution_id=:execution").param("execution",order.executionId()).query(Integer.class).single();
+   int orderCalls=provider.createCalls.get()-providerBefore;boolean orderPass=orderRows==1&&orderCalls==1&&orderResults.stream().map(dev.agenticcommerce.gateway.payment.PaymentModels.PaymentStateView::providerOrderId).distinct().count()==1;
+   scenarios.add(scenario("PROVIDER_ORDER_CREATION",callers,1,orderRows,1,orderCalls,orderPass));allPass&=orderPass;
+
+   clear();Ready webhookReady=ready("evidence-webhook-"+callers);var pending=payments.initiate(webhookReady.buyerId(),webhookReady.threadId(),webhookReady.proposalId());
+   byte[] webhookBody=paymentWebhook(pending.providerOrderId(),"evt_concurrency_"+callers).getBytes(java.nio.charset.StandardCharsets.UTF_8);
+   List<dev.agenticcommerce.gateway.payment.PaymentModels.WebhookResult> webhookResults=concurrently(callers,
+     ()->webhooks.ingest(webhookBody,"valid","evt_concurrency_"+callers));
+   int webhookRows=jdbc.sql("SELECT count(*)::int FROM provider_webhook_event WHERE provider_event_id=:event").param("event","evt_concurrency_"+callers).query(Integer.class).single();
+   int evidenceRows=jdbc.sql("SELECT count(*)::int FROM provider_payment_evidence").query(Integer.class).single();
+   boolean webhookPass=webhookRows==1&&evidenceRows==1&&webhookResults.stream().filter(dev.agenticcommerce.gateway.payment.PaymentModels.WebhookResult::duplicate).count()==callers-1;
+   scenarios.add(scenario("WEBHOOK_INGESTION",callers,1,webhookRows,0,0,webhookPass).put("observedEvidenceRows",evidenceRows));allPass&=webhookPass;
+
+   clear();Ready outboxReady=confirmed("evidence-outbox-"+callers);Instant claimAt=Instant.now();
+   List<List<dev.agenticcommerce.gateway.payment.PaymentRepository.OutboxItem>> claims=concurrently(callers,
+     ()->paymentRepository.claimOutbox(1,claimAt,claimAt.plusSeconds(60)));
+   int claimed=claims.stream().mapToInt(List::size).sum();int outboxRows=jdbc.sql("SELECT count(*)::int FROM transactional_outbox WHERE execution_id=:execution").param("execution",outboxReady.executionId()).query(Integer.class).single();
+   boolean outboxPass=outboxRows==1&&claimed==1;
+   scenarios.add(scenario("TRANSACTIONAL_OUTBOX_CLAIM",callers,1,outboxRows,1,claimed,outboxPass));allPass&=outboxPass;
+
+   clear();Fulfilled fulfilled=fulfilled("evidence-refund-"+callers);enableLifecycle(fulfilled.ready().merchantId());installPolicies(fulfilled.ready().merchantId());
+   var context=lifecycleRepository.context(fulfilled.ready().buyerId(),fulfilled.finalizationId()).orElseThrow();
+   lifecycleRepository.observe(context,"CANCELLED","TRUSTED_DEMO_FIXTURE","cancelled-evidence-"+callers,hashForTask011("cancelled-evidence-"+callers),Instant.now());
+   List<Proposal> refundProposals=new ArrayList<>();List<String> refundSessions=new ArrayList<>();
+   for(int index=0;index<callers;index++){Proposal proposal=lifecycle.propose(fulfilled.ready().buyerId(),lifecycle.compile(fulfilled.ready().buyerId(),fulfilled.ready().threadId(),"Refund this purchase request "+index).id());
+    String session="refund-evidence-"+callers+"-"+index;lifecycle.authorize(fulfilled.ready().buyerId(),proposal.id(),session,true);refundProposals.add(proposal);refundSessions.add(session);}
+   java.util.concurrent.atomic.AtomicInteger successfulRefunds=new java.util.concurrent.atomic.AtomicInteger();java.util.concurrent.atomic.AtomicInteger cursor=new java.util.concurrent.atomic.AtomicInteger();
+   concurrently(callers,()->{int index=cursor.getAndIncrement();try{lifecycle.execute(fulfilled.ready().buyerId(),refundProposals.get(index).id(),refundSessions.get(index));successfulRefunds.incrementAndGet();}catch(LifecycleException expected){}return true;});
+   int refundRows=jdbc.sql("SELECT count(*)::int FROM refund_execution WHERE payment_control_id=:payment").param("payment",context.paymentControlId()).query(Integer.class).single();
+   boolean allocationBounded=jdbc.sql("SELECT reserved_amount_minor+completed_amount_minor<=captured_refundable_amount_minor FROM refund_ledger WHERE payment_control_id=:payment").param("payment",context.paymentControlId()).query(Boolean.class).single();
+   boolean refundPass=refundRows==1&&successfulRefunds.get()==1&&allocationBounded;
+   scenarios.add(scenario("REFUND_LEDGER_RESERVATION",callers,1,refundRows,0,0,refundPass).put("successfulReservations",successfulRefunds.get()).put("allocationBounded",allocationBounded));allPass&=refundPass;
+  }
+  var summary=mapper.createObjectNode().put("status",EvidenceSupport.status(allPass)).put("operations",10).put("passed",scenarios.valueStream().filter(node->"PASS".equals(node.path("status").asText())).count()).put("failed",scenarios.valueStream().filter(node->"FAIL".equals(node.path("status").asText())).count());
+  var artifact=EvidenceSupport.envelope(mapper,"amana-concurrency-evidence-v1",10,"pnpm proof:concurrency",summary,scenarios,
+    List.of("Bounded PostgreSQL/Testcontainers concurrency at N=8 and N=32; provider calls use the deterministic test adapter."),
+    "This is not production load testing, multi-region testing, or a throughput claim.");
+  EvidenceSupport.write(mapper,"concurrency.json","CONCURRENCY.md",artifact,concurrencyMarkdown(artifact));assertThat(allPass).isTrue();
+ }
+
+ @Test void measuredWarmPathLatencyUsesLocalDeterministicProviders() throws Exception {
+  Map<String,List<Long>> samples=new LinkedHashMap<>();for(String metric:List.of("BUYER_INTENT_COMPILATION","CATALOGUE_RETRIEVAL","CANDIDATE_CART_CONSTRUCTION","AUTHORITATIVE_QUOTE","CONSTRAINT_VERIFICATION","PROPOSAL_CONSTRUCTION","EXECUTION_GATE","RAZORPAY_ORDER_CREATE_STUB"))samples.put(metric,new ArrayList<>());
+  // One complete cold/warm-up journey is intentionally excluded from the warm-path percentiles.
+  clear();latencyJourney("latency-warmup",null);
+  for(int sample=0;sample<10;sample++){clear();latencyJourney("latency-"+sample,samples);}
+  var details=mapper.createArrayNode();samples.forEach((name,values)->{Collections.sort(values);var row=details.addObject();row.put("metric",name).put("environment","TESTCONTAINERS_POSTGRESQL_17_LOCAL_STUB_PROVIDERS").put("providerBacked",false).put("n",values.size())
+    .put("minMillis",EvidenceSupport.percentile(values,0.000001)).put("p50Millis",EvidenceSupport.percentile(values,.50)).put("p95Millis",EvidenceSupport.percentile(values,.95)).put("p99Millis",EvidenceSupport.percentile(values,.99)).put("maxMillis",EvidenceSupport.percentile(values,1));});
+  boolean complete=samples.values().stream().allMatch(values->values.size()==10);var summary=mapper.createObjectNode().put("status",EvidenceSupport.status(complete)).put("metricCount",samples.size()).put("samplesPerMetric",10).put("coldStartTreatment","ONE_WARMUP_JOURNEY_EXCLUDED");
+  var artifact=EvidenceSupport.envelope(mapper,"amana-latency-evidence-v1",80,"pnpm proof:latency",summary,details,
+    List.of("Local repeatable measurement uses PostgreSQL Testcontainers plus deterministic merchant/payment adapters.","Gemini and live Razorpay latency are not mixed into these measurements."),
+    "These measurements are not SLAs, production load results, Render cold starts, or live-provider latency.");
+  EvidenceSupport.write(mapper,"latency.json","LATENCY.md",artifact,latencyMarkdown(artifact));assertThat(complete).isTrue();
+ }
+
+ private void latencyJourney(String key,Map<String,List<Long>> samples) throws Exception {
+  Fixture fixture=fixture(key);CommerceThread thread=threads.create(fixture.buyer().id(),canonicalTextForTask011());
+  for(int step=0;step<6;step++){long started=System.nanoTime();AdvanceResult result=buyer.advance(fixture.buyer().id(),thread.threadId());long elapsed=System.nanoTime()-started;
+   if(samples!=null){String metric=switch(result.action().selectedTool()){case COMPILE_INTENT->"BUYER_INTENT_COMPILATION";case SEARCH_PRODUCTS->"CATALOGUE_RETRIEVAL";case BUILD_CANDIDATE_CART->"CANDIDATE_CART_CONSTRUCTION";case GET_QUOTE->"AUTHORITATIVE_QUOTE";case VERIFY_CONSTRAINTS->"CONSTRAINT_VERIFICATION";default->null;};if(metric!=null)samples.get(metric).add(elapsed);}}
+  refreshes.refresh(fixture.buyer().id(),thread.threadId());long proposalStarted=System.nanoTime();var proposal=proposals.create(fixture.buyer().id(),thread.threadId());if(samples!=null)samples.get("PROPOSAL_CONSTRUCTION").add(System.nanoTime()-proposalStarted);
+  String session=authorizations.bindSession(key+"-session");risks.evaluate(fixture.buyer().id(),proposal.proposalId(),session);authorizations.confirm(fixture.buyer().id(),proposal.proposalId(),session);
+  long gateStarted=System.nanoTime();var execution=gate.reserve(fixture.buyer().id(),proposal.proposalId(),session).execution();if(samples!=null)samples.get("EXECUTION_GATE").add(System.nanoTime()-gateStarted);
+  jdbc.sql("INSERT INTO merchant_payment_configuration(merchant_id,provider,environment,configuration_reference,provider_account_reference) VALUES(:merchant,'RAZORPAY','TEST','razorpay-test-default','acct_test')").param("merchant",fixture.merchant().id()).update();merchantGateway.mappingId=fixture.placeOrderMapping();
+  long orderStarted=System.nanoTime();payments.initiate(fixture.buyer().id(),thread.threadId(),proposal.proposalId());if(samples!=null)samples.get("RAZORPAY_ORDER_CREATE_STUB").add(System.nanoTime()-orderStarted);
+ }
+
+ private String latencyMarkdown(tools.jackson.databind.JsonNode artifact){StringBuilder value=new StringBuilder("# Measured latency\n\nStatus: **").append(artifact.path("summary").path("status").asText()).append("**\n\nOne cold/warm-up journey was excluded. Values are milliseconds.\n\n| Path | N | min | p50 | p95 | p99 | max | Environment |\n|---|---:|---:|---:|---:|---:|---:|---|\n");artifact.path("details").forEach(row->value.append("| ").append(row.path("metric").asText()).append(" | ").append(row.path("n").asInt()).append(" | ").append(row.path("minMillis").asDouble()).append(" | ").append(row.path("p50Millis").asDouble()).append(" | ").append(row.path("p95Millis").asDouble()).append(" | ").append(row.path("p99Millis").asDouble()).append(" | ").append(row.path("maxMillis").asDouble()).append(" | ").append(row.path("environment").asText()).append(" |\n"));return value.append("\nNot an SLA; live Gemini and Razorpay measurements are separate and not run here.\n").toString();}
+
+ private tools.jackson.databind.node.ObjectNode scenario(String operation,int callers,int expectedRows,int observedRows,int expectedCalls,int observedCalls,boolean pass){return mapper.createObjectNode()
+   .put("operation",operation).put("callers",callers).put("expectedPersistedRows",expectedRows).put("observedPersistedRows",observedRows)
+   .put("expectedProviderCalls",expectedCalls).put("observedProviderCalls",observedCalls).put("status",EvidenceSupport.status(pass));}
+ private <T> List<T> concurrently(int callers,Callable<T> call) throws Exception {ExecutorService executor=Executors.newFixedThreadPool(callers);CountDownLatch start=new CountDownLatch(1);try{List<Future<T>> futures=new ArrayList<>();
+   for(int index=0;index<callers;index++)futures.add(executor.submit(()->{start.await();return call.call();}));start.countDown();List<T> values=new ArrayList<>();for(Future<T> future:futures)values.add(future.get(30,TimeUnit.SECONDS));return values;
+  }finally{executor.shutdownNow();}}
+ private String paymentWebhook(String orderId,String eventId){var root=mapper.createObjectNode().put("id",eventId).put("event","payment.captured").put("account_id","acct_test");var payment=root.putObject("payload").putObject("payment").putObject("entity");
+  payment.put("id","pay_"+eventId).put("order_id",orderId).put("amount",36_000).put("currency","INR").put("status","captured").put("captured",true).put("created_at",Instant.now().getEpochSecond());return mapper.writeValueAsString(root);}
+ private String concurrencyMarkdown(tools.jackson.databind.JsonNode artifact){StringBuilder value=new StringBuilder("# Concurrency and idempotency evidence\n\n");value.append("Status: **").append(artifact.path("summary").path("status").asText()).append("**\n\n");
+  value.append("| Operation | N | Expected rows | Observed rows | Expected provider calls | Observed provider calls | Result |\n|---|---:|---:|---:|---:|---:|---|\n");artifact.path("details").forEach(row->value.append("| ").append(row.path("operation").asText()).append(" | ").append(row.path("callers").asInt()).append(" | ").append(row.path("expectedPersistedRows").asInt()).append(" | ").append(row.path("observedPersistedRows").asInt()).append(" | ").append(row.path("expectedProviderCalls").asInt()).append(" | ").append(row.path("observedProviderCalls").asInt()).append(" | ").append(row.path("status").asText()).append(" |\n"));
+  return value.append("\nThis is a bounded concurrency/idempotency proof, not production load testing.\n").toString();}
 
  private Fulfilled fulfilled(String key){Ready ready=confirmed(key);worker.dispatch();UUID finalization=jdbc.sql("SELECT merchant_finalization_id FROM merchant_finalization WHERE execution_id=:e AND state='FULFILLED'").param("e",ready.executionId()).query(UUID.class).single();return new Fulfilled(ready,finalization);}
  private void deliver(Fulfilled f){var context=lifecycleRepository.context(f.ready().buyerId(),f.finalizationId()).orElseThrow();lifecycleRepository.observe(context,"DELIVERED","TRUSTED_DEMO_FIXTURE","delivery-"+f.finalizationId(),hashForTask011("delivered-"+f.finalizationId()),Instant.now());}

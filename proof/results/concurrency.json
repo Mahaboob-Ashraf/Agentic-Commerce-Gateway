@@ -1,0 +1,111 @@
+{
+  "schemaVersion" : "amana-concurrency-evidence-v1",
+  "provenance" : {
+    "commitSha" : "0e924615763c1147dc7c30a51bab1183da55211a",
+    "workingTreeDirty" : true,
+    "generatedAtUtc" : "2026-09-08T17:07:21.447290900Z",
+    "runtime" : {
+      "java" : "25.0.4.1+1-LTS",
+      "node" : "v24.19.0"
+    },
+    "operatingSystem" : "Windows 11 10.0 amd64",
+    "hostLabel" : "DESKTOP-P3MC09V",
+    "sampleSize" : 10,
+    "command" : "pnpm proof:concurrency"
+  },
+  "summary" : {
+    "status" : "PASS",
+    "operations" : 10,
+    "passed" : 10,
+    "failed" : 0
+  },
+  "details" : [ {
+    "operation" : "EXECUTION_RESERVATION",
+    "callers" : 8,
+    "expectedPersistedRows" : 1,
+    "observedPersistedRows" : 1,
+    "expectedProviderCalls" : 0,
+    "observedProviderCalls" : 0,
+    "status" : "PASS"
+  }, {
+    "operation" : "PROVIDER_ORDER_CREATION",
+    "callers" : 8,
+    "expectedPersistedRows" : 1,
+    "observedPersistedRows" : 1,
+    "expectedProviderCalls" : 1,
+    "observedProviderCalls" : 1,
+    "status" : "PASS"
+  }, {
+    "operation" : "WEBHOOK_INGESTION",
+    "callers" : 8,
+    "expectedPersistedRows" : 1,
+    "observedPersistedRows" : 1,
+    "expectedProviderCalls" : 0,
+    "observedProviderCalls" : 0,
+    "status" : "PASS",
+    "observedEvidenceRows" : 1
+  }, {
+    "operation" : "TRANSACTIONAL_OUTBOX_CLAIM",
+    "callers" : 8,
+    "expectedPersistedRows" : 1,
+    "observedPersistedRows" : 1,
+    "expectedProviderCalls" : 1,
+    "observedProviderCalls" : 1,
+    "status" : "PASS"
+  }, {
+    "operation" : "REFUND_LEDGER_RESERVATION",
+    "callers" : 8,
+    "expectedPersistedRows" : 1,
+    "observedPersistedRows" : 1,
+    "expectedProviderCalls" : 0,
+    "observedProviderCalls" : 0,
+    "status" : "PASS",
+    "successfulReservations" : 1,
+    "allocationBounded" : true
+  }, {
+    "operation" : "EXECUTION_RESERVATION",
+    "callers" : 32,
+    "expectedPersistedRows" : 1,
+    "observedPersistedRows" : 1,
+    "expectedProviderCalls" : 0,
+    "observedProviderCalls" : 0,
+    "status" : "PASS"
+  }, {
+    "operation" : "PROVIDER_ORDER_CREATION",
+    "callers" : 32,
+    "expectedPersistedRows" : 1,
+    "observedPersistedRows" : 1,
+    "expectedProviderCalls" : 1,
+    "observedProviderCalls" : 1,
+    "status" : "PASS"
+  }, {
+    "operation" : "WEBHOOK_INGESTION",
+    "callers" : 32,
+    "expectedPersistedRows" : 1,
+    "observedPersistedRows" : 1,
+    "expectedProviderCalls" : 0,
+    "observedProviderCalls" : 0,
+    "status" : "PASS",
+    "observedEvidenceRows" : 1
+  }, {
+    "operation" : "TRANSACTIONAL_OUTBOX_CLAIM",
+    "callers" : 32,
+    "expectedPersistedRows" : 1,
+    "observedPersistedRows" : 1,
+    "expectedProviderCalls" : 1,
+    "observedProviderCalls" : 1,
+    "status" : "PASS"
+  }, {
+    "operation" : "REFUND_LEDGER_RESERVATION",
+    "callers" : 32,
+    "expectedPersistedRows" : 1,
+    "observedPersistedRows" : 1,
+    "expectedProviderCalls" : 0,
+    "observedProviderCalls" : 0,
+    "status" : "PASS",
+    "successfulReservations" : 1,
+    "allocationBounded" : true
+  } ],
+  "limitations" : [ "Bounded PostgreSQL/Testcontainers concurrency at N=8 and N=32; provider calls use the deterministic test adapter." ],
+  "whatThisDoesNotProve" : "This is not production load testing, multi-region testing, or a throughput claim."
+}

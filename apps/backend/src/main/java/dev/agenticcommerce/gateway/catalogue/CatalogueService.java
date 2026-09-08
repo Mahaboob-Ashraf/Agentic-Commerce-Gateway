@@ -87,7 +87,7 @@ public class CatalogueService {
             }else if(input.gtin()==null)unresolved++;
             if(productEnriched)enriched++;
             String embeddingInput=embeddingInput(product);String inputHash=canonical.hashText(embeddingInput);
-            try{List<Float> values=embeddingProvider.embed(embeddingInput);if(values.size()!=EmbeddingProvider.OUTPUT_DIMENSIONS)throw new IllegalStateException("EMBEDDING_DIMENSION_MISMATCH");
+            try{List<Float> values=embeddingProvider.embedDocument(embeddingInput);if(values.size()!=EmbeddingProvider.OUTPUT_DIMENSIONS)throw new IllegalStateException("EMBEDDING_DIMENSION_MISMATCH");
                 repository.insertEmbedding(merchantId,draft.id(),product.id(),inputHash,values,null);
             }catch(RuntimeException failure){repository.insertEmbedding(merchantId,draft.id(),product.id(),inputHash,null,safeFailure(failure));}
         }
@@ -106,6 +106,14 @@ public class CatalogueService {
     public CatalogueHealth health(UUID actorId,UUID merchantId){requireAdmin(actorId,merchantId);return health(merchantId);}
     public CatalogueHealth health(UUID merchantId){var v=requirePublished(merchantId);return repository.health(merchantId,v.id(),v.version());}
     public List<Product> products(UUID actorId,UUID merchantId,UUID versionId,int limit){requireAdmin(actorId,merchantId);return repository.products(merchantId,versionId,limit);}
+    @Transactional
+    public EmbeddingReindexResult reindexEmbeddings(UUID actorId,UUID merchantId){requireAdmin(actorId,merchantId);
+        CatalogueVersion version=requirePublished(merchantId);int attempted=0,ready=0,failed=0;
+        for(Product product:repository.productsForIndex(merchantId,version.id(),MAX_ROWS)){attempted++;String input=embeddingInput(product);String hash=canonical.hashText(input);
+            try{List<Float> values=embeddingProvider.embedDocument(input);if(values.size()!=EmbeddingProvider.OUTPUT_DIMENSIONS)throw new IllegalStateException("EMBEDDING_DIMENSION_MISMATCH");
+                repository.rebuildEmbedding(merchantId,version.id(),product.id(),hash,values,null);ready++;
+            }catch(RuntimeException failure){repository.rebuildEmbedding(merchantId,version.id(),product.id(),hash,null,safeFailure(failure));failed++;}}
+        return new EmbeddingReindexResult(merchantId,version.id(),attempted,ready,failed,embeddingProvider.available());}
     @Transactional
     public EnrichmentStatus enrich(UUID actorId,UUID merchantId,UUID versionId,UUID productId){requireAdmin(actorId,merchantId);
         Product product=repository.findProduct(merchantId,versionId,productId).orElseThrow(()->invalid("PRODUCT_NOT_FOUND","Tenant-owned product was not found"));

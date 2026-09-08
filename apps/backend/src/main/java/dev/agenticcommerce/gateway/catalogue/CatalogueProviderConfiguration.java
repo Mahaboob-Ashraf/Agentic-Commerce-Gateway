@@ -16,6 +16,11 @@ class CatalogueProviderConfiguration {
     @Bean
     @ConditionalOnMissingBean(EmbeddingProvider.class)
     EmbeddingProvider unavailableEmbeddingProvider() {
-        return input -> { throw new IllegalStateException("EMBEDDING_PROVIDER_UNAVAILABLE"); };
+        return new EmbeddingProvider() {
+            @Override public java.util.List<Float> embed(String input) {
+                throw new IllegalStateException("EMBEDDING_PROVIDER_UNAVAILABLE");
+            }
+            @Override public boolean available() { return false; }
+        };
     }
 }

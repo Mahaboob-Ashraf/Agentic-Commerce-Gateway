@@ -19,9 +19,23 @@ public class GeminiEmbeddingProvider implements EmbeddingProvider {
 
     @Override
     public List<Float> embed(String input) {
+        return embed(input, "RETRIEVAL_DOCUMENT");
+    }
+
+    @Override
+    public List<Float> embedDocument(String input) {
+        return embed(input, "RETRIEVAL_DOCUMENT");
+    }
+
+    @Override
+    public List<Float> embedQuery(String input) {
+        return embed(input, "RETRIEVAL_QUERY");
+    }
+
+    private List<Float> embed(String input, String taskType) {
         if (input == null || input.isBlank() || input.length() > 8_000) throw new IllegalArgumentException("EMBEDDING_INPUT_INVALID");
         var config = EmbedContentConfig.builder().outputDimensionality(OUTPUT_DIMENSIONS)
-                .taskType("RETRIEVAL_DOCUMENT").build();
+                .taskType(taskType).build();
         var response = client.models.embedContent(MODEL, input, config);
         List<Float> values = response.embeddings().orElseThrow(() -> new IllegalStateException("EMBEDDING_MISSING"))
                 .stream().findFirst().flatMap(v -> v.values()).orElseThrow(() -> new IllegalStateException("EMBEDDING_VALUES_MISSING"));

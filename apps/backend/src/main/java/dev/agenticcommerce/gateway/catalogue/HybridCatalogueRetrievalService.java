@@ -29,8 +29,10 @@ public class HybridCatalogueRetrievalService {
         validate(request);var version=catalogues.requirePublished(merchantId);String query=normalizedQuery(request);
         List<CatalogueRepository.ScoredProduct> lexical=repository.lexicalCandidates(merchantId,version.id(),query,
                 blank(request.merchantSku()),blank(request.gtin()),blank(request.category()),request.minimumPriceMinor(),request.maximumPriceMinor(),RetrievalThresholds.MAX_CANDIDATES);
-        boolean vectorFallback=false;List<CatalogueRepository.VectorScore> vectors=List.of();
-        if(!query.isBlank())try{vectors=repository.vectorCandidates(merchantId,version.id(),embeddings.embed(query),RetrievalThresholds.MAX_CANDIDATES);}
+        CatalogueHealth health=repository.health(merchantId,version.id(),version.version());
+        boolean providerActive=embeddings.available();boolean vectorFallback=!providerActive||health.readyEmbeddings()==0;
+        List<CatalogueRepository.VectorScore> vectors=List.of();
+        if(!query.isBlank()&&!vectorFallback)try{vectors=repository.vectorCandidates(merchantId,version.id(),embeddings.embedQuery(query),RetrievalThresholds.MAX_CANDIDATES);}
         catch(RuntimeException failure){vectorFallback=true;}
         Map<UUID,MutableCandidate> candidates=new LinkedHashMap<>();
         for(var c:lexical)candidates.put(c.product().id(),new MutableCandidate(c.product(),c.exact(),c.fts(),c.trigram(),0));
@@ -54,9 +56,11 @@ public class HybridCatalogueRetrievalService {
         MatchClassification classification=!matches.isEmpty()?MatchClassification.VALID_MATCH:
                 !related.isEmpty()?MatchClassification.RELATED_ALTERNATIVES:MatchClassification.NO_TRUSTWORTHY_MATCH;
         if(explicit&&matches.isEmpty())classification=MatchClassification.NO_TRUSTWORTHY_MATCH;
-        var evidence=List.of("catalogue:"+version.id()+":"+version.contentHash(),"ranker:hybrid-v1",
+        var evidence=List.of("catalogue:"+version.id()+":"+version.contentHash(),"ranker:hybrid-v2",
                 "thresholds:valid="+RetrievalThresholds.VALID_MATCH+",related="+RetrievalThresholds.RELATED_ALTERNATIVE,
-                vectorFallback?"vector:FAILED_LEXICAL_FALLBACK":"vector:READY");
+                "embeddings:ready="+health.readyEmbeddings()+",failed="+health.failedEmbeddings(),
+                "vectorProvider:"+(providerActive?"ACTIVE":"INACTIVE"),
+                vectorFallback?"vector:LEXICAL_FALLBACK":"vector:READY");
         var queryEvidence=mapper.valueToTree(request);var refs=mapper.createArrayNode();matches.forEach(h->refs.add("product:"+h.product().id()));
         String type=explicit?"EXACT_PRODUCT_RETRIEVAL":classification==MatchClassification.NO_TRUSTWORTHY_MATCH?"NO_MATCH":"IDENTITY_GATE";
         repository.insertEvidence(merchantId,version.id(),type,matches.isEmpty()&&explicit?"FAIL":"PASS",queryEvidence,refs,canonical.hash(queryEvidence));
@@ -68,7 +72,8 @@ public class HybridCatalogueRetrievalService {
     GateOutcome identityGate(UUID merchantId,UUID versionId,Product p,SearchRequest r){
         if(r.merchantSku()!=null&&!p.merchantSku().equalsIgnoreCase(r.merchantSku()))return GateOutcome.FAIL;
         if(r.gtin()!=null&&!r.gtin().equals(p.gtin()))return GateOutcome.FAIL;
-        if(mismatch(r.category(),p.category())||mismatch(r.brand(),p.brand())||mismatch(r.variant(),p.variant())||mismatch(r.sizeStorage(),p.sizeStorage())||mismatch(r.colour(),p.colour()))return GateOutcome.FAIL;
+        if(!RetrievalHintMatcher.categoryCompatible(r.category(),p)||!RetrievalHintMatcher.brandEquivalent(r.brand(),p.brand())
+                ||mismatch(r.variant(),p.variant())||mismatch(r.sizeStorage(),p.sizeStorage())||mismatch(r.colour(),p.colour()))return GateOutcome.FAIL;
         if(r.minimumPriceMinor()!=null&&(p.priceMinor()==null||p.priceMinor()<r.minimumPriceMinor()))return GateOutcome.FAIL;
         if(r.maximumPriceMinor()!=null&&(p.priceMinor()==null||p.priceMinor()>r.maximumPriceMinor()))return GateOutcome.FAIL;
         if(r.merchantSku()==null&&r.gtin()==null)return repository.latestIdentity(merchantId,versionId,p.id())==IdentityOutcome.CONFLICT?GateOutcome.UNKNOWN:GateOutcome.PASS;
@@ -107,7 +112,7 @@ public class HybridCatalogueRetrievalService {
     private static double completeness(Product p){int present=0;if(p.brand()!=null)present++;if(p.variant()!=null)present++;if(p.sizeStorage()!=null)present++;if(p.category()!=null)present++;if(p.description()!=null)present++;return present/5.0;}
     private static boolean exactBrandVariant(SearchRequest request,Product product,GateOutcome gate){return gate==GateOutcome.PASS
             &&request.brand()!=null&&!request.brand().isBlank()&&request.variant()!=null&&!request.variant().isBlank()
-            &&!mismatch(request.brand(),product.brand())&&!mismatch(request.variant(),product.variant());}
+            &&RetrievalHintMatcher.brandEquivalent(request.brand(),product.brand())&&!mismatch(request.variant(),product.variant());}
     private static double clamp(double v){return Math.max(0,Math.min(1,v));}
     private static boolean mismatch(String requested,String actual){return requested!=null&&!requested.isBlank()&&(actual==null||!CatalogueService.normalizeText(requested).equals(CatalogueService.normalizeText(actual)));}
     private static String factAllergen(tools.jackson.databind.JsonNode value){return CatalogueService.normalizeText(value.isObject()?value.path("allergen").asText():value.asText());}

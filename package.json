@@ -11,8 +11,18 @@
     "web:lint": "pnpm --filter @agentic-commerce/web lint",
     "web:typecheck": "pnpm --filter @agentic-commerce/web typecheck",
     "web:build": "pnpm --filter @agentic-commerce/web build",
-    "web:test": "pnpm --filter @agentic-commerce/web test:commerce && pnpm --filter @agentic-commerce/web test:merchant",
-    "web:check": "pnpm web:lint && pnpm web:typecheck && pnpm web:build"
+    "web:test": "node scripts/run-web-tests.mjs",
+    "web:check": "pnpm web:lint && pnpm web:typecheck && pnpm web:build",
+    "proof:datasets": "node scripts/evidence.mjs validate",
+    "proof:safety": "node scripts/run-evidence.mjs safety",
+    "proof:mutation": "node scripts/run-evidence.mjs mutation",
+    "proof:adversarial": "node scripts/run-evidence.mjs adversarial",
+    "proof:concurrency": "node scripts/run-evidence.mjs concurrency",
+    "proof:latency": "node scripts/run-evidence.mjs latency",
+    "proof:evaluate:retrieval": "node scripts/run-evidence.mjs retrieval",
+    "proof:evaluate:intent": "node scripts/run-evidence.mjs intent",
+    "proof:verify": "node scripts/run-evidence.mjs verify",
+    "proof:evaluate": "pnpm proof:evaluate:retrieval && pnpm proof:evaluate:intent"
   }
 }
 

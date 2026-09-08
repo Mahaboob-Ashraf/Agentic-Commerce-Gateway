@@ -8,4 +8,10 @@ public interface EmbeddingProvider {
     int OUTPUT_DIMENSIONS = 768;
 
     List<Float> embed(String input);
+
+    default List<Float> embedDocument(String input) { return embed(input); }
+
+    default List<Float> embedQuery(String input) { return embed(input); }
+
+    default boolean available() { return true; }
 }

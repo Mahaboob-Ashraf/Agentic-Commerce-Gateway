@@ -94,6 +94,20 @@ public class CatalogueRepository {
                 .param("failure",failure).update();
     }
 
+    public void rebuildEmbedding(UUID merchantId,UUID versionId,UUID productId,String inputHash,List<Float> values,String failure) {
+        String vector=values==null?null:vector(values);
+        jdbc.sql("""
+                INSERT INTO product_embedding(merchant_id,catalogue_version_id,product_id,model_name,output_dimensions,
+                  input_hash,embedding,indexing_state,failure_code)
+                VALUES(:m,:v,:p,:model,768,CAST(:hash AS char(64)),CAST(:embedding AS vector),:state,:failure)
+                ON CONFLICT (merchant_id,catalogue_version_id,product_id,model_name,input_hash)
+                DO UPDATE SET embedding=EXCLUDED.embedding,indexing_state=EXCLUDED.indexing_state,
+                  failure_code=EXCLUDED.failure_code,created_at=CURRENT_TIMESTAMP
+                """).param("m",merchantId).param("v",versionId).param("p",productId)
+                .param("model",EmbeddingProvider.MODEL).param("hash",inputHash).param("embedding",vector)
+                .param("state",values==null?"FAILED":"READY").param("failure",failure).update();
+    }
+
     public CatalogueVersion publish(UUID merchantId,UUID versionId,String contentHash,int accepted,int rejected,int enriched,int unresolved,JsonNode evidence) {
         return jdbc.sql("""
                 UPDATE catalogue_version SET status='PUBLISHED',content_hash=:hash,accepted_count=:accepted,
@@ -117,6 +131,10 @@ public class CatalogueRepository {
     public List<Product> products(UUID merchantId,UUID versionId,int limit) {
         return jdbc.sql(productSelect()+" WHERE p.merchant_id=:m AND p.catalogue_version_id=:v ORDER BY p.merchant_sku LIMIT :limit")
                 .param("m",merchantId).param("v",versionId).param("limit",Math.min(Math.max(limit,1),100)).query(this::product).list();
+    }
+    public List<Product> productsForIndex(UUID merchantId,UUID versionId,int limit) {
+        return jdbc.sql(productSelect()+" WHERE p.merchant_id=:m AND p.catalogue_version_id=:v ORDER BY p.merchant_sku LIMIT :limit")
+                .param("m",merchantId).param("v",versionId).param("limit",Math.min(Math.max(limit,1),CatalogueService.MAX_ROWS)).query(this::product).list();
     }
     public Optional<Product> findProduct(UUID merchantId,UUID versionId,UUID productId) {
         return jdbc.sql(productSelect()+" WHERE p.merchant_id=:m AND p.catalogue_version_id=:v AND p.product_id=:p")
@@ -152,13 +170,17 @@ public class CatalogueRepository {
         return jdbc.sql("SELECT "+productColumns()+"""
                 , CASE WHEN (:sku IS NOT NULL AND lower(p.merchant_sku)=lower(:sku)) OR (:gtin IS NOT NULL AND p.gtin=:gtin) THEN 1.0 ELSE 0.0 END exact_score,
                   LEAST(1.0,ts_rank_cd(p.search_document,websearch_to_tsquery('simple',:query))*4.0) fts_score,
-                  LEAST(1.0,similarity(p.normalized_name,lower(:query))*2.0) trigram_score
+                  LEAST(1.0,GREATEST(
+                    similarity(p.normalized_name,lower(:query)),
+                    similarity(lower(concat_ws(' ',p.brand,p.canonical_name,p.variant,p.size_storage,p.colour,p.category)),lower(:query))
+                  )*2.0) trigram_score
                 """+productFrom()+"""
                 WHERE p.merchant_id=:m AND p.catalogue_version_id=:v AND p.active
-                  AND (:category IS NULL OR lower(p.category)=lower(:category))
                   AND (:minPrice IS NULL OR c.price_minor>=:minPrice) AND (:maxPrice IS NULL OR c.price_minor<=:maxPrice)
                   AND ((:sku IS NOT NULL AND lower(p.merchant_sku)=lower(:sku)) OR (:gtin IS NOT NULL AND p.gtin=:gtin)
-                    OR p.search_document @@ websearch_to_tsquery('simple',:query) OR similarity(p.normalized_name,lower(:query))>=0.18)
+                    OR p.search_document @@ websearch_to_tsquery('simple',:query)
+                    OR GREATEST(similarity(p.normalized_name,lower(:query)),
+                      similarity(lower(concat_ws(' ',p.brand,p.canonical_name,p.variant,p.size_storage,p.colour,p.category)),lower(:query)))>=0.18)
                 ORDER BY exact_score DESC,fts_score DESC,trigram_score DESC,p.merchant_sku LIMIT :limit
                 """).param("sku",sku,Types.VARCHAR).param("gtin",gtin,Types.VARCHAR)
                 .param("query",query).param("m",merchantId).param("v",versionId)

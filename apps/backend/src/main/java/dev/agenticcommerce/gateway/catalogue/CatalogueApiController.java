@@ -36,5 +36,8 @@ public class CatalogueApiController {
     @PostMapping("/versions/{versionId}/products/{productId}/enrichment")
     CatalogueService.EnrichmentStatus enrich(@AuthenticationPrincipal VerifiedActorPrincipal p,@PathVariable UUID merchantId,
             @PathVariable UUID versionId,@PathVariable UUID productId){return catalogues.enrich(p.actorId(),merchantId,versionId,productId);}
+    @PostMapping("/embeddings/reindex")
+    EmbeddingReindexResult reindex(@AuthenticationPrincipal VerifiedActorPrincipal p,@PathVariable UUID merchantId){
+        return catalogues.reindexEmbeddings(p.actorId(),merchantId);}
     public record IngestRequest(@NotBlank String format,@NotBlank @Size(max=1_000_000) String payload){}
 }
