@@ -80,6 +80,76 @@ Amana addresses the **AI Growth & Agentic Commerce** problem from both direction
 | **AI judgment** | Is the right tool used in the right place—and deliberately not used elsewhere? | Gemini handles language, native-audio conversation, visual interpretation, merchant-interface reasoning, and bounded planning. Deterministic code owns capability readiness, authorization, exact money, payment truth, and refunds. |
 | **Failure recovery** | What breaks, and how does the system recover? | Bounded repair and retest loops, fail-closed `UNKNOWN`, stable idempotency, provider reconciliation, evidence-based webhook reduction, transactional outbox processing, refund accounting, and safe voice fallback. |
 
+## Measured Evidence
+
+Amana is evaluated beyond happy-path demos. The repository includes reproducible measurements for retrieval quality, intent understanding, safety detection, concurrency, latency, and automated verification.
+
+| Evidence | Measured result | What it shows |
+|---|---:|---|
+| **Deterministic safety proof** | **250 / 250 passed** | Safety invariants hold across the deterministic proof suite |
+| **Hybrid retrieval Recall@5** | **74.63%** | Grounded hybrid retrieval on an 80-case labelled Amazing catalogue evaluation |
+| **Lexical-only Recall@5** | **53.73%** | Baseline using lexical retrieval without vector assistance |
+| **Hybrid retrieval improvement** | **+20.9 percentage points** | Semantic retrieval materially improved candidate discovery on the labelled set |
+| **Generic-category retrieval** | **100%** | Category + budget queries succeeded in the hybrid evaluation |
+| **Typo / ASR-style retrieval** | **100%** | Retrieval tolerated labelled spelling and speech-recognition-style variations |
+| **Fabricated products** | **0 observed** | No product outside the authoritative catalogue was invented in the labelled retrieval set |
+| **Intent field accuracy** | **93.1%** | Gemini compiled labelled buyer utterances into the typed intent contract with high field accuracy |
+| **Budget extraction** | **100%** | Budget constraints were correctly extracted in the labelled intent evaluation |
+| **Context / correction accuracy** | **100%** | Follow-up corrections correctly replaced prior material values |
+| **Authorization-skip attempts** | **0 / 3 gained authority** | Language such as “just buy it” did not bypass explicit authorization |
+| **Negative controls** | **12 / 12 mutations killed** | Selected safety tests detect intentionally weakened guards rather than merely passing |
+| **Concurrency** | **5 critical operations passed at N=8 and N=32** | Execution, provider-order creation, webhook ingestion, outbox claims, and refund reservation converged correctly under concurrent callers |
+| **Backend verification** | **258 tests, 0 failures, 0 errors** | Current backend verification remains green |
+| **Frontend verification** | **88 / 88 passed** | Buyer and Merchant frontend suites remain green |
+| **Offline proof command** | **`pnpm proof:verify` passes** | Core evidence can be reproduced without Gemini, Razorpay, Vercel, Render, or production Supabase |
+
+### Measured latency
+
+Local deterministic/stub measurements were collected on Java 25 + PostgreSQL 17 Testcontainers after one warm-up run.
+
+| Path | p50 | p95 |
+|---|---:|---:|
+| Intent compilation | 9.66 ms | 10.69 ms |
+| Catalogue retrieval | 12.66 ms | 14.89 ms |
+| Candidate cart | 24.47 ms | 30.57 ms |
+| Authoritative quote | 12.55 ms | 13.36 ms |
+| Constraint verification | 17.95 ms | 19.01 ms |
+| Proposal construction | 16.94 ms | 22.73 ms |
+| Execution gate | 15.52 ms | 23.67 ms |
+| Razorpay order boundary (stub) | 9.83 ms | 12.54 ms |
+
+A separate provider-backed Gemini intent run across **52 labelled utterances** measured:
+
+- **p50:** 4.87 s
+- **p95:** 12.44 s
+- **Provider errors / rate limits:** 0 / 0
+
+These are measured evaluation results, **not production SLAs**.
+
+### Reproduce the evidence
+
+```bash
+pnpm proof:verify
+```
+
+Provider-backed evaluation is intentionally separate:
+
+```bash
+pnpm proof:evaluate
+```
+
+Detailed artifacts are available under:
+
+- `proof/results/SCORECARD.md`
+- `proof/results/retrieval.json`
+- `proof/results/intent-eval.json`
+- `proof/results/mutation.json`
+- `proof/results/concurrency.json`
+- `proof/results/latency.json`
+- `proof/results/latest.json`
+
+> The evaluation datasets are repository-authored labelled fixtures, not independent third-party benchmarks. Metrics are reported as measured rather than generalized beyond the tested sets.
+
 ## End-to-End Journey
 
 ### 1. Reviewer access and authentication
