@@ -6,6 +6,7 @@
   --proof-border: #dce5f2;
   min-height: 100svh;
   overflow: hidden;
+  scroll-behavior: smooth;
   background:
     radial-gradient(circle at 83% 4%, rgb(199 219 255 / 48%), transparent 23rem),
     linear-gradient(180deg, #f8fbff 0, #fff 48rem);
@@ -14,11 +15,15 @@
 }
 
 .nav,
+.evidenceNav,
 .hero,
+.overviewSection,
 .categorySection,
 .matrixSection,
 .examplesSection,
+.evidenceSection,
 .methodology,
+.rawEvidence,
 .footer {
   width: min(calc(100% - 2rem), 78rem);
   margin-inline: auto;
@@ -67,6 +72,49 @@
   border-radius: 50%;
   background: #12a477;
   box-shadow: 0 0 0 0.25rem rgb(18 164 119 / 11%);
+}
+
+.evidenceNav {
+  position: sticky;
+  z-index: 10;
+  top: 0;
+  display: flex;
+  overflow-x: auto;
+  gap: 0.35rem;
+  padding-block: 0.7rem;
+  border-bottom: 1px solid var(--proof-border);
+  background: rgb(248 251 255 / 92%);
+  backdrop-filter: blur(16px);
+  scrollbar-width: none;
+}
+
+.evidenceNav::-webkit-scrollbar {
+  display: none;
+}
+
+.evidenceNav a {
+  flex: none;
+  padding: 0.55rem 0.75rem;
+  border-radius: 999px;
+  color: #53627a;
+  font-size: 0.72rem;
+  font-weight: 680;
+  text-decoration: none;
+  transition: color 160ms ease, background 160ms ease;
+}
+
+.evidenceNav a:hover,
+.evidenceNav a:focus-visible {
+  background: #e8f0ff;
+  color: var(--proof-blue-deep);
+  outline: none;
+}
+
+.hero,
+.overviewSection,
+.categorySection,
+.evidenceSection {
+  scroll-margin-top: 5rem;
 }
 
 .hero {
@@ -222,8 +270,70 @@
 
 .categorySection,
 .matrixSection,
-.examplesSection {
+.examplesSection,
+.overviewSection,
+.evidenceSection,
+.rawEvidence {
   padding-block: clamp(5rem, 9vw, 8rem);
+}
+
+.overviewSection {
+  border-top: 1px solid var(--proof-border);
+}
+
+.overviewMetrics {
+  display: grid;
+  margin: 0;
+  border-top: 1px solid var(--proof-border);
+  border-left: 1px solid var(--proof-border);
+}
+
+.overviewMetrics > div {
+  min-height: 9.5rem;
+  padding: 1.3rem;
+  border-right: 1px solid var(--proof-border);
+  border-bottom: 1px solid var(--proof-border);
+  background: rgb(255 255 255 / 70%);
+}
+
+.overviewMetrics dt,
+.cardLabel,
+.primaryEvidenceMetric > span,
+.negativeControlCard dt,
+.providerMetrics dt {
+  color: var(--proof-muted);
+  font-size: 0.65rem;
+  font-weight: 750;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+
+.overviewMetrics dd {
+  margin: 1.5rem 0 0.25rem;
+  color: var(--proof-blue-deep);
+  font-family: var(--amana-font-display);
+  font-size: 2rem;
+  font-weight: 590;
+  letter-spacing: -0.05em;
+}
+
+.overviewMetrics span {
+  color: var(--proof-muted);
+  font-size: 0.7rem;
+}
+
+.verificationStrip {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.75rem 2rem;
+  padding: 1rem 1.25rem;
+  border: 1px solid var(--proof-border);
+  border-top: 0;
+  background: #f4f8ff;
+  color: #53627a;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.68rem;
 }
 
 .categorySection {
@@ -410,6 +520,259 @@
   gap: 1rem;
 }
 
+.evidenceSection {
+  border-top: 1px solid var(--proof-border);
+}
+
+.tintedSection {
+  width: 100%;
+  padding-inline: max(1rem, calc((100% - 78rem) / 2));
+  background: #f4f8ff;
+}
+
+.comparisonGrid {
+  display: grid;
+  gap: 1rem;
+}
+
+.evidenceCard {
+  padding: clamp(1.4rem, 3vw, 2rem);
+  border: 1px solid var(--proof-border);
+  border-radius: 1.1rem;
+  background: #fff;
+  box-shadow: 0 1.5rem 4rem -3rem rgb(25 75 168 / 34%);
+}
+
+.evidenceCard > strong,
+.primaryEvidenceMetric > strong {
+  display: block;
+  margin-top: 1rem;
+  color: var(--proof-blue);
+  font-family: var(--amana-font-display);
+  font-size: clamp(2.8rem, 6vw, 4.6rem);
+  font-weight: 560;
+  letter-spacing: -0.07em;
+  line-height: 0.95;
+}
+
+.evidenceCard h3 {
+  margin: 0.5rem 0 1.5rem;
+  font-family: var(--amana-font-display);
+  font-size: 1rem;
+  font-weight: 620;
+}
+
+.deltaCard {
+  border-color: #bcd0f5;
+  background: linear-gradient(145deg, #f8fbff, #ecf3ff);
+}
+
+.metricList,
+.detailMetrics,
+.providerMetrics {
+  display: grid;
+  gap: 0;
+  margin: 0;
+}
+
+.metricList > div,
+.detailMetrics > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.7rem 0;
+  border-top: 1px solid var(--proof-border);
+}
+
+.metricList dt,
+.detailMetrics dt {
+  color: var(--proof-muted);
+  font-size: 0.72rem;
+}
+
+.metricList dd,
+.detailMetrics dd {
+  margin: 0;
+  color: var(--proof-ink);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-align: right;
+}
+
+.qualification {
+  max-width: 60rem;
+  margin: 1.4rem 0 0;
+  color: var(--proof-muted);
+  font-size: 0.75rem;
+  line-height: 1.7;
+}
+
+.intentLayout {
+  display: grid;
+  overflow: hidden;
+  border: 1px solid #cfdbed;
+  border-radius: 1.2rem;
+  background: #fff;
+}
+
+.primaryEvidenceMetric,
+.detailMetrics {
+  padding: clamp(1.5rem, 4vw, 2.5rem);
+}
+
+.primaryEvidenceMetric p {
+  max-width: 31rem;
+  margin: 1.25rem 0 0;
+  color: var(--proof-muted);
+  font-size: 0.8rem;
+  line-height: 1.65;
+}
+
+.detailMetrics {
+  background: #f9fbff;
+}
+
+.negativeControlCard {
+  overflow: hidden;
+  border: 1px solid var(--proof-border);
+  border-radius: 1.2rem;
+  background: #fff;
+}
+
+.negativeControlCard dl {
+  display: grid;
+  margin: 0;
+}
+
+.negativeControlCard dl > div {
+  padding: 1.4rem;
+  border-right: 1px solid var(--proof-border);
+  border-bottom: 1px solid var(--proof-border);
+}
+
+.negativeControlCard dd {
+  margin: 0.65rem 0 0;
+  color: var(--proof-blue-deep);
+  font-family: var(--amana-font-display);
+  font-size: 2.5rem;
+  font-weight: 580;
+  letter-spacing: -0.06em;
+}
+
+.negativeControlCard > p {
+  margin: 0;
+  padding: 1.1rem 1.4rem;
+  background: #fff8e7;
+  color: #74571c;
+  font-size: 0.76rem;
+  font-weight: 630;
+}
+
+.tableShell {
+  overflow-x: auto;
+  border: 1px solid #cfdbed;
+  border-radius: 1rem;
+  background: #fff;
+}
+
+.tableShell table {
+  width: 100%;
+  min-width: 49rem;
+  border-collapse: collapse;
+}
+
+.tableShell th,
+.tableShell td {
+  padding: 0.9rem 1rem;
+  border-bottom: 1px solid #e3eaf4;
+  color: #526078;
+  font-size: 0.72rem;
+  text-align: left;
+}
+
+.tableShell th {
+  background: #f8faff;
+  color: #7b899f;
+  font-size: 0.62rem;
+  font-weight: 760;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.tableShell tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.tableShell td:first-child {
+  color: var(--proof-ink);
+  font-weight: 650;
+}
+
+.passBadge {
+  padding: 0.3rem 0.5rem;
+  border-radius: 999px;
+  background: #e5f8f1;
+  color: #087757;
+  font-size: 0.65rem;
+  font-weight: 750;
+}
+
+.latencyGroup + .latencyGroup {
+  margin-top: 2rem;
+}
+
+.latencyGroup > header {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.latencyGroup h3 {
+  margin: 0;
+  font-family: var(--amana-font-display);
+  font-size: 1.4rem;
+  font-weight: 620;
+  letter-spacing: -0.03em;
+}
+
+.latencyGroup header p {
+  margin: 0;
+  color: var(--proof-muted);
+  font-size: 0.68rem;
+}
+
+.providerLatency {
+  padding: clamp(1.4rem, 3vw, 2rem);
+  border: 1px solid #c7d7f2;
+  border-radius: 1.1rem;
+  background: #f3f7ff;
+}
+
+.providerMetrics {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  border-top: 1px solid #cedbf0;
+  border-left: 1px solid #cedbf0;
+}
+
+.providerMetrics > div {
+  padding: 1rem;
+  border-right: 1px solid #cedbf0;
+  border-bottom: 1px solid #cedbf0;
+}
+
+.providerMetrics dd {
+  margin: 0.5rem 0 0;
+  color: var(--proof-blue-deep);
+  font-family: var(--amana-font-display);
+  font-size: 1.5rem;
+  font-weight: 590;
+  letter-spacing: -0.04em;
+}
+
 .exampleCard {
   display: grid;
   gap: 1rem;
@@ -511,6 +874,47 @@
   line-height: 1.7;
 }
 
+.rawEvidence {
+  display: grid;
+  gap: 2rem;
+  border-top: 1px solid var(--proof-border);
+}
+
+.rawEvidence h2 {
+  margin: 0;
+  font-family: var(--amana-font-display);
+  font-size: clamp(2.25rem, 4vw, 4rem);
+  font-weight: 570;
+  letter-spacing: -0.05em;
+  line-height: 1;
+}
+
+.rawEvidence ul {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--proof-border);
+  list-style: none;
+}
+
+.rawEvidence a {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.85rem 0;
+  border-bottom: 1px solid var(--proof-border);
+  color: var(--proof-ink);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.75rem;
+  font-weight: 650;
+  text-decoration: none;
+}
+
+.rawEvidence a span {
+  color: var(--proof-blue);
+}
+
 .footer {
   display: flex;
   min-height: 6rem;
@@ -523,14 +927,20 @@
 }
 
 @media (min-width: 42rem) {
+  .overviewMetrics { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .categoryGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .examplesGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .negativeControlCard dl { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .providerMetrics { grid-template-columns: repeat(5, minmax(0, 1fr)); }
   .methodology { grid-template-columns: 0.9fr 1.1fr; }
   .methodNote { grid-column: 2; }
+  .rawEvidence { grid-template-columns: 0.9fr 1.1fr; }
 }
 
 @media (min-width: 64rem) {
   .hero { grid-template-columns: minmax(0, 1.25fr) minmax(24rem, 0.75fr); }
+  .comparisonGrid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .intentLayout { grid-template-columns: 0.9fr 1.1fr; }
   .categoryGrid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .examplesGrid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .exampleCard:first-child { grid-column: span 2; }
@@ -540,7 +950,9 @@
 
 @media (max-width: 41.99rem) {
   .navMeta { max-width: 12rem; justify-content: flex-end; text-align: right; }
+  .evidenceNav { width: 100%; padding-inline: 1rem; }
   .sectionHeading { align-items: start; flex-direction: column; }
+  .latencyGroup > header { align-items: start; flex-direction: column; }
   .matrix { overflow-x: auto; }
   .matrixRow { min-width: 42rem; }
   .footer { align-items: flex-start; flex-direction: column; justify-content: center; }
@@ -548,4 +960,5 @@
 
 @media (prefers-reduced-motion: reduce) {
   .page { scroll-behavior: auto; }
+  .evidenceNav a { transition: none; }
 }

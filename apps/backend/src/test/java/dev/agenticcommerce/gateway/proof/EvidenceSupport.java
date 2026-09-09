@@ -53,9 +53,27 @@ public final class EvidenceSupport {
                 .append(artifact.path("whatThisDoesNotProve").asText()).append("\n").toString();
     }
 
-    public static Path repositoryRoot(){Path current=Path.of(System.getProperty("user.dir")).toAbsolutePath();
-        while(current!=null&&!Files.exists(current.resolve("AGENTS.md")))current=current.getParent();
-        if(current==null)throw new IllegalStateException("Repository root not found");return current;}
+    public static Path repositoryRoot() {
+        return repositoryRoot(Path.of(System.getProperty("user.dir")));
+    }
+
+    static Path repositoryRoot(Path start) {
+        Path current = start.toAbsolutePath().normalize();
+        while (current != null && !isAmanaRepositoryRoot(current)) {
+            current = current.getParent();
+        }
+        if (current == null) {
+            throw new IllegalStateException("Repository root not found");
+        }
+        return current;
+    }
+
+    private static boolean isAmanaRepositoryRoot(Path candidate) {
+        return Files.isRegularFile(candidate.resolve("package.json"))
+                && Files.isRegularFile(candidate.resolve("apps/backend/pom.xml"))
+                && Files.isDirectory(candidate.resolve("apps/web"))
+                && Files.isDirectory(candidate.resolve("proof"));
+    }
 
     private static String git(String...args){try{List<String> command=new java.util.ArrayList<>();command.add("git");command.addAll(List.of(args));
         Process process=new ProcessBuilder(command).directory(repositoryRoot().toFile()).redirectErrorStream(true).start();
