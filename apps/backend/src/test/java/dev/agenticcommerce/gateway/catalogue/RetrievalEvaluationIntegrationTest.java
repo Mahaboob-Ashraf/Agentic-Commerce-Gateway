@@ -52,6 +52,7 @@ class RetrievalEvaluationIntegrationTest {
     void recordsLegacyGateBaselineAndPostFixLexicalMetrics() throws Exception {
         var dataset = mapper.readTree(Files.readString(EvidenceSupport.repositoryRoot()
                 .resolve("evaluation/retrieval/amazing-labelled-v1.json")));
+        assertThat(dataset.path("cases").size()).isEqualTo(80);
         var fixture = mapper.readTree(Files.readString(EvidenceSupport.repositoryRoot()
                 .resolve(dataset.path("catalogueFixture").asText())));
         var merchant = merchants.create("retrieval-eval", "Amazing retrieval evaluation");
@@ -61,6 +62,22 @@ class RetrievalEvaluationIntegrationTest {
         CatalogueHealth health = repository.health(merchant.id(), version.id(), version.version());
         List<Evaluated> baseline = new ArrayList<>();
         List<Evaluated> postFix = new ArrayList<>(), hybrid = new ArrayList<>();
+        List<Evaluated> previousHybrid = new ArrayList<>(), previousValid = new ArrayList<>(), currentValid = new ArrayList<>();
+        Map<String, List<Float>> queryVectors = new LinkedHashMap<>();
+        EmbeddingProvider cached = new EmbeddingProvider() {
+            @Override public List<Float> embed(String input) { return embeddings.embed(input); }
+            @Override public List<Float> embedQuery(String input) { return queryVectors.computeIfAbsent(input, embeddings::embedQuery); }
+            @Override public boolean available() { return embeddings.available(); }
+        };
+        var v2 = new HybridV2RetrievalSnapshot(repository, catalogues, cached, canonical, mapper);
+        var v3 = new HybridCatalogueRetrievalService(repository, catalogues, cached, canonical, mapper);
+        Map<Double, List<Evaluated>> gridValid = new LinkedHashMap<>(), gridDiscovery = new LinkedHashMap<>();
+        // Initial .65-.95 sweep found relevant scores below .70; refine around that observed distribution.
+        for (double threshold : new double[]{.50, .55, .60, .625, .65, .675, .70, .75, .80, .85, .90, .95}) {
+            gridValid.put(threshold, new ArrayList<>()); gridDiscovery.put(threshold, new ArrayList<>());
+        }
+        ArrayNode qualificationDetails = mapper.createArrayNode();
+        int actualFallbacks = 0;
         EmbeddingProvider unavailable = new EmbeddingProvider() {
             @Override public List<Float> embed(String input) { throw new IllegalStateException("INTENTIONALLY_DISABLED_FOR_LEXICAL_EVALUATION"); }
             @Override public boolean available() { return false; }
@@ -78,7 +95,36 @@ class RetrievalEvaluationIntegrationTest {
             response.relatedAlternatives().forEach(hit -> candidates.add(hit.product().merchantSku()));
             postFix.add(evaluate(labelled, candidates, fixtureSkus));
             if (hybridReady) {
-                SearchResponse hybridResponse = retrieval.search(merchant.id(), request);
+                SearchResponse oldResponse = v2.search(merchant.id(), request);
+                SearchResponse hybridResponse = v3.search(merchant.id(), request);
+                if (oldResponse.vectorFallback() || hybridResponse.vectorFallback()) actualFallbacks++;
+                previousHybrid.add(evaluate(labelled, candidates(oldResponse, false), fixtureSkus));
+                previousValid.add(evaluate(labelled, candidates(oldResponse, true), fixtureSkus));
+                currentValid.add(evaluate(labelled, candidates(hybridResponse, true), fixtureSkus));
+                var detail = qualificationDetails.addObject().put("caseId", labelled.path("id").asText());
+                var vectorEvidence = detail.putArray("vectorCandidates");
+                for (var vector : repository.vectorCandidates(merchant.id(), version.id(),
+                        cached.embedQuery(CatalogueService.normalizeText(request.query())), RetrievalThresholds.MAX_CANDIDATES)) {
+                    var product = repository.findProduct(merchant.id(), version.id(), vector.productId()).orElseThrow();
+                    vectorEvidence.addObject().put("sku", product.merchantSku()).put("similarity", vector.score())
+                            .put("identityGate", v3.identityGate(merchant.id(), version.id(), product, request).name());
+                }
+                detail.set("v2Valid", mapper.valueToTree(candidates(oldResponse, true)));
+                detail.set("v3Valid", mapper.valueToTree(candidates(hybridResponse, true)));
+                detail.set("v3Evidence", mapper.valueToTree(hybridResponse.evidence()));
+                var hits = detail.putArray("v3Hits");
+                java.util.stream.Stream.concat(hybridResponse.matches().stream(), hybridResponse.relatedAlternatives().stream())
+                        .forEach(hit -> hits.addObject().put("sku", hit.product().merchantSku()).put("score", hit.score())
+                                .put("identityGate", hit.identityGate().name()).set("scoreEvidence", mapper.valueToTree(hit.scoreEvidence())));
+                for (double threshold : gridValid.keySet()) {
+                    var candidateRanker = new HybridCatalogueRetrievalService(repository, catalogues, cached, canonical, mapper,
+                            new SemanticMatchQualification(threshold));
+                    var result = candidateRanker.search(merchant.id(), request);
+                    if (result.vectorFallback()) actualFallbacks++;
+                    gridValid.get(threshold).add(evaluate(labelled, candidates(result, true), fixtureSkus));
+                    gridDiscovery.get(threshold).add(evaluate(labelled, candidates(result, false), fixtureSkus));
+                    detail.withObject("/gridValid").set(Double.toString(threshold), mapper.valueToTree(candidates(result, true)));
+                }
                 List<String> hybridCandidates = new ArrayList<>();
                 hybridResponse.matches().forEach(hit -> hybridCandidates.add(hit.product().merchantSku()));
                 hybridResponse.relatedAlternatives().forEach(hit -> hybridCandidates.add(hit.product().merchantSku()));
@@ -95,6 +141,28 @@ class RetrievalEvaluationIntegrationTest {
         if (hybridReady) {
             ObjectNode hybridMetrics = metrics(hybrid); summary.set("hybrid", hybridMetrics);
             summary.put("hybridStatus", "READY");
+            summary.set("previousHybridV2", metrics(previousHybrid));
+            summary.set("previousHybridV2ValidMatches", metrics(previousValid));
+            summary.set("hybridV3ValidMatches", metrics(currentValid));
+            summary.put("ranker", "hybrid-v3");
+            summary.put("semanticMinimumSimilarity", RetrievalThresholds.SEMANTIC_MINIMUM_SIMILARITY);
+            var grid = summary.putArray("semanticThresholdGrid");
+            for (double threshold : gridValid.keySet()) {
+                grid.addObject().put("threshold", threshold)
+                        .set("validMatches", metrics(gridValid.get(threshold)))
+                        .set("discovery", metrics(gridDiscovery.get(threshold)))
+                        .put("newUnexpectedValidProducts", newUnexpectedProducts(previousValid, gridValid.get(threshold)))
+                        .put("safetyNonRegression", safetyNonRegression(previousValid, gridValid.get(threshold))
+                                && safetyNonRegression(previousHybrid, gridDiscovery.get(threshold)));
+            }
+            var wirelessRequest = new SearchRequest("wireless earphones", null, null, null, null, null, null,
+                    "wireless earphones", null, 350000L, null, null, 5);
+            var wireless = v3.search(merchant.id(), wirelessRequest);
+            summary.set("wirelessEarphonesUnder3500", mapper.valueToTree(wireless));
+            summary.put("safetyNonRegression", safetyNonRegression(previousValid, currentValid)
+                    && safetyNonRegression(previousHybrid, hybrid));
+            summary.put("newUnexpectedValidProducts", newUnexpectedProducts(previousValid, currentValid));
+            if (!summary.path("safetyNonRegression").asBoolean() || actualFallbacks > 0) summary.put("status", "FAIL");
             summary.put("hybridVsLexicalRecallAt1Delta", round(hybridMetrics.path("recallAt1").asDouble() - metricsAfter.path("recallAt1").asDouble()));
             summary.put("hybridVsLexicalRecallAt5Delta", round(hybridMetrics.path("recallAt5").asDouble() - metricsAfter.path("recallAt5").asDouble()));
         } else {
@@ -103,7 +171,8 @@ class RetrievalEvaluationIntegrationTest {
         }
         ObjectNode embedding = summary.putObject("embeddings");
         embedding.put("ready", health.readyEmbeddings()).put("failed", health.failedEmbeddings())
-                .put("vectorProviderActive", embeddings.available()).put("queriesFellBackToLexical", hybridReady ? 0 : postFix.size());
+                .put("vectorProviderActive", embeddings.available()).put("queriesFellBackToLexical", hybridReady ? actualFallbacks : postFix.size());
+        embedding.put("model", EmbeddingProvider.MODEL).put("dimensions", EmbeddingProvider.OUTPUT_DIMENSIONS);
 
         ArrayNode details = mapper.createArrayNode();
         for (int index = 0; index < postFix.size(); index++) {
@@ -119,11 +188,47 @@ class RetrievalEvaluationIntegrationTest {
                 "pnpm proof:evaluate:retrieval", summary, details,
                 hybridReady
                         ? List.of("Baseline is a test-source snapshot of the former strict free-form category/brand gate over the same lexical candidate generator.",
-                                "Hybrid metrics use live Gemini embeddings and can vary with provider/model revisions.")
+                                "Hybrid metrics use live Gemini embeddings and can vary with provider/model revisions.",
+                                "Historical discovery metrics concatenate valid matches and related alternatives. Valid-match metrics measure Buyer qualification separately.",
+                                "Threshold grid is calibration on these 80 labels, not held-out validation or production-scale benchmarking. Query embeddings are cached within the run for paired comparisons.")
                         : List.of("Baseline is a test-source snapshot of the former strict free-form category/brand gate over the same lexical candidate generator.",
                                 "The offline run deliberately disables embeddings; hybrid comparison remains NOT_RUN until a provider-backed run has READY vectors."),
                 "This labelled fixture does not prove quality on unlabelled traffic, other catalogues, or future provider/model revisions.");
-        EvidenceSupport.write(mapper, "retrieval.json", "RETRIEVAL_EVAL.md", artifact, markdown(artifact));
+        artifact.set("qualificationDetails", qualificationDetails);
+        artifact.put("datasetSha256", java.util.HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256")
+                .digest(Files.readAllBytes(EvidenceSupport.repositoryRoot().resolve("evaluation/retrieval/amazing-labelled-v1.json")))));
+        // Offline CI must not erase the most recent provider-backed measurement.
+        EvidenceSupport.write(mapper, hybridReady ? "retrieval.json" : "retrieval-offline.json",
+                hybridReady ? "RETRIEVAL_EVAL.md" : "RETRIEVAL_OFFLINE.md", artifact, markdown(artifact));
+        if (hybridReady) {
+            assertThat(actualFallbacks).as("all paired/grid calls must use vectors").isZero();
+            assertThat(summary.path("safetyNonRegression").asBoolean()).as("selected threshold safety regression").isTrue();
+        }
+    }
+
+    private static List<String> candidates(SearchResponse response, boolean validOnly) {
+        return (validOnly ? response.matches().stream() : java.util.stream.Stream.concat(
+                response.matches().stream(), response.relatedAlternatives().stream()))
+                .map(hit -> hit.product().merchantSku()).toList();
+    }
+
+    private boolean safetyNonRegression(List<Evaluated> before, List<Evaluated> after) {
+        var a = metrics(before); var b = metrics(after);
+        return b.path("noMatchAccuracy").asDouble() >= a.path("noMatchAccuracy").asDouble()
+                && b.path("exactIdentityPrecision").asDouble() >= a.path("exactIdentityPrecision").asDouble()
+                && b.path("fabricatedProductCount").asInt() <= a.path("fabricatedProductCount").asInt()
+                && b.path("wrongVariantSubstitutionCount").asInt() <= a.path("wrongVariantSubstitutionCount").asInt()
+                && newUnexpectedProducts(before, after) == 0;
+    }
+
+    private static long newUnexpectedProducts(List<Evaluated> before, List<Evaluated> after) {
+        long count = 0;
+        for (int i = 0; i < before.size(); i++) {
+            var old = before.get(i); var current = after.get(i);
+            count += current.candidates().stream().filter(sku -> !current.expected().contains(sku)
+                    && !old.candidates().contains(sku)).count();
+        }
+        return count;
     }
 
     private List<String> legacyCandidates(UUID merchantId, CatalogueVersion version, SearchRequest request) {
@@ -177,6 +282,7 @@ class RetrievalEvaluationIntegrationTest {
         result.put("recallAt5", rate(matches.stream().filter(Evaluated::recallAt5).count(), matches.size()));
         result.put("exactIdentityPrecision", subsetRate(values, "EXACT_NEAR_EXACT", Evaluated::recallAt1));
         result.put("genericCategorySuccessRate", subsetRate(values, "GENERIC_CATEGORY_BUDGET", Evaluated::recallAt5));
+        result.put("semanticSuccessRate", subsetRate(values, "PARAPHRASE_SEMANTIC", Evaluated::recallAt5));
         result.put("typoAsrSuccessRate", subsetRate(values, "TYPO_ASR", Evaluated::recallAt5));
         result.put("multilingualSuccessRate", subsetRate(values, "MULTILINGUAL", Evaluated::recallAt5));
         List<Evaluated> noMatch = values.stream().filter(value -> value.classes().contains("HONEST_NO_MATCH")).toList();
@@ -209,11 +315,13 @@ class RetrievalEvaluationIntegrationTest {
         String hybridValue = hybrid.isMissingNode() ? "NOT_RUN" : null;
         return "# Retrieval evaluation\n\nStatus: **" + artifact.path("summary").path("status").asText() + "**\n\n"
                 + "The baseline preserves the former strict free-form category/brand gate. The post-fix run uses production lexical retrieval.\n\n"
-                + "| Metric | Baseline | Post-fix lexical | Hybrid |\n|---|---:|---:|---:|\n"
+                + "Historical discovery definition: valid matches followed by related alternatives.\n\n"
+                + "| Metric | Legacy lexical | Post-fix lexical | Hybrid v3 discovery |\n|---|---:|---:|---:|\n"
                 + metricRow("Recall@1", before, after, hybrid, "recallAt1", hybridValue)
                 + metricRow("Recall@5", before, after, hybrid, "recallAt5", hybridValue)
                 + metricRow("Exact-identity precision", before, after, hybrid, "exactIdentityPrecision", hybridValue)
                 + metricRow("Generic category success", before, after, hybrid, "genericCategorySuccessRate", hybridValue)
+                + metricRow("Semantic success", before, after, hybrid, "semanticSuccessRate", hybridValue)
                 + metricRow("Typo/ASR success", before, after, hybrid, "typoAsrSuccessRate", hybridValue)
                 + metricRow("Multilingual success", before, after, hybrid, "multilingualSuccessRate", hybridValue)
                 + metricRow("No-match accuracy", before, after, hybrid, "noMatchAccuracy", hybridValue)
@@ -225,7 +333,40 @@ class RetrievalEvaluationIntegrationTest {
                 + "Hybrid versus lexical delta: Recall@1=" + summary.path("hybridVsLexicalRecallAt1Delta").asText("NOT_RUN")
                 + ", Recall@5=" + summary.path("hybridVsLexicalRecallAt5Delta").asText("NOT_RUN") + ".\n"
                 + "Hybrid fabricated products=" + hybrid.path("fabricatedProductCount").asText("NOT_RUN")
-                + "; wrong-variant substitutions=" + hybrid.path("wrongVariantSubstitutionCount").asText("NOT_RUN") + ".\n";
+                + "; wrong-variant substitutions=" + hybrid.path("wrongVariantSubstitutionCount").asText("NOT_RUN") + ".\n"
+                + qualificationMarkdown(summary);
+    }
+
+    private String qualificationMarkdown(JsonNode summary) {
+        if (!summary.has("previousHybridV2")) return "\nSemantic calibration: NOT_RUN (provider inactive).\n";
+        StringBuilder out = new StringBuilder("\n## Paired hybrid-v2 / hybrid-v3 comparison\n\n")
+                .append("Same 80 labels, catalogue, PostgreSQL candidate queries and cached live Gemini query vectors.\n")
+                .append("Valid matches measure Buyer eligibility; related alternatives cannot build a cart.\n\n")
+                .append("| Metric | v2 discovery | v3 discovery | v2 valid only | v3 valid only |\n|---|---:|---:|---:|---:|\n");
+        for (String field : List.of("recallAt1", "recallAt5", "exactIdentityPrecision", "genericCategorySuccessRate",
+                "semanticSuccessRate", "typoAsrSuccessRate", "multilingualSuccessRate", "noMatchAccuracy",
+                "fabricatedProductRate", "wrongVariantSubstitutionRate")) {
+            out.append("| ").append(field);
+            for (String mode : List.of("previousHybridV2", "hybrid", "previousHybridV2ValidMatches", "hybridV3ValidMatches"))
+                out.append(" | ").append(summary.path(mode).path(field).asText());
+            out.append(" |\n");
+        }
+        out.append("\n## Semantic threshold calibration\n\n")
+                .append("Initial 0.65–0.95 sweep found relevant similarities below 0.70; refinement adds 0.50–0.675.\n")
+                .append("Choose the highest threshold with maximum valid recall among safety-preserving rows. This is calibration, not held-out validation.\n\n")
+                .append("| Threshold | Valid R@1 | Valid semantic | Valid category | Valid no-match | Valid wrong variants | New unexpected valid products | Safety preserved |\n|---|---:|---:|---:|---:|---:|---:|---|\n");
+        for (JsonNode row : summary.path("semanticThresholdGrid")) {
+            var valid = row.path("validMatches"); out.append("| ").append(row.path("threshold").asText());
+            for (String field : List.of("recallAt1", "semanticSuccessRate", "genericCategorySuccessRate", "noMatchAccuracy", "wrongVariantSubstitutionRate"))
+                out.append(" | ").append(valid.path(field).asText());
+            out.append(" | ").append(row.path("newUnexpectedValidProducts").asText())
+                    .append(" | ").append(row.path("safetyNonRegression").asText()).append(" |\n");
+        }
+        out.append("\nSelected threshold: ").append(summary.path("semanticMinimumSimilarity").asText())
+                .append(". Safety non-regression: ").append(summary.path("safetyNonRegression").asText())
+                .append(". Wireless earphones under 3500: ")
+                .append(summary.path("wirelessEarphonesUnder3500").path("classification").asText()).append(".\n");
+        return out.toString();
     }
 
     private static String metricRow(String label, JsonNode before, JsonNode after, JsonNode hybrid, String field, String missing) {

@@ -32,9 +32,9 @@ Only BLACK_BOX_HTTP cases claim HTTP traversal. This is a bounded suite, not a p
 ## Provenance
 
 - Schema version: `amana-adversarial-evidence-v1`
-- Commit SHA: `0e924615763c1147dc7c30a51bab1183da55211a`
+- Commit SHA: `6fc5594f32a8afdccd64b8ff71e150c16650a851`
 - Working tree dirty: `true`
-- Generated UTC: `2026-09-08T17:11:36.962Z`
+- Generated UTC: `2026-09-09T16:21:15.571Z`
 - Runtime: Java `openjdk version "25.0.4.1" 2026-08-18 LTS`; Node `v24.19.0`
 - OS / host: `Windows_NT 10.0.26200 x64` / `DESKTOP-P3MC09V`
 - Sample size: 20

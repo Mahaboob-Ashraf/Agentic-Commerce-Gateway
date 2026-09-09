@@ -1,9 +1,9 @@
 {
   "schemaVersion": "amana-adversarial-evidence-v1",
   "provenance": {
-    "commitSha": "0e924615763c1147dc7c30a51bab1183da55211a",
+    "commitSha": "6fc5594f32a8afdccd64b8ff71e150c16650a851",
     "workingTreeDirty": true,
-    "generatedAtUtc": "2026-09-08T17:11:36.962Z",
+    "generatedAtUtc": "2026-09-09T16:21:15.571Z",
     "runtime": {
       "node": "v24.19.0",
       "java": "openjdk version \"25.0.4.1\" 2026-08-18 LTS"

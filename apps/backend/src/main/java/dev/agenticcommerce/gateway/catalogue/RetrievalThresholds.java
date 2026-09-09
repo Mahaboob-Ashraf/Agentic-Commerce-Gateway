@@ -4,6 +4,8 @@ package dev.agenticcommerce.gateway.catalogue;
 public final class RetrievalThresholds {
     private RetrievalThresholds() {}
     public static final double VALID_MATCH = 0.42;
+    // Calibration is recorded separately from the unchanged hybrid score threshold.
+    public static final double SEMANTIC_MINIMUM_SIMILARITY = 0.60;
     public static final double RELATED_ALTERNATIVE = 0.24;
     public static final double MINIMUM_TRIGRAM = 0.18;
     public static final int MAX_CANDIDATES = 50;

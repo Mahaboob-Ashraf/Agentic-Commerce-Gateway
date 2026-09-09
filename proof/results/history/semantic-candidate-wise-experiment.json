@@ -1,0 +1,1252 @@
+{
+  "schemaVersion": "amana-semantic-calibration-experiment-v1",
+  "provenance": {
+    "commitSha": "6fc5594f32a8afdccd64b8ff71e150c16650a851",
+    "workingTreeDirty": true,
+    "generatedAtUtc": "2026-09-09T15:11:35.728185900Z",
+    "runtime": {
+      "java": "25.0.4.1+1-LTS",
+      "node": "v24.19.0"
+    },
+    "operatingSystem": "Windows 11 10.0 amd64",
+    "hostLabel": "DESKTOP-P3MC09V",
+    "sampleSize": 80,
+    "command": "pnpm proof:evaluate:retrieval"
+  },
+  "experiment": "Candidate-wise semantic lane before NO_HYBRID_MATCH restriction. Not the final production policy.",
+  "finding": "Thresholds 0.60 through 0.75 introduced AMZ-AUDIO-031 for RET-TYP-002 despite an existing correct hybrid match; rejected after inspecting all valid candidates.",
+  "datasetSha256": "c479212d0a2e099a2079f7077609a49f6f430e74af5971b2d022a1c468faa2f7",
+  "summary": {
+    "status": "REJECTED_FOR_PRODUCTION",
+    "grid": [
+      {
+        "threshold": 0.5,
+        "validMatches": {
+          "recallAt1": 0.8358,
+          "recallAt5": 0.8507,
+          "exactIdentityPrecision": 1,
+          "genericCategorySuccessRate": 0.8571,
+          "semanticSuccessRate": 0.8333,
+          "typoAsrSuccessRate": 1,
+          "multilingualSuccessRate": 0.5,
+          "noMatchAccuracy": 0.2,
+          "fabricatedProductRate": 0,
+          "fabricatedProductCount": 0,
+          "wrongVariantSubstitutionRate": 0.0299,
+          "wrongVariantSubstitutionCount": 2
+        },
+        "discovery": {
+          "recallAt1": 0.8657,
+          "recallAt5": 0.8806,
+          "exactIdentityPrecision": 1,
+          "genericCategorySuccessRate": 1,
+          "semanticSuccessRate": 0.8333,
+          "typoAsrSuccessRate": 1,
+          "multilingualSuccessRate": 0.5,
+          "noMatchAccuracy": 0.1,
+          "fabricatedProductRate": 0,
+          "fabricatedProductCount": 0,
+          "wrongVariantSubstitutionRate": 0.0299,
+          "wrongVariantSubstitutionCount": 2
+        },
+        "safetyNonRegression": false,
+        "newUnexpectedValidProducts": [
+          {
+            "caseId": "RET-EX-001",
+            "sku": "AMZ-ELEC-033"
+          },
+          {
+            "caseId": "RET-EX-001",
+            "sku": "AMZ-SNACK-047"
+          },
+          {
+            "caseId": "RET-EX-001",
+            "sku": "AMZ-BEAUTY-001"
+          },
+          {
+            "caseId": "RET-EX-002",
+            "sku": "AMZ-SNACK-047"
+          },
+          {
+            "caseId": "RET-EX-002",
+            "sku": "AMZ-BEAUTY-001"
+          },
+          {
+            "caseId": "RET-EX-002",
+            "sku": "AMZ-ELEC-033"
+          },
+          {
+            "caseId": "RET-EX-004",
+            "sku": "AMZ-SHOE-036"
+          },
+          {
+            "caseId": "RET-SEM-002",
+            "sku": "AMZ-BEAUTY-001"
+          },
+          {
+            "caseId": "RET-SEM-002",
+            "sku": "AMZ-GROC-016"
+          },
+          {
+            "caseId": "RET-SEM-002",
+            "sku": "AMZ-GROC-018"
+          },
+          {
+            "caseId": "RET-SEM-007",
+            "sku": "AMZ-GROC-020"
+          },
+          {
+            "caseId": "RET-SEM-007",
+            "sku": "AMZ-GROC-023"
+          },
+          {
+            "caseId": "RET-SEM-007",
+            "sku": "AMZ-GROC-017"
+          },
+          {
+            "caseId": "RET-SEM-007",
+            "sku": "AMZ-GROC-019"
+          },
+          {
+            "caseId": "RET-SEM-009",
+            "sku": "AMZ-BEAUTY-001"
+          },
+          {
+            "caseId": "RET-SEM-009",
+            "sku": "AMZ-CARE-045"
+          },
+          {
+            "caseId": "RET-SEM-009",
+            "sku": "AMZ-GROC-020"
+          },
+          {
+            "caseId": "RET-SEM-009",
+            "sku": "AMZ-GROC-027"
+          },
+          {
+            "caseId": "RET-SEM-010",
+            "sku": "AMZ-FURN-013"
+          },
+          {
+            "caseId": "RET-SEM-011",
+            "sku": "AMZ-SNACK-048"
+          },
+          {
+            "caseId": "RET-SEM-011",
+            "sku": "AMZ-GROC-023"
+          },
+          {
+            "caseId": "RET-SEM-011",
+            "sku": "AMZ-GROC-016"
+          },
+          {
+            "caseId": "RET-SEM-011",
+            "sku": "AMZ-GROC-022"
+          },
+          {
+            "caseId": "RET-TYP-002",
+            "sku": "AMZ-AUDIO-031"
+          },
+          {
+            "caseId": "RET-TYP-002",
+            "sku": "AMZ-ELEC-033"
+          },
+          {
+            "caseId": "RET-TYP-002",
+            "sku": "AMZ-BEAUTY-001"
+          },
+          {
+            "caseId": "RET-TYP-002",
+            "sku": "AMZ-GROC-016"
+          },
+          {
+            "caseId": "RET-TYP-005",
+            "sku": "AMZ-BEAUTY-001"
+          },
+          {
+            "caseId": "RET-TYP-005",
+            "sku": "AMZ-GROC-020"
+          },
+          {
+            "caseId": "RET-TYP-005",
+            "sku": "AMZ-CARE-045"
+          },
+          {
+            "caseId": "RET-TYP-005",
+            "sku": "AMZ-GROC-027"
+          },
+          {
+            "caseId": "RET-TYP-007",
+            "sku": "AMZ-KITCH-044"
+          },
+          {
+            "caseId": "RET-TYP-007",
+            "sku": "AMZ-BEAUTY-001"
+          },
+          {
+            "caseId": "RET-TYP-007",
+            "sku": "AMZ-GROC-020"
+          },
+          {
+            "caseId": "RET-TYP-007",
+            "sku": "AMZ-KITCH-042"
+          },
+          {
+            "caseId": "RET-TYP-008",
+            "sku": "AMZ-GROC-021"
+          },
+          {
+            "caseId": "RET-TYP-008",
+            "sku": "AMZ-GROC-023"
+          },
+          {
+            "caseId": "RET-TYP-008",
+            "sku": "AMZ-GROC-020"
+          },
+          {
+            "caseId": "RET-TYP-008",
+            "sku": "AMZ-GROC-016"
+          },
+          {
+            "caseId": "RET-TYP-009",
+            "sku": "AMZ-ELEC-034"
+          },
+          {
+            "caseId": "RET-TYP-009",
+            "sku": "AMZ-AUDIO-031"
+          },
+          {
+            "caseId": "RET-TYP-011",
+            "sku": "AMZ-GROC-020"
+          },
+          {
+            "caseId": "RET-TYP-011",
+            "sku": "AMZ-GROC-023"
+          },
+          {
+            "caseId": "RET-TYP-011",
+            "sku": "AMZ-GROC-017"
+          },
+          {
+            "caseId": "RET-TYP-011",
+            "sku": "AMZ-GROC-028"
+          },
+          {
+            "caseId": "RET-ML-001",
+            "sku": "AMZ-AUDIO-031"
+          },
+          {
+            "caseId": "RET-ML-001",
+            "sku": "AMZ-SNACK-047"
+          },
+          {
+            "caseId": "RET-ML-001",
+            "sku": "AMZ-BEAUTY-001"
+          },
+          {
+            "caseId": "RET-ML-004",
+            "sku": "AMZ-AUDIO-031"
+          },
+          {
+            "caseId": "RET-ML-004",
+            "sku": "AMZ-SNACK-047"
+          },
+          {
+            "caseId": "RET-ML-004",
+            "sku": "AMZ-BEAUTY-001"
+          },
+          {
+            "caseId": "RET-ML-004",
+            "sku": "AMZ-GROC-019"
+          },
+          {
+            "caseId": "RET-ML-005",
+            "sku": "AMZ-SNACK-047"
+          },
+          {
+            "caseId": "RET-ML-005",
+            "sku": "AMZ-KITCH-042"
+          },
+          {
+            "caseId": "RET-ML-005",
+            "sku": "AMZ-KITCH-044"
+          },
+          {
+            "caseId": "RET-ML-005",
+            "sku": "AMZ-GROC-020"
+          },
+          {
+            "caseId": "RET-ML-008",
+            "sku": "AMZ-GROC-019"
+          },
+          {
+            "caseId": "RET-ML-008",
+            "sku": "AMZ-GROC-021"
+          },
+          {
+            "caseId": "RET-ML-008",
+            "sku": "AMZ-GROC-020"
+          },
+          {
+            "caseId": "RET-ML-008",
+            "sku": "AMZ-GROC-027"
+          },
+          {
+            "caseId": "RET-ML-008",
+            "sku": "AMZ-GROC-016"
+          },
+          {
+            "caseId": "RET-ML-010",
+            "sku": "AMZ-AUDIO-031"
+          },
+          {
+            "caseId": "RET-ML-011",
+            "sku": "AMZ-GROC-020"
+          },
+          {
+            "caseId": "RET-ML-011",
+            "sku": "AMZ-GROC-028"
+          },
+          {
+            "caseId": "RET-NO-001",
+            "sku": "AMZ-GROC-016"
+          },
+          {
+            "caseId": "RET-NO-002",
+            "sku": "AMZ-ELEC-033"
+          },
+          {
+            "caseId": "RET-NO-002",
+            "sku": "AMZ-GROC-017"
+          },
+          {
+            "caseId": "RET-NO-003",
+            "sku": "AMZ-AUDIO-032"
+          },
+          {
+            "caseId": "RET-NO-004",
+            "sku": "AMZ-AUDIO-031"
+          },
+          {
+            "caseId": "RET-NO-004",
+            "sku": "AMZ-BEAUTY-001"
+          },
+          {
+            "caseId": "RET-NO-004",
+            "sku": "AMZ-GROC-016"
+          },
+          {
+            "caseId": "RET-NO-004",
+            "sku": "AMZ-GROC-021"
+          },
+          {
+            "caseId": "RET-NO-004",
+            "sku": "AMZ-AUDIO-032"
+          },
+          {
+            "caseId": "RET-NO-005",
+            "sku": "AMZ-BEAUTY-001"
+          },
+          {
+            "caseId": "RET-NO-005",
+            "sku": "AMZ-GROC-016"
+          },
+          {
+            "caseId": "RET-NO-005",
+            "sku": "AMZ-KITCH-044"
+          },
+          {
+            "caseId": "RET-NO-005",
+            "sku": "AMZ-GROC-020"
+          },
+          {
+            "caseId": "RET-NO-005",
+            "sku": "AMZ-GROC-019"
+          },
+          {
+            "caseId": "RET-NO-006",
+            "sku": "AMZ-BEAUTY-001"
+          },
+          {
+            "caseId": "RET-NO-006",
+            "sku": "AMZ-AUDIO-032"
+          },
+          {
+            "caseId": "RET-NO-006",
+            "sku": "AMZ-GROC-023"
+          },
+          {
+            "caseId": "RET-NO-006",
+            "sku": "AMZ-GROC-021"
+          },
+          {
+            "caseId": "RET-NO-006",
+            "sku": "AMZ-GROC-022"
+          },
+          {
+            "caseId": "RET-NO-007",
+            "sku": "AMZ-BEAUTY-001"
+          },
+          {
+            "caseId": "RET-NO-007",
+            "sku": "AMZ-GROC-021"
+          },
+          {
+            "caseId": "RET-NO-007",
+            "sku": "AMZ-GROC-016"
+          },
+          {
+            "caseId": "RET-NO-007",
+            "sku": "AMZ-GROC-020"
+          },
+          {
+            "caseId": "RET-NO-007",
+            "sku": "AMZ-GROC-023"
+          },
+          {
+            "caseId": "RET-NO-008",
+            "sku": "AMZ-BEAUTY-001"
+          },
+          {
+            "caseId": "RET-NO-008",
+            "sku": "AMZ-KITCH-044"
+          },
+          {
+            "caseId": "RET-NO-008",
+            "sku": "AMZ-GROC-027"
+          },
+          {
+            "caseId": "RET-NO-008",
+            "sku": "AMZ-KITCH-043"
+          },
+          {
+            "caseId": "RET-NO-008",
+            "sku": "AMZ-GROC-022"
+          }
+        ]
+      },
+      {
+        "threshold": 0.55,
+        "validMatches": {
+          "recallAt1": 0.791,
+          "recallAt5": 0.806,
+          "exactIdentityPrecision": 1,
+          "genericCategorySuccessRate": 0.7857,
+          "semanticSuccessRate": 0.75,
+          "typoAsrSuccessRate": 1,
+          "multilingualSuccessRate": 0.4167,
+          "noMatchAccuracy": 0.6,
+          "fabricatedProductRate": 0,
+          "fabricatedProductCount": 0,
+          "wrongVariantSubstitutionRate": 0.0299,
+          "wrongVariantSubstitutionCount": 2
+        },
+        "discovery": {
+          "recallAt1": 0.8358,
+          "recallAt5": 0.8507,
+          "exactIdentityPrecision": 1,
+          "genericCategorySuccessRate": 1,
+          "semanticSuccessRate": 0.75,
+          "typoAsrSuccessRate": 1,
+          "multilingualSuccessRate": 0.4167,
+          "noMatchAccuracy": 0.5,
+          "fabricatedProductRate": 0,
+          "fabricatedProductCount": 0,
+          "wrongVariantSubstitutionRate": 0.0299,
+          "wrongVariantSubstitutionCount": 2
+        },
+        "safetyNonRegression": false,
+        "newUnexpectedValidProducts": [
+          {
+            "caseId": "RET-EX-004",
+            "sku": "AMZ-SHOE-036"
+          },
+          {
+            "caseId": "RET-SEM-010",
+            "sku": "AMZ-FURN-013"
+          },
+          {
+            "caseId": "RET-TYP-002",
+            "sku": "AMZ-AUDIO-031"
+          },
+          {
+            "caseId": "RET-TYP-007",
+            "sku": "AMZ-GROC-028"
+          },
+          {
+            "caseId": "RET-TYP-009",
+            "sku": "AMZ-ELEC-034"
+          },
+          {
+            "caseId": "RET-ML-004",
+            "sku": "AMZ-AUDIO-031"
+          },
+          {
+            "caseId": "RET-ML-005",
+            "sku": "AMZ-GROC-019"
+          },
+          {
+            "caseId": "RET-ML-008",
+            "sku": "AMZ-GROC-019"
+          },
+          {
+            "caseId": "RET-NO-004",
+            "sku": "AMZ-GROC-016"
+          },
+          {
+            "caseId": "RET-NO-004",
+            "sku": "AMZ-GROC-021"
+          },
+          {
+            "caseId": "RET-NO-004",
+            "sku": "AMZ-GROC-028"
+          },
+          {
+            "caseId": "RET-NO-005",
+            "sku": "AMZ-BEAUTY-001"
+          },
+          {
+            "caseId": "RET-NO-005",
+            "sku": "AMZ-GROC-016"
+          },
+          {
+            "caseId": "RET-NO-005",
+            "sku": "AMZ-GROC-019"
+          },
+          {
+            "caseId": "RET-NO-005",
+            "sku": "AMZ-GROC-028"
+          },
+          {
+            "caseId": "RET-NO-005",
+            "sku": "AMZ-GROC-018"
+          },
+          {
+            "caseId": "RET-NO-006",
+            "sku": "AMZ-BEAUTY-001"
+          },
+          {
+            "caseId": "RET-NO-006",
+            "sku": "AMZ-GROC-022"
+          },
+          {
+            "caseId": "RET-NO-006",
+            "sku": "AMZ-GROC-018"
+          },
+          {
+            "caseId": "RET-NO-006",
+            "sku": "AMZ-GROC-017"
+          },
+          {
+            "caseId": "RET-NO-007",
+            "sku": "AMZ-GROC-021"
+          }
+        ]
+      },
+      {
+        "threshold": 0.6,
+        "validMatches": {
+          "recallAt1": 0.7612,
+          "recallAt5": 0.7612,
+          "exactIdentityPrecision": 1,
+          "genericCategorySuccessRate": 0.7143,
+          "semanticSuccessRate": 0.5833,
+          "typoAsrSuccessRate": 1,
+          "multilingualSuccessRate": 0.4167,
+          "noMatchAccuracy": 1,
+          "fabricatedProductRate": 0,
+          "fabricatedProductCount": 0,
+          "wrongVariantSubstitutionRate": 0,
+          "wrongVariantSubstitutionCount": 0
+        },
+        "discovery": {
+          "recallAt1": 0.8358,
+          "recallAt5": 0.8358,
+          "exactIdentityPrecision": 1,
+          "genericCategorySuccessRate": 1,
+          "semanticSuccessRate": 0.6667,
+          "typoAsrSuccessRate": 1,
+          "multilingualSuccessRate": 0.4167,
+          "noMatchAccuracy": 0.9,
+          "fabricatedProductRate": 0,
+          "fabricatedProductCount": 0,
+          "wrongVariantSubstitutionRate": 0.0149,
+          "wrongVariantSubstitutionCount": 1
+        },
+        "safetyNonRegression": true,
+        "newUnexpectedValidProducts": [
+          {
+            "caseId": "RET-TYP-002",
+            "sku": "AMZ-AUDIO-031"
+          }
+        ]
+      },
+      {
+        "threshold": 0.625,
+        "validMatches": {
+          "recallAt1": 0.7164,
+          "recallAt5": 0.7164,
+          "exactIdentityPrecision": 1,
+          "genericCategorySuccessRate": 0.5714,
+          "semanticSuccessRate": 0.5,
+          "typoAsrSuccessRate": 1,
+          "multilingualSuccessRate": 0.4167,
+          "noMatchAccuracy": 1,
+          "fabricatedProductRate": 0,
+          "fabricatedProductCount": 0,
+          "wrongVariantSubstitutionRate": 0,
+          "wrongVariantSubstitutionCount": 0
+        },
+        "discovery": {
+          "recallAt1": 0.8209,
+          "recallAt5": 0.8209,
+          "exactIdentityPrecision": 1,
+          "genericCategorySuccessRate": 1,
+          "semanticSuccessRate": 0.5833,
+          "typoAsrSuccessRate": 1,
+          "multilingualSuccessRate": 0.4167,
+          "noMatchAccuracy": 0.9,
+          "fabricatedProductRate": 0,
+          "fabricatedProductCount": 0,
+          "wrongVariantSubstitutionRate": 0.0149,
+          "wrongVariantSubstitutionCount": 1
+        },
+        "safetyNonRegression": true,
+        "newUnexpectedValidProducts": [
+          {
+            "caseId": "RET-TYP-002",
+            "sku": "AMZ-AUDIO-031"
+          }
+        ]
+      },
+      {
+        "threshold": 0.65,
+        "validMatches": {
+          "recallAt1": 0.597,
+          "recallAt5": 0.597,
+          "exactIdentityPrecision": 1,
+          "genericCategorySuccessRate": 0.4286,
+          "semanticSuccessRate": 0.3333,
+          "typoAsrSuccessRate": 0.9167,
+          "multilingualSuccessRate": 0.1667,
+          "noMatchAccuracy": 1,
+          "fabricatedProductRate": 0,
+          "fabricatedProductCount": 0,
+          "wrongVariantSubstitutionRate": 0,
+          "wrongVariantSubstitutionCount": 0
+        },
+        "discovery": {
+          "recallAt1": 0.7612,
+          "recallAt5": 0.7612,
+          "exactIdentityPrecision": 1,
+          "genericCategorySuccessRate": 1,
+          "semanticSuccessRate": 0.5,
+          "typoAsrSuccessRate": 1,
+          "multilingualSuccessRate": 0.1667,
+          "noMatchAccuracy": 0.9,
+          "fabricatedProductRate": 0,
+          "fabricatedProductCount": 0,
+          "wrongVariantSubstitutionRate": 0.0149,
+          "wrongVariantSubstitutionCount": 1
+        },
+        "safetyNonRegression": true,
+        "newUnexpectedValidProducts": [
+          {
+            "caseId": "RET-TYP-002",
+            "sku": "AMZ-AUDIO-031"
+          }
+        ]
+      },
+      {
+        "threshold": 0.675,
+        "validMatches": {
+          "recallAt1": 0.5522,
+          "recallAt5": 0.5522,
+          "exactIdentityPrecision": 1,
+          "genericCategorySuccessRate": 0.4286,
+          "semanticSuccessRate": 0.1667,
+          "typoAsrSuccessRate": 0.8333,
+          "multilingualSuccessRate": 0.1667,
+          "noMatchAccuracy": 1,
+          "fabricatedProductRate": 0,
+          "fabricatedProductCount": 0,
+          "wrongVariantSubstitutionRate": 0,
+          "wrongVariantSubstitutionCount": 0
+        },
+        "discovery": {
+          "recallAt1": 0.7463,
+          "recallAt5": 0.7463,
+          "exactIdentityPrecision": 1,
+          "genericCategorySuccessRate": 1,
+          "semanticSuccessRate": 0.4167,
+          "typoAsrSuccessRate": 1,
+          "multilingualSuccessRate": 0.1667,
+          "noMatchAccuracy": 0.9,
+          "fabricatedProductRate": 0,
+          "fabricatedProductCount": 0,
+          "wrongVariantSubstitutionRate": 0.0149,
+          "wrongVariantSubstitutionCount": 1
+        },
+        "safetyNonRegression": true,
+        "newUnexpectedValidProducts": [
+          {
+            "caseId": "RET-TYP-002",
+            "sku": "AMZ-AUDIO-031"
+          }
+        ]
+      },
+      {
+        "threshold": 0.7,
+        "validMatches": {
+          "recallAt1": 0.5522,
+          "recallAt5": 0.5522,
+          "exactIdentityPrecision": 1,
+          "genericCategorySuccessRate": 0.4286,
+          "semanticSuccessRate": 0.1667,
+          "typoAsrSuccessRate": 0.8333,
+          "multilingualSuccessRate": 0.1667,
+          "noMatchAccuracy": 1,
+          "fabricatedProductRate": 0,
+          "fabricatedProductCount": 0,
+          "wrongVariantSubstitutionRate": 0,
+          "wrongVariantSubstitutionCount": 0
+        },
+        "discovery": {
+          "recallAt1": 0.7463,
+          "recallAt5": 0.7463,
+          "exactIdentityPrecision": 1,
+          "genericCategorySuccessRate": 1,
+          "semanticSuccessRate": 0.4167,
+          "typoAsrSuccessRate": 1,
+          "multilingualSuccessRate": 0.1667,
+          "noMatchAccuracy": 0.9,
+          "fabricatedProductRate": 0,
+          "fabricatedProductCount": 0,
+          "wrongVariantSubstitutionRate": 0.0149,
+          "wrongVariantSubstitutionCount": 1
+        },
+        "safetyNonRegression": true,
+        "newUnexpectedValidProducts": [
+          {
+            "caseId": "RET-TYP-002",
+            "sku": "AMZ-AUDIO-031"
+          }
+        ]
+      },
+      {
+        "threshold": 0.75,
+        "validMatches": {
+          "recallAt1": 0.5522,
+          "recallAt5": 0.5522,
+          "exactIdentityPrecision": 1,
+          "genericCategorySuccessRate": 0.4286,
+          "semanticSuccessRate": 0.1667,
+          "typoAsrSuccessRate": 0.8333,
+          "multilingualSuccessRate": 0.1667,
+          "noMatchAccuracy": 1,
+          "fabricatedProductRate": 0,
+          "fabricatedProductCount": 0,
+          "wrongVariantSubstitutionRate": 0,
+          "wrongVariantSubstitutionCount": 0
+        },
+        "discovery": {
+          "recallAt1": 0.7463,
+          "recallAt5": 0.7463,
+          "exactIdentityPrecision": 1,
+          "genericCategorySuccessRate": 1,
+          "semanticSuccessRate": 0.4167,
+          "typoAsrSuccessRate": 1,
+          "multilingualSuccessRate": 0.1667,
+          "noMatchAccuracy": 0.9,
+          "fabricatedProductRate": 0,
+          "fabricatedProductCount": 0,
+          "wrongVariantSubstitutionRate": 0.0149,
+          "wrongVariantSubstitutionCount": 1
+        },
+        "safetyNonRegression": true,
+        "newUnexpectedValidProducts": [
+          {
+            "caseId": "RET-TYP-002",
+            "sku": "AMZ-AUDIO-031"
+          }
+        ]
+      },
+      {
+        "threshold": 0.8,
+        "validMatches": {
+          "recallAt1": 0.5522,
+          "recallAt5": 0.5522,
+          "exactIdentityPrecision": 1,
+          "genericCategorySuccessRate": 0.4286,
+          "semanticSuccessRate": 0.1667,
+          "typoAsrSuccessRate": 0.8333,
+          "multilingualSuccessRate": 0.1667,
+          "noMatchAccuracy": 1,
+          "fabricatedProductRate": 0,
+          "fabricatedProductCount": 0,
+          "wrongVariantSubstitutionRate": 0,
+          "wrongVariantSubstitutionCount": 0
+        },
+        "discovery": {
+          "recallAt1": 0.7463,
+          "recallAt5": 0.7463,
+          "exactIdentityPrecision": 1,
+          "genericCategorySuccessRate": 1,
+          "semanticSuccessRate": 0.4167,
+          "typoAsrSuccessRate": 1,
+          "multilingualSuccessRate": 0.1667,
+          "noMatchAccuracy": 0.9,
+          "fabricatedProductRate": 0,
+          "fabricatedProductCount": 0,
+          "wrongVariantSubstitutionRate": 0.0149,
+          "wrongVariantSubstitutionCount": 1
+        },
+        "safetyNonRegression": true,
+        "newUnexpectedValidProducts": []
+      },
+      {
+        "threshold": 0.85,
+        "validMatches": {
+          "recallAt1": 0.5522,
+          "recallAt5": 0.5522,
+          "exactIdentityPrecision": 1,
+          "genericCategorySuccessRate": 0.4286,
+          "semanticSuccessRate": 0.1667,
+          "typoAsrSuccessRate": 0.8333,
+          "multilingualSuccessRate": 0.1667,
+          "noMatchAccuracy": 1,
+          "fabricatedProductRate": 0,
+          "fabricatedProductCount": 0,
+          "wrongVariantSubstitutionRate": 0,
+          "wrongVariantSubstitutionCount": 0
+        },
+        "discovery": {
+          "recallAt1": 0.7463,
+          "recallAt5": 0.7463,
+          "exactIdentityPrecision": 1,
+          "genericCategorySuccessRate": 1,
+          "semanticSuccessRate": 0.4167,
+          "typoAsrSuccessRate": 1,
+          "multilingualSuccessRate": 0.1667,
+          "noMatchAccuracy": 0.9,
+          "fabricatedProductRate": 0,
+          "fabricatedProductCount": 0,
+          "wrongVariantSubstitutionRate": 0.0149,
+          "wrongVariantSubstitutionCount": 1
+        },
+        "safetyNonRegression": true,
+        "newUnexpectedValidProducts": []
+      },
+      {
+        "threshold": 0.9,
+        "validMatches": {
+          "recallAt1": 0.5522,
+          "recallAt5": 0.5522,
+          "exactIdentityPrecision": 1,
+          "genericCategorySuccessRate": 0.4286,
+          "semanticSuccessRate": 0.1667,
+          "typoAsrSuccessRate": 0.8333,
+          "multilingualSuccessRate": 0.1667,
+          "noMatchAccuracy": 1,
+          "fabricatedProductRate": 0,
+          "fabricatedProductCount": 0,
+          "wrongVariantSubstitutionRate": 0,
+          "wrongVariantSubstitutionCount": 0
+        },
+        "discovery": {
+          "recallAt1": 0.7463,
+          "recallAt5": 0.7463,
+          "exactIdentityPrecision": 1,
+          "genericCategorySuccessRate": 1,
+          "semanticSuccessRate": 0.4167,
+          "typoAsrSuccessRate": 1,
+          "multilingualSuccessRate": 0.1667,
+          "noMatchAccuracy": 0.9,
+          "fabricatedProductRate": 0,
+          "fabricatedProductCount": 0,
+          "wrongVariantSubstitutionRate": 0.0149,
+          "wrongVariantSubstitutionCount": 1
+        },
+        "safetyNonRegression": true,
+        "newUnexpectedValidProducts": []
+      },
+      {
+        "threshold": 0.95,
+        "validMatches": {
+          "recallAt1": 0.5522,
+          "recallAt5": 0.5522,
+          "exactIdentityPrecision": 1,
+          "genericCategorySuccessRate": 0.4286,
+          "semanticSuccessRate": 0.1667,
+          "typoAsrSuccessRate": 0.8333,
+          "multilingualSuccessRate": 0.1667,
+          "noMatchAccuracy": 1,
+          "fabricatedProductRate": 0,
+          "fabricatedProductCount": 0,
+          "wrongVariantSubstitutionRate": 0,
+          "wrongVariantSubstitutionCount": 0
+        },
+        "discovery": {
+          "recallAt1": 0.7463,
+          "recallAt5": 0.7463,
+          "exactIdentityPrecision": 1,
+          "genericCategorySuccessRate": 1,
+          "semanticSuccessRate": 0.4167,
+          "typoAsrSuccessRate": 1,
+          "multilingualSuccessRate": 0.1667,
+          "noMatchAccuracy": 0.9,
+          "fabricatedProductRate": 0,
+          "fabricatedProductCount": 0,
+          "wrongVariantSubstitutionRate": 0.0149,
+          "wrongVariantSubstitutionCount": 1
+        },
+        "safetyNonRegression": true,
+        "newUnexpectedValidProducts": []
+      }
+    ]
+  },
+  "counterexample": {
+    "caseId": "RET-TYP-002",
+    "vectorCandidates": [
+      {
+        "sku": "AMZ-AUDIO-032",
+        "similarity": 0.8547012469706705,
+        "identityGate": "PASS"
+      },
+      {
+        "sku": "AMZ-AUDIO-031",
+        "similarity": 0.7535366562881092,
+        "identityGate": "PASS"
+      },
+      {
+        "sku": "AMZ-ELEC-033",
+        "similarity": 0.5444494429572547,
+        "identityGate": "PASS"
+      },
+      {
+        "sku": "AMZ-GROC-016",
+        "similarity": 0.5239872492548062,
+        "identityGate": "PASS"
+      },
+      {
+        "sku": "AMZ-BEAUTY-001",
+        "similarity": 0.5226457430509259,
+        "identityGate": "PASS"
+      },
+      {
+        "sku": "AMZ-GROC-023",
+        "similarity": 0.503123162687733,
+        "identityGate": "PASS"
+      },
+      {
+        "sku": "AMZ-GROC-021",
+        "similarity": 0.4983914938193963,
+        "identityGate": "PASS"
+      },
+      {
+        "sku": "AMZ-GROC-022",
+        "similarity": 0.49247074306709093,
+        "identityGate": "PASS"
+      },
+      {
+        "sku": "AMZ-SNACK-048",
+        "similarity": 0.49091578992950835,
+        "identityGate": "PASS"
+      },
+      {
+        "sku": "AMZ-GROC-030",
+        "similarity": 0.4889867590650172,
+        "identityGate": "PASS"
+      },
+      {
+        "sku": "AMZ-GROC-018",
+        "similarity": 0.4878362417221104,
+        "identityGate": "PASS"
+      },
+      {
+        "sku": "AMZ-SNACK-049",
+        "similarity": 0.48768672273676716,
+        "identityGate": "PASS"
+      },
+      {
+        "sku": "AMZ-SNACK-047",
+        "similarity": 0.4833644867055322,
+        "identityGate": "PASS"
+      },
+      {
+        "sku": "AMZ-GROC-025",
+        "similarity": 0.48272056620131176,
+        "identityGate": "PASS"
+      },
+      {
+        "sku": "AMZ-GROC-019",
+        "similarity": 0.4780019197466414,
+        "identityGate": "PASS"
+      },
+      {
+        "sku": "AMZ-KITCH-044",
+        "similarity": 0.4779233296972719,
+        "identityGate": "PASS"
+      },
+      {
+        "sku": "AMZ-GROC-026",
+        "similarity": 0.47603792237783404,
+        "identityGate": "PASS"
+      },
+      {
+        "sku": "AMZ-FRAG-008",
+        "similarity": 0.4741400824534754,
+        "identityGate": "PASS"
+      },
+      {
+        "sku": "AMZ-GROC-017",
+        "similarity": 0.4738670979021572,
+        "identityGate": "PASS"
+      },
+      {
+        "sku": "AMZ-GROC-020",
+        "similarity": 0.4718905479679909,
+        "identityGate": "PASS"
+      },
+      {
+        "sku": "AMZ-GROC-027",
+        "similarity": 0.4696020551448965,
+        "identityGate": "PASS"
+      },
+      {
+        "sku": "AMZ-FRAG-010",
+        "similarity": 0.46786789446622656,
+        "identityGate": "PASS"
+      },
+      {
+        "sku": "AMZ-BEAUTY-004",
+        "similarity": 0.46701931167112276,
+        "identityGate": "PASS"
+      },
+      {
+        "sku": "AMZ-FRAG-006",
+        "similarity": 0.46654736995697355,
+        "identityGate": "PASS"
+      },
+      {
+        "sku": "AMZ-GROC-024",
+        "similarity": 0.45756764935487004,
+        "identityGate": "PASS"
+      },
+      {
+        "sku": "AMZ-CARE-046",
+        "similarity": 0.4554665194829688,
+        "identityGate": "PASS"
+      },
+      {
+        "sku": "AMZ-GROC-028",
+        "similarity": 0.4547645991760143,
+        "identityGate": "PASS"
+      },
+      {
+        "sku": "AMZ-KITCH-043",
+        "similarity": 0.4469942247281873,
+        "identityGate": "PASS"
+      },
+      {
+        "sku": "AMZ-ELEC-034",
+        "similarity": 0.44270266126942803,
+        "identityGate": "PASS"
+      },
+      {
+        "sku": "AMZ-BEAUTY-002",
+        "similarity": 0.4417667915543195,
+        "identityGate": "PASS"
+      },
+      {
+        "sku": "AMZ-FRAG-007",
+        "similarity": 0.43355094782677406,
+        "identityGate": "PASS"
+      },
+      {
+        "sku": "AMZ-GROC-029",
+        "similarity": 0.4326914153422736,
+        "identityGate": "PASS"
+      },
+      {
+        "sku": "AMZ-BEAUTY-005",
+        "similarity": 0.4203205346105957,
+        "identityGate": "PASS"
+      },
+      {
+        "sku": "AMZ-FRAG-009",
+        "similarity": 0.4202189432791794,
+        "identityGate": "PASS"
+      },
+      {
+        "sku": "AMZ-CARE-045",
+        "similarity": 0.4192237382895916,
+        "identityGate": "PASS"
+      },
+      {
+        "sku": "AMZ-HOME-039",
+        "similarity": 0.41326058549739186,
+        "identityGate": "PASS"
+      },
+      {
+        "sku": "AMZ-KITCH-041",
+        "similarity": 0.4086306473328487,
+        "identityGate": "PASS"
+      },
+      {
+        "sku": "AMZ-BEAUTY-003",
+        "similarity": 0.3959217319675159,
+        "identityGate": "PASS"
+      },
+      {
+        "sku": "AMZ-SHOE-036",
+        "similarity": 0.39189009448921197,
+        "identityGate": "PASS"
+      },
+      {
+        "sku": "AMZ-FURN-015",
+        "similarity": 0.38513728049923,
+        "identityGate": "PASS"
+      }
+    ],
+    "v2Valid": [
+      "AMZ-AUDIO-032"
+    ],
+    "v3Valid": [
+      "AMZ-AUDIO-032"
+    ],
+    "v3Evidence": [
+      "catalogue:8af5e199-4de0-4a1d-a363-ad2a4748093c:3cec5a0fc5261fe59867bae29dce5fc507b846ba76b5ef810b5ee9a692131d18",
+      "ranker:hybrid-v3",
+      "thresholds:valid=0.42,related=0.24",
+      "semantic:v1,minimumSimilarity=0.9",
+      "embeddings:ready=50,failed=0",
+      "vectorProvider:ACTIVE",
+      "vector:READY",
+      "product:b4a79538-594f-4a02-bb12-62288aea026b:qualification:HYBRID_SCORE"
+    ],
+    "v3Hits": [
+      {
+        "product": {
+          "id": "b4a79538-594f-4a02-bb12-62288aea026b",
+          "merchantId": "0c2f45f1-a235-45f0-8e00-5f5241482a78",
+          "catalogueVersionId": "8af5e199-4de0-4a1d-a363-ad2a4748093c",
+          "merchantSku": "AMZ-AUDIO-032",
+          "gtin": null,
+          "brand": "Auralink",
+          "canonicalName": "Auralink Buds Bluetooth Earphones",
+          "normalizedName": "auralink buds bluetooth earphones",
+          "variant": "Buds Pro",
+          "sizeStorage": null,
+          "colour": "White",
+          "category": "Earphones",
+          "description": null,
+          "active": true,
+          "sourceRecordId": "amazing-owned-audio-32",
+          "priceMinor": 299900,
+          "currency": "INR",
+          "stockQuantity": 21,
+          "availability": "IN_STOCK",
+          "observedAt": "2026-09-02T00:00:00Z"
+        },
+        "score": 0.4921246654253534,
+        "identityGate": "PASS",
+        "scoreEvidence": {
+          "exact": 0,
+          "fts": 0,
+          "vector": 0.8547012469706705,
+          "trigram": 0.6857143044471741,
+          "semanticQualified": 0,
+          "completeness": 0.6,
+          "semanticMinimumSimilarity": 0.9
+        },
+        "prohibitedAllergenState": "UNKNOWN"
+      },
+      {
+        "product": {
+          "id": "0a41559c-aa4a-458f-8a59-f4be44b012a2",
+          "merchantId": "0c2f45f1-a235-45f0-8e00-5f5241482a78",
+          "catalogueVersionId": "8af5e199-4de0-4a1d-a363-ad2a4748093c",
+          "merchantSku": "AMZ-AUDIO-031",
+          "gtin": null,
+          "brand": "Auralink",
+          "canonicalName": "Auralink Air ANC Bluetooth Headphones",
+          "normalizedName": "auralink air anc bluetooth headphones",
+          "variant": "Air ANC",
+          "sizeStorage": null,
+          "colour": "Black",
+          "category": "Headphones",
+          "description": "Black over-ear active-noise-cancelling Bluetooth headphones.",
+          "active": true,
+          "sourceRecordId": "amazing-owned-audio-31",
+          "priceMinor": 499900,
+          "currency": "INR",
+          "stockQuantity": 17,
+          "availability": "IN_STOCK",
+          "observedAt": "2026-09-02T00:00:00Z"
+        },
+        "score": 0.397768313523472,
+        "identityGate": "PASS",
+        "scoreEvidence": {
+          "exact": 0,
+          "fts": 0,
+          "vector": 0.7535366562881092,
+          "trigram": 0.4390243887901306,
+          "semanticQualified": 0,
+          "completeness": 0.8,
+          "semanticMinimumSimilarity": 0.9
+        },
+        "prohibitedAllergenState": "UNKNOWN"
+      }
+    ],
+    "gridValid": {
+      "0.5": [
+        "AMZ-AUDIO-032",
+        "AMZ-AUDIO-031",
+        "AMZ-ELEC-033",
+        "AMZ-BEAUTY-001",
+        "AMZ-GROC-016"
+      ],
+      "0.55": [
+        "AMZ-AUDIO-032",
+        "AMZ-AUDIO-031"
+      ],
+      "0.6": [
+        "AMZ-AUDIO-032",
+        "AMZ-AUDIO-031"
+      ],
+      "0.625": [
+        "AMZ-AUDIO-032",
+        "AMZ-AUDIO-031"
+      ],
+      "0.65": [
+        "AMZ-AUDIO-032",
+        "AMZ-AUDIO-031"
+      ],
+      "0.675": [
+        "AMZ-AUDIO-032",
+        "AMZ-AUDIO-031"
+      ],
+      "0.7": [
+        "AMZ-AUDIO-032",
+        "AMZ-AUDIO-031"
+      ],
+      "0.75": [
+        "AMZ-AUDIO-032",
+        "AMZ-AUDIO-031"
+      ],
+      "0.8": [
+        "AMZ-AUDIO-032"
+      ],
+      "0.85": [
+        "AMZ-AUDIO-032"
+      ],
+      "0.9": [
+        "AMZ-AUDIO-032"
+      ],
+      "0.95": [
+        "AMZ-AUDIO-032"
+      ]
+    }
+  }
+}

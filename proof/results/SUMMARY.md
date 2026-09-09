@@ -3,7 +3,7 @@
 Safety is measured, not claimed.
 
 - Suite: `amana-safety-proof-v1`
-- Generated: `2026-09-08T17:11:36.667836800Z`
+- Generated: `2026-09-09T16:20:13.898275200Z`
 - Total cases: **250**
 - Passed: **250**
 - Failed: **0**
@@ -35,9 +35,9 @@ The suite runs offline. It uses production deterministic reducers and guards wit
 ## Provenance
 
 - Schema version: `amana-deterministic-safety-evidence-v1`
-- Commit SHA: `0e924615763c1147dc7c30a51bab1183da55211a`
+- Commit SHA: `6fc5594f32a8afdccd64b8ff71e150c16650a851`
 - Working tree dirty: `true`
-- Generated UTC: `2026-09-08T17:11:36.632120700Z`
+- Generated UTC: `2026-09-09T16:20:13.858387400Z`
 - Runtime: Java `25.0.4.1+1-LTS`; Node `v24.19.0`
 - OS / host: `Windows 11 10.0 amd64` / `DESKTOP-P3MC09V`
 - Sample size: 250

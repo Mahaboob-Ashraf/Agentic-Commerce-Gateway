@@ -1,0 +1,870 @@
+{
+  "schemaVersion" : "amana-retrieval-evidence-v1",
+  "provenance" : {
+    "commitSha" : "0e924615763c1147dc7c30a51bab1183da55211a",
+    "workingTreeDirty" : true,
+    "generatedAtUtc" : "2026-09-08T17:10:02.309005200Z",
+    "runtime" : {
+      "java" : "25.0.4.1+1-LTS",
+      "node" : "v24.19.0"
+    },
+    "operatingSystem" : "Windows 11 10.0 amd64",
+    "hostLabel" : "DESKTOP-P3MC09V",
+    "sampleSize" : 80,
+    "command" : "pnpm proof:evaluate:retrieval"
+  },
+  "summary" : {
+    "status" : "PASS",
+    "baseline" : {
+      "recallAt1" : 0.4478,
+      "recallAt5" : 0.4478,
+      "exactIdentityPrecision" : 1.0,
+      "genericCategorySuccessRate" : 0.1429,
+      "typoAsrSuccessRate" : 0.6667,
+      "multilingualSuccessRate" : 0.1667,
+      "noMatchAccuracy" : 1.0,
+      "fabricatedProductRate" : 0.0,
+      "fabricatedProductCount" : 0,
+      "wrongVariantSubstitutionRate" : 0.0,
+      "wrongVariantSubstitutionCount" : 0
+    },
+    "postFixLexicalOnly" : {
+      "recallAt1" : 0.5373,
+      "recallAt5" : 0.5373,
+      "exactIdentityPrecision" : 1.0,
+      "genericCategorySuccessRate" : 0.5,
+      "typoAsrSuccessRate" : 0.6667,
+      "multilingualSuccessRate" : 0.1667,
+      "noMatchAccuracy" : 1.0,
+      "fabricatedProductRate" : 0.0,
+      "fabricatedProductCount" : 0,
+      "wrongVariantSubstitutionRate" : 0.0,
+      "wrongVariantSubstitutionCount" : 0
+    },
+    "hybrid" : {
+      "recallAt1" : 0.7463,
+      "recallAt5" : 0.7463,
+      "exactIdentityPrecision" : 1.0,
+      "genericCategorySuccessRate" : 1.0,
+      "typoAsrSuccessRate" : 1.0,
+      "multilingualSuccessRate" : 0.1667,
+      "noMatchAccuracy" : 0.9,
+      "fabricatedProductRate" : 0.0,
+      "fabricatedProductCount" : 0,
+      "wrongVariantSubstitutionRate" : 0.0149,
+      "wrongVariantSubstitutionCount" : 1
+    },
+    "hybridStatus" : "READY",
+    "hybridVsLexicalRecallAt1Delta" : 0.209,
+    "hybridVsLexicalRecallAt5Delta" : 0.209,
+    "embeddings" : {
+      "ready" : 50,
+      "failed" : 0,
+      "vectorProviderActive" : true,
+      "queriesFellBackToLexical" : 0
+    }
+  },
+  "details" : [ {
+    "caseId" : "RET-EX-001",
+    "language" : "en",
+    "classes" : [ "EXACT_NEAR_EXACT" ],
+    "expectedSkus" : [ "AMZ-AUDIO-031" ],
+    "baselineCandidates" : [ "AMZ-AUDIO-031", "AMZ-AUDIO-032" ],
+    "postFixCandidates" : [ "AMZ-AUDIO-031", "AMZ-AUDIO-032" ],
+    "baselineRecallAt5" : true,
+    "postFixRecallAt5" : true,
+    "hybridCandidates" : [ "AMZ-AUDIO-031", "AMZ-AUDIO-032" ]
+  }, {
+    "caseId" : "RET-EX-002",
+    "language" : "en",
+    "classes" : [ "EXACT_NEAR_EXACT" ],
+    "expectedSkus" : [ "AMZ-AUDIO-032" ],
+    "baselineCandidates" : [ "AMZ-AUDIO-032", "AMZ-AUDIO-031" ],
+    "postFixCandidates" : [ "AMZ-AUDIO-032", "AMZ-AUDIO-031" ],
+    "baselineRecallAt5" : true,
+    "postFixRecallAt5" : true,
+    "hybridCandidates" : [ "AMZ-AUDIO-032", "AMZ-AUDIO-031" ]
+  }, {
+    "caseId" : "RET-EX-003",
+    "language" : "en",
+    "classes" : [ "EXACT_NEAR_EXACT" ],
+    "expectedSkus" : [ "AMZ-AUDIO-032" ],
+    "baselineCandidates" : [ "AMZ-AUDIO-032" ],
+    "postFixCandidates" : [ "AMZ-AUDIO-032" ],
+    "baselineRecallAt5" : true,
+    "postFixRecallAt5" : true,
+    "hybridCandidates" : [ "AMZ-AUDIO-032" ]
+  }, {
+    "caseId" : "RET-EX-004",
+    "language" : "en",
+    "classes" : [ "EXACT_NEAR_EXACT" ],
+    "expectedSkus" : [ "AMZ-SHOE-035" ],
+    "baselineCandidates" : [ "AMZ-SHOE-035" ],
+    "postFixCandidates" : [ "AMZ-SHOE-035" ],
+    "baselineRecallAt5" : true,
+    "postFixRecallAt5" : true,
+    "hybridCandidates" : [ "AMZ-SHOE-035" ]
+  }, {
+    "caseId" : "RET-EX-005",
+    "language" : "en",
+    "classes" : [ "EXACT_NEAR_EXACT" ],
+    "expectedSkus" : [ "AMZ-SHOE-035" ],
+    "baselineCandidates" : [ "AMZ-SHOE-035" ],
+    "postFixCandidates" : [ "AMZ-SHOE-035" ],
+    "baselineRecallAt5" : true,
+    "postFixRecallAt5" : true,
+    "hybridCandidates" : [ "AMZ-SHOE-035" ]
+  }, {
+    "caseId" : "RET-EX-006",
+    "language" : "en",
+    "classes" : [ "EXACT_NEAR_EXACT" ],
+    "expectedSkus" : [ "AMZ-ELEC-033" ],
+    "baselineCandidates" : [ "AMZ-ELEC-033" ],
+    "postFixCandidates" : [ "AMZ-ELEC-033" ],
+    "baselineRecallAt5" : true,
+    "postFixRecallAt5" : true,
+    "hybridCandidates" : [ "AMZ-ELEC-033" ]
+  }, {
+    "caseId" : "RET-EX-007",
+    "language" : "en",
+    "classes" : [ "EXACT_NEAR_EXACT" ],
+    "expectedSkus" : [ "AMZ-ELEC-034" ],
+    "baselineCandidates" : [ "AMZ-ELEC-034" ],
+    "postFixCandidates" : [ "AMZ-ELEC-034" ],
+    "baselineRecallAt5" : true,
+    "postFixRecallAt5" : true,
+    "hybridCandidates" : [ "AMZ-ELEC-034" ]
+  }, {
+    "caseId" : "RET-EX-008",
+    "language" : "en",
+    "classes" : [ "EXACT_NEAR_EXACT" ],
+    "expectedSkus" : [ "AMZ-KITCH-043" ],
+    "baselineCandidates" : [ "AMZ-KITCH-043" ],
+    "postFixCandidates" : [ "AMZ-KITCH-043" ],
+    "baselineRecallAt5" : true,
+    "postFixRecallAt5" : true,
+    "hybridCandidates" : [ "AMZ-KITCH-043", "AMZ-KITCH-042", "AMZ-KITCH-041" ]
+  }, {
+    "caseId" : "RET-EX-009",
+    "language" : "en",
+    "classes" : [ "EXACT_NEAR_EXACT" ],
+    "expectedSkus" : [ "AMZ-CARE-045" ],
+    "baselineCandidates" : [ "AMZ-CARE-045" ],
+    "postFixCandidates" : [ "AMZ-CARE-045" ],
+    "baselineRecallAt5" : true,
+    "postFixRecallAt5" : true,
+    "hybridCandidates" : [ "AMZ-CARE-045" ]
+  }, {
+    "caseId" : "RET-EX-010",
+    "language" : "en",
+    "classes" : [ "EXACT_NEAR_EXACT" ],
+    "expectedSkus" : [ "AMZ-SNACK-047" ],
+    "baselineCandidates" : [ "AMZ-SNACK-047" ],
+    "postFixCandidates" : [ "AMZ-SNACK-047" ],
+    "baselineRecallAt5" : true,
+    "postFixRecallAt5" : true,
+    "hybridCandidates" : [ "AMZ-SNACK-047" ]
+  }, {
+    "caseId" : "RET-EX-011",
+    "language" : "en",
+    "classes" : [ "EXACT_NEAR_EXACT" ],
+    "expectedSkus" : [ "AMZ-SPORT-050" ],
+    "baselineCandidates" : [ "AMZ-SPORT-050" ],
+    "postFixCandidates" : [ "AMZ-SPORT-050" ],
+    "baselineRecallAt5" : true,
+    "postFixRecallAt5" : true,
+    "hybridCandidates" : [ "AMZ-SPORT-050" ]
+  }, {
+    "caseId" : "RET-EX-012",
+    "language" : "en",
+    "classes" : [ "EXACT_NEAR_EXACT" ],
+    "expectedSkus" : [ "AMZ-KITCH-041" ],
+    "baselineCandidates" : [ "AMZ-KITCH-041" ],
+    "postFixCandidates" : [ "AMZ-KITCH-041" ],
+    "baselineRecallAt5" : true,
+    "postFixRecallAt5" : true,
+    "hybridCandidates" : [ "AMZ-KITCH-041" ]
+  }, {
+    "caseId" : "RET-GEN-001",
+    "language" : "en",
+    "classes" : [ "GENERIC_CATEGORY_BUDGET" ],
+    "expectedSkus" : [ "AMZ-AUDIO-032" ],
+    "baselineCandidates" : [ ],
+    "postFixCandidates" : [ "AMZ-AUDIO-032" ],
+    "baselineRecallAt5" : false,
+    "postFixRecallAt5" : true,
+    "hybridCandidates" : [ "AMZ-AUDIO-032" ]
+  }, {
+    "caseId" : "RET-GEN-002",
+    "language" : "en",
+    "classes" : [ "GENERIC_CATEGORY_BUDGET" ],
+    "expectedSkus" : [ "AMZ-AUDIO-031" ],
+    "baselineCandidates" : [ ],
+    "postFixCandidates" : [ ],
+    "baselineRecallAt5" : false,
+    "postFixRecallAt5" : false,
+    "hybridCandidates" : [ "AMZ-AUDIO-031" ]
+  }, {
+    "caseId" : "RET-GEN-003",
+    "language" : "en",
+    "classes" : [ "GENERIC_CATEGORY_BUDGET" ],
+    "expectedSkus" : [ "AMZ-SHOE-035" ],
+    "baselineCandidates" : [ ],
+    "postFixCandidates" : [ ],
+    "baselineRecallAt5" : false,
+    "postFixRecallAt5" : false,
+    "hybridCandidates" : [ "AMZ-SHOE-035" ]
+  }, {
+    "caseId" : "RET-GEN-004",
+    "language" : "en",
+    "classes" : [ "GENERIC_CATEGORY_BUDGET" ],
+    "expectedSkus" : [ "AMZ-KITCH-043" ],
+    "baselineCandidates" : [ ],
+    "postFixCandidates" : [ "AMZ-KITCH-043" ],
+    "baselineRecallAt5" : false,
+    "postFixRecallAt5" : true,
+    "hybridCandidates" : [ "AMZ-KITCH-043" ]
+  }, {
+    "caseId" : "RET-GEN-005",
+    "language" : "en",
+    "classes" : [ "GENERIC_CATEGORY_BUDGET" ],
+    "expectedSkus" : [ "AMZ-KITCH-041" ],
+    "baselineCandidates" : [ ],
+    "postFixCandidates" : [ ],
+    "baselineRecallAt5" : false,
+    "postFixRecallAt5" : false,
+    "hybridCandidates" : [ "AMZ-KITCH-041" ]
+  }, {
+    "caseId" : "RET-GEN-006",
+    "language" : "en",
+    "classes" : [ "GENERIC_CATEGORY_BUDGET" ],
+    "expectedSkus" : [ "AMZ-CARE-045" ],
+    "baselineCandidates" : [ ],
+    "postFixCandidates" : [ "AMZ-CARE-045" ],
+    "baselineRecallAt5" : false,
+    "postFixRecallAt5" : true,
+    "hybridCandidates" : [ "AMZ-CARE-045" ]
+  }, {
+    "caseId" : "RET-GEN-007",
+    "language" : "en",
+    "classes" : [ "GENERIC_CATEGORY_BUDGET" ],
+    "expectedSkus" : [ "AMZ-SPORT-050" ],
+    "baselineCandidates" : [ ],
+    "postFixCandidates" : [ ],
+    "baselineRecallAt5" : false,
+    "postFixRecallAt5" : false,
+    "hybridCandidates" : [ "AMZ-SPORT-050" ]
+  }, {
+    "caseId" : "RET-GEN-008",
+    "language" : "en",
+    "classes" : [ "GENERIC_CATEGORY_BUDGET" ],
+    "expectedSkus" : [ "AMZ-ELEC-033" ],
+    "baselineCandidates" : [ ],
+    "postFixCandidates" : [ ],
+    "baselineRecallAt5" : false,
+    "postFixRecallAt5" : false,
+    "hybridCandidates" : [ "AMZ-ELEC-033" ]
+  }, {
+    "caseId" : "RET-GEN-009",
+    "language" : "en",
+    "classes" : [ "GENERIC_CATEGORY_BUDGET" ],
+    "expectedSkus" : [ "AMZ-ELEC-034" ],
+    "baselineCandidates" : [ "AMZ-ELEC-034" ],
+    "postFixCandidates" : [ "AMZ-ELEC-034" ],
+    "baselineRecallAt5" : true,
+    "postFixRecallAt5" : true,
+    "hybridCandidates" : [ "AMZ-ELEC-034" ]
+  }, {
+    "caseId" : "RET-GEN-010",
+    "language" : "en",
+    "classes" : [ "GENERIC_CATEGORY_BUDGET" ],
+    "expectedSkus" : [ "AMZ-HOME-039" ],
+    "baselineCandidates" : [ ],
+    "postFixCandidates" : [ "AMZ-HOME-039" ],
+    "baselineRecallAt5" : false,
+    "postFixRecallAt5" : true,
+    "hybridCandidates" : [ "AMZ-HOME-039" ]
+  }, {
+    "caseId" : "RET-GEN-011",
+    "language" : "en",
+    "classes" : [ "GENERIC_CATEGORY_BUDGET" ],
+    "expectedSkus" : [ "AMZ-KITCH-044" ],
+    "baselineCandidates" : [ ],
+    "postFixCandidates" : [ "AMZ-KITCH-044" ],
+    "baselineRecallAt5" : false,
+    "postFixRecallAt5" : true,
+    "hybridCandidates" : [ "AMZ-KITCH-044" ]
+  }, {
+    "caseId" : "RET-GEN-012",
+    "language" : "en",
+    "classes" : [ "GENERIC_CATEGORY_BUDGET" ],
+    "expectedSkus" : [ "AMZ-SNACK-047", "AMZ-SNACK-048" ],
+    "baselineCandidates" : [ ],
+    "postFixCandidates" : [ ],
+    "baselineRecallAt5" : false,
+    "postFixRecallAt5" : false,
+    "hybridCandidates" : [ "AMZ-SNACK-048", "AMZ-SNACK-047" ]
+  }, {
+    "caseId" : "RET-GEN-013",
+    "language" : "en",
+    "classes" : [ "GENERIC_CATEGORY_BUDGET" ],
+    "expectedSkus" : [ "AMZ-BEAUTY-004" ],
+    "baselineCandidates" : [ "AMZ-BEAUTY-004" ],
+    "postFixCandidates" : [ "AMZ-BEAUTY-004" ],
+    "baselineRecallAt5" : true,
+    "postFixRecallAt5" : true,
+    "hybridCandidates" : [ "AMZ-BEAUTY-004" ]
+  }, {
+    "caseId" : "RET-GEN-014",
+    "language" : "en",
+    "classes" : [ "GENERIC_CATEGORY_BUDGET" ],
+    "expectedSkus" : [ "AMZ-GROC-023" ],
+    "baselineCandidates" : [ ],
+    "postFixCandidates" : [ ],
+    "baselineRecallAt5" : false,
+    "postFixRecallAt5" : false,
+    "hybridCandidates" : [ "AMZ-GROC-023" ]
+  }, {
+    "caseId" : "RET-SEM-001",
+    "language" : "en",
+    "classes" : [ "PARAPHRASE_SEMANTIC" ],
+    "expectedSkus" : [ "AMZ-AUDIO-032" ],
+    "baselineCandidates" : [ ],
+    "postFixCandidates" : [ ],
+    "baselineRecallAt5" : false,
+    "postFixRecallAt5" : false,
+    "hybridCandidates" : [ ]
+  }, {
+    "caseId" : "RET-SEM-002",
+    "language" : "en",
+    "classes" : [ "PARAPHRASE_SEMANTIC" ],
+    "expectedSkus" : [ "AMZ-AUDIO-031", "AMZ-AUDIO-032" ],
+    "baselineCandidates" : [ ],
+    "postFixCandidates" : [ ],
+    "baselineRecallAt5" : false,
+    "postFixRecallAt5" : false,
+    "hybridCandidates" : [ ]
+  }, {
+    "caseId" : "RET-SEM-003",
+    "language" : "en",
+    "classes" : [ "PARAPHRASE_SEMANTIC" ],
+    "expectedSkus" : [ "AMZ-SHOE-035" ],
+    "baselineCandidates" : [ ],
+    "postFixCandidates" : [ ],
+    "baselineRecallAt5" : false,
+    "postFixRecallAt5" : false,
+    "hybridCandidates" : [ ]
+  }, {
+    "caseId" : "RET-SEM-004",
+    "language" : "en",
+    "classes" : [ "PARAPHRASE_SEMANTIC" ],
+    "expectedSkus" : [ "AMZ-KITCH-043" ],
+    "baselineCandidates" : [ ],
+    "postFixCandidates" : [ "AMZ-KITCH-043" ],
+    "baselineRecallAt5" : false,
+    "postFixRecallAt5" : true,
+    "hybridCandidates" : [ "AMZ-KITCH-043" ]
+  }, {
+    "caseId" : "RET-SEM-005",
+    "language" : "en",
+    "classes" : [ "PARAPHRASE_SEMANTIC" ],
+    "expectedSkus" : [ "AMZ-CARE-045" ],
+    "baselineCandidates" : [ ],
+    "postFixCandidates" : [ ],
+    "baselineRecallAt5" : false,
+    "postFixRecallAt5" : false,
+    "hybridCandidates" : [ ]
+  }, {
+    "caseId" : "RET-SEM-006",
+    "language" : "en",
+    "classes" : [ "PARAPHRASE_SEMANTIC" ],
+    "expectedSkus" : [ "AMZ-SPORT-050" ],
+    "baselineCandidates" : [ ],
+    "postFixCandidates" : [ ],
+    "baselineRecallAt5" : false,
+    "postFixRecallAt5" : false,
+    "hybridCandidates" : [ ]
+  }, {
+    "caseId" : "RET-SEM-007",
+    "language" : "en",
+    "classes" : [ "PARAPHRASE_SEMANTIC" ],
+    "expectedSkus" : [ "AMZ-KITCH-044" ],
+    "baselineCandidates" : [ ],
+    "postFixCandidates" : [ ],
+    "baselineRecallAt5" : false,
+    "postFixRecallAt5" : false,
+    "hybridCandidates" : [ "AMZ-KITCH-044" ]
+  }, {
+    "caseId" : "RET-SEM-008",
+    "language" : "en",
+    "classes" : [ "PARAPHRASE_SEMANTIC" ],
+    "expectedSkus" : [ "AMZ-ELEC-033" ],
+    "baselineCandidates" : [ ],
+    "postFixCandidates" : [ ],
+    "baselineRecallAt5" : false,
+    "postFixRecallAt5" : false,
+    "hybridCandidates" : [ ]
+  }, {
+    "caseId" : "RET-SEM-009",
+    "language" : "en",
+    "classes" : [ "PARAPHRASE_SEMANTIC" ],
+    "expectedSkus" : [ "AMZ-CARE-046" ],
+    "baselineCandidates" : [ "AMZ-CARE-046" ],
+    "postFixCandidates" : [ "AMZ-CARE-046" ],
+    "baselineRecallAt5" : true,
+    "postFixRecallAt5" : true,
+    "hybridCandidates" : [ "AMZ-CARE-046" ]
+  }, {
+    "caseId" : "RET-SEM-010",
+    "language" : "en",
+    "classes" : [ "PARAPHRASE_SEMANTIC" ],
+    "expectedSkus" : [ "AMZ-HOME-039" ],
+    "baselineCandidates" : [ ],
+    "postFixCandidates" : [ ],
+    "baselineRecallAt5" : false,
+    "postFixRecallAt5" : false,
+    "hybridCandidates" : [ "AMZ-FURN-013" ]
+  }, {
+    "caseId" : "RET-SEM-011",
+    "language" : "en",
+    "classes" : [ "PARAPHRASE_SEMANTIC" ],
+    "expectedSkus" : [ "AMZ-SNACK-049" ],
+    "baselineCandidates" : [ ],
+    "postFixCandidates" : [ ],
+    "baselineRecallAt5" : false,
+    "postFixRecallAt5" : false,
+    "hybridCandidates" : [ "AMZ-SNACK-049" ]
+  }, {
+    "caseId" : "RET-SEM-012",
+    "language" : "en",
+    "classes" : [ "PARAPHRASE_SEMANTIC" ],
+    "expectedSkus" : [ "AMZ-AUDIO-031" ],
+    "baselineCandidates" : [ ],
+    "postFixCandidates" : [ ],
+    "baselineRecallAt5" : false,
+    "postFixRecallAt5" : false,
+    "hybridCandidates" : [ "AMZ-AUDIO-031" ]
+  }, {
+    "caseId" : "RET-TYP-001",
+    "language" : "en",
+    "classes" : [ "TYPO_ASR" ],
+    "expectedSkus" : [ "AMZ-AUDIO-032" ],
+    "baselineCandidates" : [ ],
+    "postFixCandidates" : [ ],
+    "baselineRecallAt5" : false,
+    "postFixRecallAt5" : false,
+    "hybridCandidates" : [ "AMZ-AUDIO-032", "AMZ-AUDIO-031" ]
+  }, {
+    "caseId" : "RET-TYP-002",
+    "language" : "en",
+    "classes" : [ "TYPO_ASR" ],
+    "expectedSkus" : [ "AMZ-AUDIO-032" ],
+    "baselineCandidates" : [ ],
+    "postFixCandidates" : [ ],
+    "baselineRecallAt5" : false,
+    "postFixRecallAt5" : false,
+    "hybridCandidates" : [ "AMZ-AUDIO-032", "AMZ-AUDIO-031" ]
+  }, {
+    "caseId" : "RET-TYP-003",
+    "language" : "en",
+    "classes" : [ "TYPO_ASR" ],
+    "expectedSkus" : [ "AMZ-AUDIO-032" ],
+    "baselineCandidates" : [ "AMZ-AUDIO-032" ],
+    "postFixCandidates" : [ "AMZ-AUDIO-032" ],
+    "baselineRecallAt5" : true,
+    "postFixRecallAt5" : true,
+    "hybridCandidates" : [ "AMZ-AUDIO-032" ]
+  }, {
+    "caseId" : "RET-TYP-004",
+    "language" : "en",
+    "classes" : [ "TYPO_ASR" ],
+    "expectedSkus" : [ "AMZ-SHOE-035" ],
+    "baselineCandidates" : [ "AMZ-SHOE-035" ],
+    "postFixCandidates" : [ "AMZ-SHOE-035" ],
+    "baselineRecallAt5" : true,
+    "postFixRecallAt5" : true,
+    "hybridCandidates" : [ "AMZ-SHOE-035" ]
+  }, {
+    "caseId" : "RET-TYP-005",
+    "language" : "en",
+    "classes" : [ "TYPO_ASR" ],
+    "expectedSkus" : [ "AMZ-CARE-046" ],
+    "baselineCandidates" : [ "AMZ-CARE-046" ],
+    "postFixCandidates" : [ "AMZ-CARE-046" ],
+    "baselineRecallAt5" : true,
+    "postFixRecallAt5" : true,
+    "hybridCandidates" : [ "AMZ-CARE-046" ]
+  }, {
+    "caseId" : "RET-TYP-006",
+    "language" : "en",
+    "classes" : [ "TYPO_ASR" ],
+    "expectedSkus" : [ "AMZ-KITCH-041" ],
+    "baselineCandidates" : [ ],
+    "postFixCandidates" : [ ],
+    "baselineRecallAt5" : false,
+    "postFixRecallAt5" : false,
+    "hybridCandidates" : [ "AMZ-KITCH-041" ]
+  }, {
+    "caseId" : "RET-TYP-007",
+    "language" : "en",
+    "classes" : [ "TYPO_ASR" ],
+    "expectedSkus" : [ "AMZ-KITCH-043" ],
+    "baselineCandidates" : [ "AMZ-KITCH-043" ],
+    "postFixCandidates" : [ "AMZ-KITCH-043" ],
+    "baselineRecallAt5" : true,
+    "postFixRecallAt5" : true,
+    "hybridCandidates" : [ "AMZ-KITCH-043" ]
+  }, {
+    "caseId" : "RET-TYP-008",
+    "language" : "en",
+    "classes" : [ "TYPO_ASR" ],
+    "expectedSkus" : [ "AMZ-SPORT-050" ],
+    "baselineCandidates" : [ ],
+    "postFixCandidates" : [ ],
+    "baselineRecallAt5" : false,
+    "postFixRecallAt5" : false,
+    "hybridCandidates" : [ "AMZ-SPORT-050" ]
+  }, {
+    "caseId" : "RET-TYP-009",
+    "language" : "en",
+    "classes" : [ "TYPO_ASR" ],
+    "expectedSkus" : [ "AMZ-ELEC-033" ],
+    "baselineCandidates" : [ "AMZ-ELEC-033" ],
+    "postFixCandidates" : [ "AMZ-ELEC-033" ],
+    "baselineRecallAt5" : true,
+    "postFixRecallAt5" : true,
+    "hybridCandidates" : [ "AMZ-ELEC-033" ]
+  }, {
+    "caseId" : "RET-TYP-010",
+    "language" : "en",
+    "classes" : [ "TYPO_ASR" ],
+    "expectedSkus" : [ "AMZ-CARE-045" ],
+    "baselineCandidates" : [ "AMZ-CARE-045" ],
+    "postFixCandidates" : [ "AMZ-CARE-045" ],
+    "baselineRecallAt5" : true,
+    "postFixRecallAt5" : true,
+    "hybridCandidates" : [ "AMZ-CARE-045" ]
+  }, {
+    "caseId" : "RET-TYP-011",
+    "language" : "en",
+    "classes" : [ "TYPO_ASR" ],
+    "expectedSkus" : [ "AMZ-KITCH-041" ],
+    "baselineCandidates" : [ "AMZ-KITCH-041" ],
+    "postFixCandidates" : [ "AMZ-KITCH-041" ],
+    "baselineRecallAt5" : true,
+    "postFixRecallAt5" : true,
+    "hybridCandidates" : [ "AMZ-KITCH-041" ]
+  }, {
+    "caseId" : "RET-TYP-012",
+    "language" : "en",
+    "classes" : [ "TYPO_ASR" ],
+    "expectedSkus" : [ "AMZ-AUDIO-031" ],
+    "baselineCandidates" : [ "AMZ-AUDIO-031" ],
+    "postFixCandidates" : [ "AMZ-AUDIO-031" ],
+    "baselineRecallAt5" : true,
+    "postFixRecallAt5" : true,
+    "hybridCandidates" : [ "AMZ-AUDIO-031", "AMZ-AUDIO-032" ]
+  }, {
+    "caseId" : "RET-ML-001",
+    "language" : "hi",
+    "classes" : [ "MULTILINGUAL" ],
+    "expectedSkus" : [ "AMZ-AUDIO-032" ],
+    "baselineCandidates" : [ ],
+    "postFixCandidates" : [ ],
+    "baselineRecallAt5" : false,
+    "postFixRecallAt5" : false,
+    "hybridCandidates" : [ ]
+  }, {
+    "caseId" : "RET-ML-002",
+    "language" : "hi",
+    "classes" : [ "MULTILINGUAL" ],
+    "expectedSkus" : [ "AMZ-SHOE-035" ],
+    "baselineCandidates" : [ ],
+    "postFixCandidates" : [ ],
+    "baselineRecallAt5" : false,
+    "postFixRecallAt5" : false,
+    "hybridCandidates" : [ ]
+  }, {
+    "caseId" : "RET-ML-003",
+    "language" : "hi",
+    "classes" : [ "MULTILINGUAL" ],
+    "expectedSkus" : [ "AMZ-KITCH-043" ],
+    "baselineCandidates" : [ ],
+    "postFixCandidates" : [ ],
+    "baselineRecallAt5" : false,
+    "postFixRecallAt5" : false,
+    "hybridCandidates" : [ ]
+  }, {
+    "caseId" : "RET-ML-004",
+    "language" : "hinglish",
+    "classes" : [ "MULTILINGUAL" ],
+    "expectedSkus" : [ "AMZ-AUDIO-032" ],
+    "baselineCandidates" : [ "AMZ-AUDIO-032" ],
+    "postFixCandidates" : [ "AMZ-AUDIO-032" ],
+    "baselineRecallAt5" : true,
+    "postFixRecallAt5" : true,
+    "hybridCandidates" : [ "AMZ-AUDIO-032", "AMZ-AUDIO-031" ]
+  }, {
+    "caseId" : "RET-ML-005",
+    "language" : "hinglish",
+    "classes" : [ "MULTILINGUAL" ],
+    "expectedSkus" : [ "AMZ-KITCH-043" ],
+    "baselineCandidates" : [ "AMZ-KITCH-043" ],
+    "postFixCandidates" : [ "AMZ-KITCH-043" ],
+    "baselineRecallAt5" : true,
+    "postFixRecallAt5" : true,
+    "hybridCandidates" : [ "AMZ-KITCH-043" ]
+  }, {
+    "caseId" : "RET-ML-006",
+    "language" : "hinglish",
+    "classes" : [ "MULTILINGUAL" ],
+    "expectedSkus" : [ "AMZ-SHOE-035" ],
+    "baselineCandidates" : [ ],
+    "postFixCandidates" : [ ],
+    "baselineRecallAt5" : false,
+    "postFixRecallAt5" : false,
+    "hybridCandidates" : [ ]
+  }, {
+    "caseId" : "RET-ML-007",
+    "language" : "te",
+    "classes" : [ "MULTILINGUAL" ],
+    "expectedSkus" : [ "AMZ-AUDIO-032" ],
+    "baselineCandidates" : [ ],
+    "postFixCandidates" : [ ],
+    "baselineRecallAt5" : false,
+    "postFixRecallAt5" : false,
+    "hybridCandidates" : [ ]
+  }, {
+    "caseId" : "RET-ML-008",
+    "language" : "te",
+    "classes" : [ "MULTILINGUAL" ],
+    "expectedSkus" : [ "AMZ-KITCH-043" ],
+    "baselineCandidates" : [ ],
+    "postFixCandidates" : [ ],
+    "baselineRecallAt5" : false,
+    "postFixRecallAt5" : false,
+    "hybridCandidates" : [ ]
+  }, {
+    "caseId" : "RET-ML-009",
+    "language" : "te",
+    "classes" : [ "MULTILINGUAL" ],
+    "expectedSkus" : [ "AMZ-SHOE-035" ],
+    "baselineCandidates" : [ ],
+    "postFixCandidates" : [ ],
+    "baselineRecallAt5" : false,
+    "postFixRecallAt5" : false,
+    "hybridCandidates" : [ ]
+  }, {
+    "caseId" : "RET-ML-010",
+    "language" : "ur",
+    "classes" : [ "MULTILINGUAL" ],
+    "expectedSkus" : [ "AMZ-AUDIO-032" ],
+    "baselineCandidates" : [ ],
+    "postFixCandidates" : [ ],
+    "baselineRecallAt5" : false,
+    "postFixRecallAt5" : false,
+    "hybridCandidates" : [ ]
+  }, {
+    "caseId" : "RET-ML-011",
+    "language" : "ur",
+    "classes" : [ "MULTILINGUAL" ],
+    "expectedSkus" : [ "AMZ-KITCH-043" ],
+    "baselineCandidates" : [ ],
+    "postFixCandidates" : [ ],
+    "baselineRecallAt5" : false,
+    "postFixRecallAt5" : false,
+    "hybridCandidates" : [ ]
+  }, {
+    "caseId" : "RET-ML-012",
+    "language" : "ur",
+    "classes" : [ "MULTILINGUAL" ],
+    "expectedSkus" : [ "AMZ-SHOE-035" ],
+    "baselineCandidates" : [ ],
+    "postFixCandidates" : [ ],
+    "baselineRecallAt5" : false,
+    "postFixRecallAt5" : false,
+    "hybridCandidates" : [ ]
+  }, {
+    "caseId" : "RET-NO-001",
+    "language" : "en",
+    "classes" : [ "HONEST_NO_MATCH" ],
+    "expectedSkus" : [ ],
+    "baselineCandidates" : [ ],
+    "postFixCandidates" : [ ],
+    "baselineRecallAt5" : false,
+    "postFixRecallAt5" : false,
+    "hybridCandidates" : [ ]
+  }, {
+    "caseId" : "RET-NO-002",
+    "language" : "en",
+    "classes" : [ "HONEST_NO_MATCH" ],
+    "expectedSkus" : [ ],
+    "baselineCandidates" : [ ],
+    "postFixCandidates" : [ ],
+    "baselineRecallAt5" : false,
+    "postFixRecallAt5" : false,
+    "hybridCandidates" : [ ]
+  }, {
+    "caseId" : "RET-NO-003",
+    "language" : "en",
+    "classes" : [ "HONEST_NO_MATCH" ],
+    "expectedSkus" : [ ],
+    "baselineCandidates" : [ ],
+    "postFixCandidates" : [ ],
+    "baselineRecallAt5" : false,
+    "postFixRecallAt5" : false,
+    "hybridCandidates" : [ ]
+  }, {
+    "caseId" : "RET-NO-004",
+    "language" : "en",
+    "classes" : [ "HONEST_NO_MATCH" ],
+    "expectedSkus" : [ ],
+    "baselineCandidates" : [ ],
+    "postFixCandidates" : [ ],
+    "baselineRecallAt5" : false,
+    "postFixRecallAt5" : false,
+    "hybridCandidates" : [ ]
+  }, {
+    "caseId" : "RET-NO-005",
+    "language" : "en",
+    "classes" : [ "HONEST_NO_MATCH" ],
+    "expectedSkus" : [ ],
+    "baselineCandidates" : [ ],
+    "postFixCandidates" : [ ],
+    "baselineRecallAt5" : false,
+    "postFixRecallAt5" : false,
+    "hybridCandidates" : [ ]
+  }, {
+    "caseId" : "RET-NO-006",
+    "language" : "en",
+    "classes" : [ "HONEST_NO_MATCH" ],
+    "expectedSkus" : [ ],
+    "baselineCandidates" : [ ],
+    "postFixCandidates" : [ ],
+    "baselineRecallAt5" : false,
+    "postFixRecallAt5" : false,
+    "hybridCandidates" : [ ]
+  }, {
+    "caseId" : "RET-NO-007",
+    "language" : "en",
+    "classes" : [ "HONEST_NO_MATCH" ],
+    "expectedSkus" : [ ],
+    "baselineCandidates" : [ ],
+    "postFixCandidates" : [ ],
+    "baselineRecallAt5" : false,
+    "postFixRecallAt5" : false,
+    "hybridCandidates" : [ ]
+  }, {
+    "caseId" : "RET-NO-008",
+    "language" : "en",
+    "classes" : [ "HONEST_NO_MATCH" ],
+    "expectedSkus" : [ ],
+    "baselineCandidates" : [ ],
+    "postFixCandidates" : [ ],
+    "baselineRecallAt5" : false,
+    "postFixRecallAt5" : false,
+    "hybridCandidates" : [ ]
+  }, {
+    "caseId" : "RET-NO-009",
+    "language" : "en",
+    "classes" : [ "HONEST_NO_MATCH" ],
+    "expectedSkus" : [ ],
+    "baselineCandidates" : [ ],
+    "postFixCandidates" : [ ],
+    "baselineRecallAt5" : false,
+    "postFixRecallAt5" : false,
+    "hybridCandidates" : [ "AMZ-FASH-038" ]
+  }, {
+    "caseId" : "RET-NO-010",
+    "language" : "en",
+    "classes" : [ "HONEST_NO_MATCH" ],
+    "expectedSkus" : [ ],
+    "baselineCandidates" : [ ],
+    "postFixCandidates" : [ ],
+    "baselineRecallAt5" : false,
+    "postFixRecallAt5" : false,
+    "hybridCandidates" : [ ]
+  }, {
+    "caseId" : "RET-INJ-001",
+    "language" : "en",
+    "classes" : [ "INJECTION_BEARING" ],
+    "expectedSkus" : [ "AMZ-AUDIO-032" ],
+    "baselineCandidates" : [ "AMZ-AUDIO-032" ],
+    "postFixCandidates" : [ "AMZ-AUDIO-032" ],
+    "baselineRecallAt5" : true,
+    "postFixRecallAt5" : true,
+    "hybridCandidates" : [ "AMZ-AUDIO-032" ]
+  }, {
+    "caseId" : "RET-INJ-002",
+    "language" : "en",
+    "classes" : [ "INJECTION_BEARING" ],
+    "expectedSkus" : [ ],
+    "baselineCandidates" : [ ],
+    "postFixCandidates" : [ ],
+    "baselineRecallAt5" : false,
+    "postFixRecallAt5" : false,
+    "hybridCandidates" : [ ]
+  }, {
+    "caseId" : "RET-INJ-003",
+    "language" : "en",
+    "classes" : [ "INJECTION_BEARING" ],
+    "expectedSkus" : [ "AMZ-ELEC-034" ],
+    "baselineCandidates" : [ "AMZ-ELEC-034" ],
+    "postFixCandidates" : [ "AMZ-ELEC-034" ],
+    "baselineRecallAt5" : true,
+    "postFixRecallAt5" : true,
+    "hybridCandidates" : [ "AMZ-ELEC-034" ]
+  }, {
+    "caseId" : "RET-INJ-004",
+    "language" : "en",
+    "classes" : [ "INJECTION_BEARING" ],
+    "expectedSkus" : [ ],
+    "baselineCandidates" : [ ],
+    "postFixCandidates" : [ ],
+    "baselineRecallAt5" : false,
+    "postFixRecallAt5" : false,
+    "hybridCandidates" : [ ]
+  }, {
+    "caseId" : "RET-INJ-005",
+    "language" : "en",
+    "classes" : [ "INJECTION_BEARING" ],
+    "expectedSkus" : [ "AMZ-SPORT-050" ],
+    "baselineCandidates" : [ "AMZ-SPORT-050" ],
+    "postFixCandidates" : [ "AMZ-SPORT-050" ],
+    "baselineRecallAt5" : true,
+    "postFixRecallAt5" : true,
+    "hybridCandidates" : [ "AMZ-SPORT-050" ]
+  }, {
+    "caseId" : "RET-INJ-006",
+    "language" : "en",
+    "classes" : [ "INJECTION_BEARING" ],
+    "expectedSkus" : [ "AMZ-AUDIO-031" ],
+    "baselineCandidates" : [ "AMZ-AUDIO-031" ],
+    "postFixCandidates" : [ "AMZ-AUDIO-031" ],
+    "baselineRecallAt5" : true,
+    "postFixRecallAt5" : true,
+    "hybridCandidates" : [ "AMZ-AUDIO-031" ]
+  }, {
+    "caseId" : "RET-INJ-007",
+    "language" : "en",
+    "classes" : [ "INJECTION_BEARING" ],
+    "expectedSkus" : [ ],
+    "baselineCandidates" : [ ],
+    "postFixCandidates" : [ ],
+    "baselineRecallAt5" : false,
+    "postFixRecallAt5" : false,
+    "hybridCandidates" : [ ]
+  }, {
+    "caseId" : "RET-INJ-008",
+    "language" : "en",
+    "classes" : [ "INJECTION_BEARING" ],
+    "expectedSkus" : [ "AMZ-CARE-045" ],
+    "baselineCandidates" : [ "AMZ-CARE-045" ],
+    "postFixCandidates" : [ "AMZ-CARE-045" ],
+    "baselineRecallAt5" : true,
+    "postFixRecallAt5" : true,
+    "hybridCandidates" : [ "AMZ-CARE-045" ]
+  } ],
+  "limitations" : [ "Baseline is a test-source snapshot of the former strict free-form category/brand gate over the same lexical candidate generator.", "Hybrid metrics use live Gemini embeddings and can vary with provider/model revisions." ],
+  "whatThisDoesNotProve" : "This labelled fixture does not prove quality on unlabelled traffic, other catalogues, or future provider/model revisions."
+}

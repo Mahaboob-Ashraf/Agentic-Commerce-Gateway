@@ -55,6 +55,25 @@ reports hybrid deltas when the provider is active and the ingested catalogue has
 the production compiler contract. Neither command grants product, price, authorization, or payment
 authority.
 
+Retrieval calibration keeps `amazing-labelled-v1.json` unchanged (80 cases). A test-source snapshot
+of hybrid-v2 and production hybrid-v3 use the same PostgreSQL 17/pgvector catalogue and cached live
+Gemini query embeddings within each run. The bounded threshold grid records both historical discovery
+metrics (valid matches followed by related alternatives) and Buyer-eligible valid-match metrics.
+The two definitions must not be compared as if they measured the same thing. Per-case raw cosine
+scores, identity gates, qualification components, dataset SHA-256 and grid outcomes are retained.
+
+Select the highest threshold achieving the best valid-match recall among configurations that preserve
+exact precision, no-match accuracy and wrong-product metrics, including zero newly introduced
+unexpected valid candidates anywhere in the result set. The semantic lane activates only when the
+normal hybrid lane has no valid match; it excludes explicit SKU/GTIN/brand/variant/size/colour fields.
+Threshold calibration uses these labels, so it is not held-out validation or production-scale evidence.
+
+Provider-backed results remain in `proof/results/retrieval.json` and `RETRIEVAL_EVAL.md`. Offline
+test runs write `retrieval-offline.json` and `RETRIEVAL_OFFLINE.md`, preserving the latest live
+measurement. Historical hybrid-v2 evidence and the rejected candidate-wise semantic experiment are
+retained under `proof/results/history/`. `SemanticQualificationTest` reproduces the old ceiling and
+checks the corrected wireless-earphones path using deterministic vector scores without network access.
+
 Generated JSON includes the HEAD SHA, dirty-tree flag, UTC timestamp, runtime/host data, sample size,
 exact reproduction command, outcome, limitations, and `whatThisDoesNotProve`. The generated aggregate
 is `proof/results/SCORECARD.md`; backend, frontend, proof, mutation, attack, evaluation, and concurrency

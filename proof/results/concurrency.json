@@ -1,9 +1,9 @@
 {
   "schemaVersion" : "amana-concurrency-evidence-v1",
   "provenance" : {
-    "commitSha" : "0e924615763c1147dc7c30a51bab1183da55211a",
+    "commitSha" : "6fc5594f32a8afdccd64b8ff71e150c16650a851",
     "workingTreeDirty" : true,
-    "generatedAtUtc" : "2026-09-08T17:07:21.447290900Z",
+    "generatedAtUtc" : "2026-09-09T16:21:36.452557500Z",
     "runtime" : {
       "java" : "25.0.4.1+1-LTS",
       "node" : "v24.19.0"

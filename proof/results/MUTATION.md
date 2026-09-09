@@ -25,9 +25,9 @@ Status: **PASS**
 ## Provenance
 
 - Schema version: `amana-mutation-evidence-v1`
-- Commit SHA: `0e924615763c1147dc7c30a51bab1183da55211a`
+- Commit SHA: `6fc5594f32a8afdccd64b8ff71e150c16650a851`
 - Working tree dirty: `true`
-- Generated UTC: `2026-09-08T17:06:19.773137200Z`
+- Generated UTC: `2026-09-09T16:20:06.901625Z`
 - Runtime: Java `25.0.4.1+1-LTS`; Node `v24.19.0`
 - OS / host: `Windows 11 10.0 amd64` / `DESKTOP-P3MC09V`
 - Sample size: 12

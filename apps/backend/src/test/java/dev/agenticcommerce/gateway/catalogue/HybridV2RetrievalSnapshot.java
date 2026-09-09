@@ -11,28 +11,19 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
-import org.springframework.stereotype.Service;
-import org.springframework.beans.factory.annotation.Autowired;
+
 import tools.jackson.databind.ObjectMapper;
 
-@Service
-public class HybridCatalogueRetrievalService {
+/** Test-source snapshot of the pre-semantic-lane ranker (HEAD 6fc5594). Never wired in production. */
+class HybridV2RetrievalSnapshot {
     private final CatalogueRepository repository;
     private final CatalogueService catalogues;
     private final EmbeddingProvider embeddings;
     private final CanonicalJsonService canonical;
     private final ObjectMapper mapper;
-    private final SemanticMatchQualification semanticQualification;
-    @Autowired
-    public HybridCatalogueRetrievalService(CatalogueRepository repository,CatalogueService catalogues,
-            EmbeddingProvider embeddings,CanonicalJsonService canonical,ObjectMapper mapper){
-        this(repository,catalogues,embeddings,canonical,mapper,new SemanticMatchQualification(RetrievalThresholds.SEMANTIC_MINIMUM_SIMILARITY));}
-
-    // Package-scoped policy composition lets the fixed evaluator compare thresholds on identical vectors.
-    HybridCatalogueRetrievalService(CatalogueRepository repository,CatalogueService catalogues,
-            EmbeddingProvider embeddings,CanonicalJsonService canonical,ObjectMapper mapper,SemanticMatchQualification semanticQualification){
-        this.repository=repository;this.catalogues=catalogues;this.embeddings=embeddings;
-        this.canonical=canonical;this.mapper=mapper;this.semanticQualification=semanticQualification;}
+    public HybridV2RetrievalSnapshot(CatalogueRepository repository,CatalogueService catalogues,
+            EmbeddingProvider embeddings,CanonicalJsonService canonical,ObjectMapper mapper){this.repository=repository;
+        this.catalogues=catalogues;this.embeddings=embeddings;this.canonical=canonical;this.mapper=mapper;}
 
     public SearchResponse search(UUID merchantId,SearchRequest request){
         validate(request);var version=catalogues.requirePublished(merchantId);String query=normalizedQuery(request);
@@ -49,7 +40,6 @@ public class HybridCatalogueRetrievalService {
                 .filter(Product::active).ifPresent(p->candidates.put(p.id(),new MutableCandidate(p,0,0,0,v.score())));}
         List<SearchHit> ranked=new ArrayList<>();
         for(var c:candidates.values()){
-            if(!c.product.active()||!merchantId.equals(c.product.merchantId())||!version.id().equals(c.product.catalogueVersionId()))continue;
             GateOutcome gate=identityGate(merchantId,version.id(),c.product,request);if(gate==GateOutcome.FAIL)continue;
             if(Boolean.TRUE.equals(request.vegetarian())&&!vegetarian(merchantId,version.id(),c.product.id()))continue;
             AllergenState allergen=allergen(merchantId,version.id(),c.product.id(),request.prohibitedAllergen());
@@ -57,45 +47,21 @@ public class HybridCatalogueRetrievalService {
             boolean authoritativeExact=c.exact>0||exactBrandVariant(request,c.product,gate);
             double completeness=completeness(c.product);double score=authoritativeExact?1.0:clamp(c.fts)*.35+clamp(c.trigram)*.30+clamp(c.vector)*.30+completeness*.05;
             Map<String,Double> evidence=new LinkedHashMap<>();evidence.put("exact",c.exact);evidence.put("fts",c.fts);evidence.put("trigram",c.trigram);evidence.put("vector",c.vector);evidence.put("completeness",completeness);
-            boolean semanticQualified=score<RetrievalThresholds.VALID_MATCH&&semanticQualification.qualifies(
-                    request,c.product,gate,!vectorFallback&&providerActive&&health.readyEmbeddings()>0,c.vector);
-            evidence.put("semanticQualified",semanticQualified?1.0:0.0);
-            evidence.put("semanticMinimumSimilarity",semanticQualification.minimumSimilarity());
             ranked.add(new SearchHit(c.product,score,gate,Map.copyOf(evidence),allergen));
         }
         ranked.sort(Comparator.comparingDouble(SearchHit::score).reversed().thenComparing(h->h.product().merchantSku()));
-        boolean explicit=request.merchantSku()!=null||request.gtin()!=null;
-        // Fill an empty hybrid result only; do not add semantic substitutions to an already qualified set.
-        boolean hybridQualified=ranked.stream().anyMatch(h->h.score()>=RetrievalThresholds.VALID_MATCH&&(!explicit||h.score()==1.0));
-        if(hybridQualified)ranked=ranked.stream().map(h->{
-            var components=new LinkedHashMap<>(h.scoreEvidence());components.put("semanticQualified",0.0);
-            return new SearchHit(h.product(),h.score(),h.identityGate(),Map.copyOf(components),h.prohibitedAllergenState());
-        }).toList();
-        List<SearchHit> matches=ranked.stream()
-                .filter(h->(h.score()>=RetrievalThresholds.VALID_MATCH||h.scoreEvidence().get("semanticQualified")==1.0)
-                        &&(!explicit||h.score()==1.0)).limit(limit(request)).toList();
+        boolean explicit=request.merchantSku()!=null||request.gtin()!=null;List<SearchHit> matches=ranked.stream()
+                .filter(h->h.score()>=RetrievalThresholds.VALID_MATCH&&(!explicit||h.score()==1.0)).limit(limit(request)).toList();
         List<SearchHit> related=ranked.stream().filter(h->!matches.contains(h)&&h.score()>=RetrievalThresholds.RELATED_ALTERNATIVE).limit(limit(request)).toList();
         MatchClassification classification=!matches.isEmpty()?MatchClassification.VALID_MATCH:
                 !related.isEmpty()?MatchClassification.RELATED_ALTERNATIVES:MatchClassification.NO_TRUSTWORTHY_MATCH;
         if(explicit&&matches.isEmpty())classification=MatchClassification.NO_TRUSTWORTHY_MATCH;
-        var evidence=new ArrayList<>(List.of("catalogue:"+version.id()+":"+version.contentHash(),"ranker:hybrid-v3",
-                "thresholds:valid="+RetrievalThresholds.VALID_MATCH+",related="+RetrievalThresholds.RELATED_ALTERNATIVE
-                        +",semantic:v1,minimumSimilarity="+semanticQualification.minimumSimilarity()+",activation=NO_HYBRID_MATCH",
-                "embeddings:ready="+health.readyEmbeddings()+",failed="+health.failedEmbeddings()
-                        +",vectorProvider:"+(providerActive?"ACTIVE":"INACTIVE"),
-                vectorFallback?"vector:LEXICAL_FALLBACK":"vector:READY"));
-        // Every match in this response uses one lane. Keep shared references constant-sized so
-        // multi-merchant Buyer evidence remains within its existing bounded provider contract.
-        if(!matches.isEmpty())evidence.add("qualification:"+(hybridQualified?"HYBRID_SCORE":"SEMANTIC"));
+        var evidence=List.of("catalogue:"+version.id()+":"+version.contentHash(),"ranker:hybrid-v2",
+                "thresholds:valid="+RetrievalThresholds.VALID_MATCH+",related="+RetrievalThresholds.RELATED_ALTERNATIVE,
+                "embeddings:ready="+health.readyEmbeddings()+",failed="+health.failedEmbeddings(),
+                "vectorProvider:"+(providerActive?"ACTIVE":"INACTIVE"),
+                vectorFallback?"vector:LEXICAL_FALLBACK":"vector:READY");
         var queryEvidence=mapper.valueToTree(request);var refs=mapper.createArrayNode();matches.forEach(h->refs.add("product:"+h.product().id()));
-        var qualification=((tools.jackson.databind.node.ObjectNode)queryEvidence).putObject("retrievalQualification");
-        qualification.put("ranker","hybrid-v3").put("semanticVersion","v1")
-                .put("minimumSimilarity",semanticQualification.minimumSimilarity()).put("vectorFallback",vectorFallback)
-                .put("activation","NO_HYBRID_MATCH");
-        var qualifiedHits=qualification.putArray("matches");
-        matches.forEach(h->qualifiedHits.addObject().put("productId",h.product().id().toString())
-                .put("path",h.scoreEvidence().get("semanticQualified")==1.0?"SEMANTIC":"HYBRID_SCORE")
-                .put("score",h.score()).set("components",mapper.valueToTree(h.scoreEvidence())));
         String type=explicit?"EXACT_PRODUCT_RETRIEVAL":classification==MatchClassification.NO_TRUSTWORTHY_MATCH?"NO_MATCH":"IDENTITY_GATE";
         repository.insertEvidence(merchantId,version.id(),type,matches.isEmpty()&&explicit?"FAIL":"PASS",queryEvidence,refs,canonical.hash(queryEvidence));
         return new SearchResponse(classification,matches,related,vectorFallback,"v"+version.version()+":"+version.contentHash(),evidence);

@@ -51,6 +51,41 @@ class CandidateCartServiceTest {
     }
 
     @Test
+    void semanticValidMatchRetainsAuthoritativeReloadAndEvidence(){
+        Fixture fixture=fixture();Product product=product(fixture,"PHONE-BLK","Pixel 10","Black",79_900L);
+        String marker="product:"+product.id()+":qualification:SEMANTIC";
+        SearchResponse semantic=new SearchResponse(MatchClassification.VALID_MATCH,
+                List.of(new SearchHit(product,.335,GateOutcome.PASS,Map.of("semanticQualified",1.0),AllergenState.UNKNOWN)),
+                List.of(),false,"v1:test",List.of("ranker:hybrid-v3",marker));
+        when(retrieval.search(eq(fixture.merchant().merchantId()),any())).thenReturn(semantic);
+        when(catalogues.findProduct(product.merchantId(),product.catalogueVersionId(),product.id())).thenReturn(Optional.of(product));
+        when(repository.createCart(any(),any(),any(),anyList(),anyList(),any(),anyString())).thenAnswer(invocation->{
+            List<CandidateCartItem> items=invocation.getArgument(3);
+            assertThat(items).singleElement().satisfies(item->assertThat(item.productId()).isEqualTo(product.id()));
+            List<String> evidence=invocation.getArgument(4);assertThat(evidence).contains(marker);
+            return null;
+        });
+        service.build(fixture.thread(),fixture.intent(),fixture.discovery());
+        verify(retrieval,times(2)).search(eq(fixture.merchant().merchantId()),any());
+        verify(catalogues).findProduct(product.merchantId(),product.catalogueVersionId(),product.id());
+        verify(repository).createCart(any(),any(),any(),anyList(),anyList(),any(),anyString());
+        verifyNoInteractions(decisions);
+    }
+
+    @Test
+    void semanticCandidateCannotPersistWhenRevalidationLosesQualification(){
+        Fixture fixture=fixture();Product product=product(fixture,"PHONE-BLK","Pixel 10","Black",79_900L);
+        SearchHit hit=new SearchHit(product,.335,GateOutcome.PASS,Map.of("semanticQualified",1.0),AllergenState.UNKNOWN);
+        when(retrieval.search(eq(fixture.merchant().merchantId()),any())).thenReturn(
+                new SearchResponse(MatchClassification.VALID_MATCH,List.of(hit),List.of(),false,"v1:test",List.of("qualification:SEMANTIC")),
+                new SearchResponse(MatchClassification.RELATED_ALTERNATIVES,List.of(),List.of(hit),true,"v1:test",List.of("vector:LEXICAL_FALLBACK")));
+        assertThatThrownBy(()->service.build(fixture.thread(),fixture.intent(),fixture.discovery()))
+                .isInstanceOfSatisfying(BuyerException.class,e->assertThat(e.code()).isEqualTo("SELECTED_PRODUCT_REVALIDATION_FAILED"));
+        verify(repository,never()).createCart(any(),any(),any(),anyList(),anyList(),any(),anyString());
+        verifyNoInteractions(catalogues,decisions);
+    }
+
+    @Test
     void candidateReasoningCannotSelectAnIdOutsideTheSuppliedGroundedSet(){
         Fixture fixture=fixture();Product first=product(fixture,"PHONE-BLK","Pixel 10","Black",79_900L);
         Product second=product(fixture,"PHONE-BLU","Pixel 10a","Blue",69_900L);
