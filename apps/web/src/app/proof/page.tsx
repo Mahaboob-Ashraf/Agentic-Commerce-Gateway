@@ -95,7 +95,32 @@ export default function ProofPage() {
   const intent = intentReport.summary;
   const mutation = mutationReport.summary;
   const concurrency = concurrencyReport.summary;
-  const providerLatency = intent.providerLatencyMillis;
+  const providerLatencySamples = intentReport.details
+    .map((detail) => detail.elapsedMillis)
+    .filter(
+      (value): value is number =>
+        typeof value === "number" && Number.isFinite(value),
+    );
+
+  const percentile = (values: number[], q: number): number => {
+    if (values.length === 0) return 0;
+
+    const sorted = [...values].sort((a, b) => a - b);
+    const index = Math.min(
+      sorted.length - 1,
+      Math.max(0, Math.ceil(sorted.length * q) - 1),
+    );
+
+    return sorted[index];
+  };
+
+  const providerLatency = {
+    environment: "GEMINI_PROVIDER_BACKED_EVALUATION",
+    n: providerLatencySamples.length,
+    p50: percentile(providerLatencySamples, 0.5),
+    p95: percentile(providerLatencySamples, 0.95),
+    failures: intent.providerErrors,
+  };
 
   return (
     <main className={styles.page}>
@@ -435,7 +460,6 @@ export default function ProofPage() {
             <div><dt>p50</dt><dd>{milliseconds(providerLatency.p50)}</dd></div>
             <div><dt>p95</dt><dd>{milliseconds(providerLatency.p95)}</dd></div>
             <div><dt>Failures</dt><dd>{providerLatency.failures}</dd></div>
-            <div><dt>Rate limits</dt><dd>{providerLatency.rateLimitFailures}</dd></div>
           </dl>
         </div>
       </section>

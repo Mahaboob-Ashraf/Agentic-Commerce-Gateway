@@ -1,16 +1,14 @@
 <p align="center">
-
-  <img src="apps/web/public/amana/amana-mark.png" width="140" alt="Amana mark">
-
+<img src="apps/web/public/amana/amana-mark.png" width="140" alt="Amana mark">
 </p>
+
 
 <h1 align="center">Amana</h1>
 
 <p align="center">
-
-  <strong>Commerce you can trust agents with.</strong>
-
+<strong>Commerce you can trust agents with.</strong>
 </p>
+
 
 Amana turns existing merchants into verified AI-transactable businesses, then lets customers discover, reason, and purchase through a multimodal AI Buyer. Language models interpret and plan; deterministic application logic controls capability readiness, product and policy evidence, transaction authority, payment truth, and recovery.
 
@@ -19,36 +17,25 @@ Amana turns existing merchants into verified AI-transactable businesses, then le
 ## Live Demo
 
 > **Note:** The backend runs on Render’s free tier and may be asleep after inactivity.
-
 > If the demo shows `429 Too Many Requests` or login temporarily fails:
-
 >
-
 > 1. Open: https://agentic-commerce-gateway.onrender.com/actuator/health
-
 > 2. Wait up to 2–3 minutes for the backend to wake.
-
 > 3. Once it returns `{"status":"UP"}`, reopen Amana and continue.
 
 | Experience | Link |
-
 |---|---|
-
 | **Live product** | [agentic-commerce-gateway-web.vercel.app](https://agentic-commerce-gateway-web.vercel.app/) |
-
 | **Safety proof** | [/proof](https://agentic-commerce-gateway-web.vercel.app/proof) |
-
 | **Safe AI Buyer** | [/buyer/chat](https://agentic-commerce-gateway-web.vercel.app/buyer/chat) |
-
 | **Merchant** | [/merchant](https://agentic-commerce-gateway-web.vercel.app/merchant) |
 
 The Buyer and Merchant sign-in screens include reviewer demo-access controls when the public demo configuration is present. Those controls fill the normal form only: the reviewer still submits credentials through the same Spring Security authentication, session, CSRF, and role checks as every other user.
 
 <p align="center">
-
-  <img src="docs/readme/01_amana-landing-hero.png" width="1000" alt="Amana landing page introducing trusted agentic commerce">
-
+<img src="docs/readme/01_amana-landing-hero.png" width="1000" alt="Amana landing page introducing trusted agentic commerce">
 </p>
+
 
 ## The Problem
 
@@ -95,16 +82,12 @@ There are exactly two P0 runtime commerce agents. Shared services underneath the
 Amana addresses the **AI Growth & Agentic Commerce** problem from both directions: it makes existing merchants safely transactable by AI buyers, and it gives an AI Buyer a controlled path from intent to Razorpay payment.
 
 | Criterion | What it asks | How Amana answers |
-
 |---|---|---|
-
 | **Build quality** | Does it run? Is it structured? Would you trust it? | A deployed end-to-end product with authenticated Buyer and Merchant experiences, PostgreSQL authority, real Razorpay Test Mode checkout, deterministic safety boundaries, and broad automated coverage. |
-
 | **AI judgment** | Is the right tool used in the right place—and deliberately not used elsewhere? | Gemini handles language, native-audio conversation, visual interpretation, merchant-interface reasoning, and bounded planning. Deterministic code owns capability readiness, authorization, exact money, payment truth, and refunds. |
-
 | **Failure recovery** | What breaks, and how does the system recover? | Bounded repair and retest loops, fail-closed `UNKNOWN`, stable idempotency, provider reconciliation, evidence-based webhook reduction, transactional outbox processing, refund accounting, and safe voice fallback. |
 
-**## Measured Evidence
+## Measured Evidence
 
 Amana is evaluated beyond happy-path demos. The repository includes reproducible measurements for retrieval quality, intent understanding, safety detection, concurrency, latency, and automated verification.
 
@@ -123,9 +106,9 @@ Amana is evaluated beyond happy-path demos. The repository includes reproducible
 | **Valid no-match accuracy** | **100%** | Honest no-match cases did not become executable false positives |
 | **Fabricated valid products** | **0 observed** | No product outside the authoritative catalogue was promoted as a valid match |
 | **Wrong valid product / variant** | **0 observed** | The measured valid-match path did not silently substitute the wrong product or variant |
-| **Intent field accuracy** | **93.1%** | Gemini compiled labelled buyer utterances into the typed intent contract with high field accuracy in the recorded provider-backed evaluation |
+| **Intent field accuracy** | **92.41%** | Latest provider-backed Gemini intent run across 52 labelled utterances |
 | **Budget extraction** | **100%** | Budget constraints were correctly extracted in the labelled intent evaluation |
-| **Context / correction accuracy** | **100%** | Follow-up corrections correctly replaced prior material values |
+| **Multilingual intent subset** | **100%** | Labelled Hindi, Hinglish, Telugu, and Urdu intent cases passed after English normalization |
 | **Authorization-skip attempts** | **0 / 3 gained authority** | Language such as “just buy it” did not bypass explicit authorization |
 | **Negative controls** | **12 / 12 mutations killed** | Selected safety tests detect intentionally weakened guards rather than merely passing |
 | **Concurrency** | **5 critical operations passed at N=8 and N=32** | Execution, provider-order creation, webhook ingestion, outbox claims, and refund reservation converged correctly under concurrent callers |
@@ -138,65 +121,38 @@ Amana is evaluated beyond happy-path demos. The repository includes reproducible
 Local deterministic/stub measurements were collected on Java 25 + PostgreSQL 17 Testcontainers after one warm-up run.
 
 | Path | p50 | p95 |
-
 |---|---:|---:|
+| Intent compilation | 10.21 ms | 15.34 ms |
+| Catalogue retrieval | 13.30 ms | 19.12 ms |
+| Candidate cart | 25.77 ms | 35.92 ms |
+| Authoritative quote | 13.47 ms | 15.28 ms |
+| Constraint verification | 18.71 ms | 21.52 ms |
+| Proposal construction | 16.96 ms | 19.04 ms |
+| Execution gate | 15.47 ms | 17.56 ms |
+| Razorpay order boundary (stub) | 9.95 ms | 11.28 ms |
 
-| Intent compilation | 9.66 ms | 10.69 ms |
-
-| Catalogue retrieval | 12.66 ms | 14.89 ms |
-
-| Candidate cart | 24.47 ms | 30.57 ms |
-
-| Authoritative quote | 12.55 ms | 13.36 ms |
-
-| Constraint verification | 17.95 ms | 19.01 ms |
-
-| Proposal construction | 16.94 ms | 22.73 ms |
-
-| Execution gate | 15.52 ms | 23.67 ms |
-
-| Razorpay order boundary (stub) | 9.83 ms | 12.54 ms |
-
-A separate provider-backed Gemini intent run across **52 labelled utterances** measured:
-
-- **p50:** 4.87 s
-
-- **p95:** 12.44 s
-
-- **Provider errors / rate limits:** 0 / 0
-
-These are measured evaluation results, **not production SLAs**.
+The latest provider-backed Gemini intent evaluation ran across **52 labelled utterances** with **0 provider errors**. Per-case provider timings are retained in `proof/results/intent-eval.json`; these measurements are **not production SLAs**.
 
 ### Reproduce the evidence
 
 ```bash
-
 pnpm proof:verify
-
 ```
 
 Provider-backed evaluation is intentionally separate:
 
 ```bash
-
 pnpm proof:evaluate
-
 ```
 
 Detailed artifacts are available under:
 
 - `proof/results/SCORECARD.md`
-
 - `proof/results/retrieval.json`
-
 - `proof/results/intent-eval.json`
-
 - `proof/results/mutation.json`
-
 - `proof/results/concurrency.json`
-
 - `proof/results/latency.json`
-
 - `proof/results/latest.json`
 
 > The evaluation datasets are repository-authored labelled fixtures, not independent third-party benchmarks. Metrics are reported as measured rather than generalized beyond the tested sets.
@@ -220,10 +176,9 @@ Buyer and Merchant use separate authenticated product surfaces backed by the sam
 - demo controls populate credentials but never create a session, assign a role, or submit automatically.
 
 <p align="center">
-
-  <img src="docs/readme/10_merchant-demo-login.png" width="900" alt="Merchant sign-in with the reviewer demo-account autofill control">
-
+<img src="docs/readme/10_merchant-demo-login.png" width="900" alt="Merchant sign-in with the reviewer demo-account autofill control">
 </p>
+
 
 ### 2. Merchant onboarding and authority setup
 
@@ -242,10 +197,9 @@ The Merchant setup journey captures the boundary Amana is allowed to use:
 For the configured reviewer identity, **Load Amazing demo setup** resolves the existing canonical **Amazing** merchant from the authenticated actor's administered-merchant list. It pre-fills only grounded merchant identity, does not create or mutate a merchant, and selects that existing merchant only after the reviewer continues. The guided tour then introduces the shared Merchant workspace and its evidence surfaces.
 
 <p align="center">
-
-  <img src="docs/readme/11_merchant-onboarding-tour.png" width="900" alt="Merchant onboarding with guided reviewer tour">
-
+<img src="docs/readme/11_merchant-onboarding-tour.png" width="900" alt="Merchant onboarding with guided reviewer tour">
 </p>
+
 
 ### 3. Agentize, discover, propose, authorize, pay
 
@@ -254,10 +208,9 @@ Amazing's approved interface is inspected and reduced into evidence-backed capab
 ## Merchant Agentization Agent
 
 <p align="center">
-
-  <img src="docs/readme/05_merchant-overview-needs-attention.png" width="1000" alt="Amazing Merchant overview showing capabilities that need attention">
-
+<img src="docs/readme/05_merchant-overview-needs-attention.png" width="1000" alt="Amazing Merchant overview showing capabilities that need attention">
 </p>
+
 
 **Needs attention is a safety feature.** Amana does not equate “an endpoint exists” with “an AI may transact through it.” A capability remains unadvertised until its current mapping, tests, policy, catalogue, and other required evidence satisfy the deterministic readiness reducer.
 
@@ -284,10 +237,9 @@ The agentization loop is:
 ### A bounded money-unit repair
 
 <p align="center">
-
-  <img src="docs/readme/06_agentization-repair-approval.png" width="1000" alt="Agentization workbench showing a rupees-to-paise repair proposal awaiting Merchant approval">
-
+<img src="docs/readme/06_agentization-repair-approval.png" width="1000" alt="Agentization workbench showing a rupees-to-paise repair proposal awaiting Merchant approval">
 </p>
+
 
 The reviewer replay demonstrates a concrete semantic failure. The merchant returns `2999` for a ₹2,999 quote, while Amana's canonical money contract requires `299900` minor units.
 
@@ -306,10 +258,9 @@ The reviewer replay demonstrates a concrete semantic failure. The merchant retur
 The model's diagnosis is useful, but it is not the readiness verdict.
 
 <p align="center">
-
-  <img src="docs/readme/07_agentization-retest-ready.png" width="1000" alt="Agentization replay after approved mapping, deterministic retest, and readiness reduction">
-
+<img src="docs/readme/07_agentization-retest-ready.png" width="1000" alt="Agentization replay after approved mapping, deterministic retest, and readiness reduction">
 </p>
+
 
 After approval, the repair becomes a new version, the deterministic quote contract is retested, and the reducer checks all required evidence gates. The isolated reviewer replay reaches `READY` only when those gates pass; it explicitly does **not** mutate Amazing's authoritative live manifest. In live operation, only the backend deterministic readiness service publishes the current manifest and exposes advertised `READY` capabilities to buyers.
 
@@ -318,10 +269,9 @@ After approval, the repair becomes a new version, the deterministic quote contra
 The Buyer is a persistent commerce workspace, not a stateless recommendation box. Conversations and commerce requests have durable identities so a user can follow, restore, clarify, or resume work safely.
 
 <p align="center">
-
-  <img src="docs/readme/03_buyer-searching.png" width="1000" alt="Safe AI Buyer searching connected stores for a grounded catalogue match">
-
+<img src="docs/readme/03_buyer-searching.png" width="1000" alt="Safe AI Buyer searching connected stores for a grounded catalogue match">
 </p>
+
 
 A Buyer request moves through these boundaries:
 
@@ -346,14 +296,19 @@ A Buyer request moves through these boundaries:
 10. **Verify and fulfil.** Razorpay evidence is reconciled, then merchant fulfilment proceeds through durable outbox work.
 
 <p align="center">
-
-  <img src="docs/readme/04_buyer-proposal-awaiting-authorization.png" width="1000" alt="Grounded Auralink proposal waiting for explicit Buyer authorization before payment">
-
+<img src="docs/readme/04_buyer-proposal-awaiting-authorization.png" width="1000" alt="Grounded Auralink proposal waiting for explicit Buyer authorization before payment">
 </p>
+
 
 The proposal shown for **Auralink Buds Bluetooth Earphones** (SKU `AMZ-AUDIO-032`, ₹2,999 in the canonical Amazing fixture) is grounded before authorization. No money action occurs merely because the AI found or suggested it.
 
 ## Multimodal + Multilingual
+
+### Multilingual intent, English retrieval
+
+The Buyer can accept Hindi, Hinglish, Telugu, Urdu, and English while keeping merchant catalogue retrieval normalized to English. Gemini converts semantic commerce fields such as category, colour, size, allergen, exclusions, and preferences into concise English retrieval values; exact identifiers such as SKU and GTIN are never translated. Evidence offsets still point to the buyer's original-language phrase, and responses can remain in the user's language.
+
+This keeps language understanding inside the model while catalogue identity and transaction authority remain deterministic.
 
 ### Multimodal input, one authority path
 
@@ -361,37 +316,12 @@ The Buyer accepts typed language, realtime voice, image/product visual input, an
 
 Visual interpretation may suggest a category, brand, variant, or search intent. It never becomes authoritative product identity, price, stock, serviceability, policy, authorization, or payment truth. The request still passes through merchant readiness, catalogue grounding, current evidence, proposal, and authorization.
 
-**### Multilingual intent, English retrieval
-
-The deployed merchant catalogue and retrieval index are English-language, so Amana separates **conversation language** from **retrieval language**. The Buyer can speak or type in Hindi, Hinglish, Telugu, Urdu, English, or another supported language; Gemini compiles the semantic commerce fields into concise English before catalogue retrieval while preserving the original user text and evidence offsets.
-
-For example:
-
-```text
-Telugu / Hindi / Urdu buyer request
-        ↓
-Gemini intent compiler
-        ↓
-English normalized commerce intent
-        ↓
-English FTS + trigram + vector retrieval
-        ↓
-Authoritative catalogue product
-        ↓
-Buyer experience remains in the user's language
-```
-
-Exact identifiers such as SKU and GTIN are never translated. Translation also does not create product identity or authority: catalogue IDs, price, inventory, serviceability, policy, authorization, and payment truth remain application-owned and deterministic.
-
-A provider-backed intent run after this normalization change returned English category values for the category-bearing Hindi, Hinglish, Telugu, and Urdu cases that were inspected. The raw multilingual retrieval fixture still measures **5/12** when multilingual strings bypass the intent compiler and are sent directly to retrieval; that number therefore does **not** measure the new end-to-end Buyer normalization path. A separate end-to-end multilingual retrieval benchmark is still pending.
-
 ### Realtime voice with Gemini Live
 
 <p align="center">
-
-  <img src="docs/readme/02_buyer-voice-listening.png" width="820" alt="Safe AI Buyer listening through the realtime Gemini Live voice experience">
-
+<img src="docs/readme/02_buyer-voice-listening.png" width="820" alt="Safe AI Buyer listening through the realtime Gemini Live voice experience">
 </p>
+
 
 The current P0 Buyer voice path uses Gemini Live model **`gemini-3.1-flash-live-preview`** with native audio input/output. The current implementation includes:
 
@@ -421,7 +351,7 @@ Amana makes the spending boundary explicit:
 
 ```text
 
-TransactionProposal  →  AuthorizationDecision  →  Execution
+TransactionProposal  →  AuthorizationDecision  →  Execution
 
 ```
 
@@ -436,10 +366,9 @@ TransactionProposal  →  AuthorizationDecision  →  Execution
 ## Razorpay Payment Integration
 
 <p align="center">
-
-  <img src="docs/readme/09_razorpay-confirming-payment.png" width="1000" alt="Real Razorpay Test Mode Standard Checkout opened from an authorized Amana proposal">
-
+<img src="docs/readme/09_razorpay-confirming-payment.png" width="1000" alt="Real Razorpay Test Mode Standard Checkout opened from an authorized Amana proposal">
 </p>
+
 
 Amana uses real **Razorpay Test Mode** Orders and Standard Checkout—not a simulated payment modal.
 
@@ -466,73 +395,39 @@ Payment confirmation and merchant fulfilment confirmation are different states. 
 Failure recovery is designed into the state model rather than added as generic retry behavior.
 
 | Failure or uncertainty | Amana behavior |
-
 |---|---|
-
 | Malformed AI structured output | Strict schema/domain validation, one bounded repair attempt for Buyer intent, then `INVALID_BUYER_INTENT`; no authority is created. |
-
 | AI provider unavailable or rate-limited | Explicit unavailable/rate-limited result; nothing is authorized. |
-
 | Repeated agentization failure | Identical failure signatures are counted; after the bounded threshold the run waits for Merchant clarification instead of looping. |
-
 | Merchant money-unit mismatch | Contract test detects the mismatch, the agent diagnoses it, a bounded versioned repair is proposed, Merchant approval is required, and a deterministic retest follows. |
-
 | Missing capability evidence | Capability remains `UNTESTED`/unadvertised rather than being inferred `READY`. |
-
 | Stale mapping approval | Approval is bound to merchant, mapping ID, version, and content hash; stale authority cannot approve a changed mapping. |
-
 | Missing or conflicting policy fact | The hard constraint remains `UNKNOWN`/blocking and fails closed. |
-
 | No trustworthy product match | Returns an explicit no-match/clarification path; it does not manufacture a candidate. |
-
 | Similar but wrong product variant | Exact-identity and substitution gates prevent a related item from silently becoming the requested one. |
-
 | Embedding provider failure | Hybrid retrieval records vector fallback and continues with deterministic lexical candidates. |
-
 | Stale quote | Preparation/execution rejects expired or insufficiently fresh quote evidence and requires a refresh/new proposal. |
-
 | Inventory disappears | Availability evidence is refreshed; a non-`PASS` result blocks payment progression. |
-
 | Serviceability uncertainty | A missing, stale, mismatched, or non-`PASS` result fails closed. |
-
 | Proposal changes after approval | Proposal-hash/session/action binding invalidates the old authorization; changed material requires a new proposal and decision. |
-
 | Expired authorization | Execution Gate denies the request. |
-
 | Duplicate execution | PostgreSQL uniqueness and stable idempotency converge on the existing execution. |
-
 | Lost Razorpay Order response | The persisted initiation attempt is reconciled before another provider order can be created. |
-
 | Browser callback | Signature-checked evidence only; never sufficient by itself for payment confirmation. |
-
 | Invalid webhook signature | Rejected before event processing. |
-
 | Duplicate webhook | Stable event identity/body hash makes handling idempotent. |
-
 | Out-of-order webhook | Immutable evidence is reduced from current facts, not naïve arrival order. |
-
 | Account/order/amount/currency mismatch | Inconsistent evidence is rejected or remains `PAYMENT_UNCERTAIN`. |
-
 | Authorized but not captured | Not treated as financial success. |
-
 | Captured payment with inconsistent order state | Remains uncertain and enters reconciliation instead of being trusted blindly. |
-
 | Late capture or ambiguous provider outcome | Explicit bounded provider reconciliation, then pending/manual-review status if truth remains unavailable. |
-
 | Merchant finalization failure after payment | Payment stays confirmed; fulfilment remains pending and is retried independently. |
-
 | Crash after transaction commit | PostgreSQL transactional outbox preserves committed follow-up work for a later worker lease. |
-
 | Refund timeout or retry | Stable refund execution, request bytes, and idempotency key are reused within a bounded attempt/deadline budget. |
-
 | Concurrent refunds | A PostgreSQL refund ledger and locking reserve authority and prevent total pending-plus-completed refunds from exceeding the captured refundable amount. |
-
 | Ambiguous refund evidence | Stays pending/reconcilable; `REFUNDED` requires evidence bound to payment, amount, currency, and provider account. |
-
 | Unsafe merchant endpoint | HTTPS-only canonicalization, DNS/IP checks, unsafe-address rejection, DNS-pinned transport, and no redirects defend the approved endpoint boundary. |
-
 | Wrong tenant or merchant | Role checks plus actor-to-merchant membership and tenant-scoped queries deny cross-merchant access. |
-
 | Degraded realtime voice | Audio is stopped safely and the user can retry the session or continue by typing; commerce state remains application-owned. |
 
 ### What actually broke while we built Amana
@@ -545,7 +440,7 @@ The recovery model above was not only designed on paper. Several real integratio
 
 - **Gemini Live session degradation.** One long-running Live session degraded to roughly 10–30 second responses while fresh sessions remained fast. Amana therefore classifies session health and recovers by creating a fresh constrained Live session seeded only with compact deterministic application state—without replaying transcript or audio history.
 
-- **A positive-path safety fixture became stale as invariants hardened.** After stronger proposal, policy, and availability requirements landed, an older test fixture no longer satisfied the real authority boundary. The fixture was repaired with the missing legitimate evidence instead of weakening production checks; the backend suite returned to green without weakening the new invariants.
+- **A positive-path safety fixture became stale as invariants hardened.** After stronger proposal, policy, and availability requirements landed, an older test fixture no longer satisfied the real authority boundary. The fixture was repaired with the missing legitimate evidence instead of weakening production checks; the final backend suite returned to 251 passing tests.
 
 ### When hybrid retrieval was not actually semantic enough
 
@@ -598,27 +493,16 @@ The evaluator exposed its own blind spot: historical discovery metrics included 
 which cannot build a Buyer cart. We preserve that definition and report valid matches separately:
 
 | Fixed 80-case metric | Hybrid-v2 discovery | Hybrid-v3 discovery | Hybrid-v2 valid only | Hybrid-v3 valid only |
-
 |---|---:|---:|---:|---:|
-
 | Recall@1 | 74.63% | 83.58% | 55.22% | 76.12% |
-
 | Recall@5 | 74.63% | 83.58% | 55.22% | 76.12% |
-
 | Exact identity precision | 100% | 100% | 100% | 100% |
-
 | Generic/category accuracy | 100% | 100% | 42.86% | 71.43% |
-
 | Semantic cases | 41.67% | 66.67% | 16.67% | 58.33% |
-
 | Typo/ASR | 100% | 100% | 83.33% | 100% |
-
 | Multilingual | 16.67% | 41.67% | 16.67% | 41.67% |
-
 | Honest no-match accuracy | 90% | 90% | 100% | 100% |
-
 | Fabricated product rate | 0% | 0% | 0% | 0% |
-
 | Wrong-product/variant rate | 1.49% | 1.49% | 0% | 0% |
 
 The older lexical baseline remains **44.78% Recall@1/5**; the subsequent lexical-only fix was
@@ -637,11 +521,7 @@ with hybrid-v3: **`wireless earphones under 3500` → `AMZ-AUDIO-032`**. The sep
 
 passes: cosine `0.7306`, unchanged blended score `0.3920`, and authoritative catalogue price ₹2,999.
 
-The lexical Bluetooth regression remains green. The live run had **50 READY, 0 FAILED embeddings and
-
-0 evaluation fallbacks**. Multilingual retrieval is still weak at **5/12**; `bedside light` still has a
-
-wrong related alternative and `rain jacket` an unwanted related result, neither a valid match.
+The lexical Bluetooth regression remains green. The live run had **50 READY, 0 FAILED embeddings and 0 evaluation fallbacks**. The direct retrieval fixture still scores **5/12** on raw multilingual queries, but that evaluator bypasses the Buyer intent compiler. The production Buyer now normalizes multilingual semantic commerce fields into English before retrieval while preserving the original user-language evidence. End-to-end multilingual Buyer retrieval has not yet been re-benchmarked. `bedside light` still has a wrong related alternative and `rain jacket` an unwanted related result, neither a valid match.
 
 > Vector similarity is evidence of relevance, not authority. Amana lets semantic retrieval broaden discovery while deterministic software still controls product identity, constraints, authorization and money.
 
@@ -650,45 +530,28 @@ wrong related alternative and `rain jacket` an unwanted related result, neither 
 ### Safety is measured, not claimed.
 
 <p align="center">
-
-  <img src="docs/readme/08_safety-proof-hero.png" width="1000" alt="Amana deterministic safety proof showing all cases passed">
-
+<img src="docs/readme/08_safety-proof-hero.png" width="1000" alt="Amana deterministic safety proof showing all cases passed">
 </p>
+
 
 The offline `amana-safety-proof-v1` harness exercises production deterministic reducers and guards with inert repository/provider boundaries. Fixtures may supply records and capture effects, but they do not supply a safety verdict. The harness requires no model, external API, Docker, PostgreSQL, Razorpay credential, or production payment mutation.
 
 | Safety metric | Result |
-
 |---|---:|
-
 | Deterministic cases | **250 / 250 passed** |
-
 | Hard safety violations | **0** |
-
 | Fail-closed enforcement | **100%** |
-
 | Deterministic invariants defended | **15** |
-
 | Boundary | Cases |
-
 |---|---:|
-
 | Evidence & policy | **48** |
-
 | Capability readiness | **36** |
-
 | Proposal integrity | **60** |
-
 | Money integrity | **48** |
-
 | Callback truth | **12** |
-
 | Payment idempotency | **16** |
-
 | Refund integrity | **20** |
-
 | Refund idempotency | **10** |
-
 | **Total** | **250** |
 
 The generated report lives in [`proof/results/SUMMARY.md`](proof/results/SUMMARY.md), with machine-readable results in [`proof/results/latest.json`](proof/results/latest.json). These are deterministic safety cases, not the ordinary backend JUnit count.
@@ -698,20 +561,18 @@ The generated report lives in [`proof/results/SUMMARY.md`](proof/results/SUMMARY
 ### Merchant-side architecture
 
 <p align="center">
-
-  <img src="apps/web/public/amana/architecture-merchant.png" width="1000" alt="Merchant Agentization architecture from approved sources to evidence-backed manifest">
-
+<img src="apps/web/public/amana/architecture-merchant.png" width="1000" alt="Merchant Agentization architecture from approved sources to evidence-backed manifest">
 </p>
+
 
 The Merchant Agentization Agent operates through a typed, bounded tool registry. It inspects approved inputs, proposes mappings, invokes deterministic validators and contract tests, records evidence, pauses for merchant clarification/approval, and hands readiness publication to the reducer.
 
 ### Buyer-side architecture
 
 <p align="center">
-
-  <img src="apps/web/public/amana/architecture-buyer.png" width="1000" alt="Safe AI Buyer architecture from multimodal intent to governed payment and lifecycle">
-
+<img src="apps/web/public/amana/architecture-buyer.png" width="1000" alt="Safe AI Buyer architecture from multimodal intent to governed payment and lifecycle">
 </p>
+
 
 The Safe AI Buyer uses Gemini for intent, vision, and realtime interaction, then relies on application-owned discovery, catalogue retrieval, executable evidence refresh, risk reduction, proposal authority, Razorpay payment evidence, and lifecycle services.
 
@@ -721,17 +582,17 @@ The Safe AI Buyer uses Gemini for intent, vision, and realtime interaction, then
 
 flowchart TB
 
-    M[Merchant Agentization Agent] --> C[Deterministic commerce control plane]
+    M[Merchant Agentization Agent] --> C[Deterministic commerce control plane]
 
-    B[Safe AI Buyer] --> C
+    B[Safe AI Buyer] --> C
 
-    C --> P[(PostgreSQL 17 / Supabase)]
+    C --> P[(PostgreSQL 17 / Supabase)]
 
-    C --> G[Gemini]
+    C --> G[Gemini]
 
-    C --> R[Razorpay Test Mode]
+    C --> R[Razorpay Test Mode]
 
-    C --> I[Approved merchant interfaces]
+    C --> I[Approved merchant interfaces]
 
 ```
 
@@ -785,17 +646,15 @@ These are product implications of the implemented mechanisms, not measured conve
 
 - account for refunds under concurrency and retry.
 
-**## Automated Testing
+## Automated Testing
 
-These verification counts measure different layers and are intentionally not added into a single marketing total.
+The three numbers below measure different things and are intentionally not added into a single marketing total.
 
 | Suite | Current verified result | Purpose |
 |---|---:|---|
-| Backend | **295 tests; 0 failures, 0 errors, 1 skipped** | JUnit 5 unit/integration coverage, including real PostgreSQL/Testcontainers. The live intent-provider evaluator is opt-in and skipped during the normal suite; retrieval is measured separately with live embeddings. |
+| Backend | **295 tests; 0 failures, 0 errors, 1 skipped** | JUnit 5 unit/integration coverage, including real PostgreSQL/Testcontainers. The unrelated live intent-provider evaluator is opt-in and skipped; retrieval was also measured separately with live embeddings. |
 | Frontend Buyer | **62 passed; 0 failed, 0 skipped** | Buyer commerce, multimodal, voice, auth/demo, and UI contract behavior. |
 | Frontend Merchant | **26 passed; 0 failed, 0 skipped** | Merchant access, Amazing demo selection, guided tour, and isolated agentization replay boundaries. |
-| Frontend proof/evidence | **10 passed; 0 failed, 0 skipped** | Proof-page evidence hub, navigation, qualification, and raw-evidence contract behavior. |
-| Frontend total | **98 / 98 passed** | Current combined web test result. |
 | Deterministic safety proof | **250 / 250 passed** | Separate adversarial cases against production safety reducers and guards. |
 
 Run the suites:
@@ -823,29 +682,17 @@ pnpm web:test
 ## Tech Stack
 
 | Layer | Technology |
-
 |---|---|
-
 | Frontend | Next.js 16.2.11, React 19.2, TypeScript 5.9, Tailwind CSS 4 |
-
 | Design system | Razorpay Blade 12.121.1 plus Amana-specific presentation |
-
 | Backend | Java 25, Spring Boot 4.1.1, Spring Web MVC, Security, Session JDBC, JDBC/JdbcClient, Flyway |
-
 | Database | PostgreSQL 17 locally; Supabase PostgreSQL for the deployed system |
-
 | AI reasoning | Gemini (`gemini-3.1-flash-lite` for Buyer intent; `gemini-3.5-flash-lite` for vision and agentization) |
-
 | Realtime multimodal voice | Gemini Live (`gemini-3.1-flash-live-preview`) with native audio |
-
 | Search and retrieval | PostgreSQL FTS, `pg_trgm`, `pgvector`, Gemini `gemini-embedding-2`, deterministic lexical fallback |
-
 | Payments | Razorpay Orders and Standard Checkout in Test Mode; signed callback/webhook evidence and API reconciliation |
-
 | Reliability | PostgreSQL transactions, unique constraints, row locks, immutable evidence, transactional outbox |
-
 | Testing | JUnit 5, Spring Boot Test, Testcontainers PostgreSQL, Node's test runner |
-
 | Deployment | Vercel web, Render backend, Supabase PostgreSQL |
 
 No Kafka, BullMQ, or Redis service is required for P0.
@@ -878,31 +725,31 @@ The public deployment keeps browser session traffic same-origin through explicit
 
 Browser
 
-   |
+   |
 
-   v
+   v
 
 Vercel — Next.js / Amana Web
 
-   |
+   |
 
-   v
+   v
 
 Render — Java / Spring Boot backend
 
-   |
+   |
 
-   v
+   v
 
 Supabase — PostgreSQL
 
-   |
+   |
 
-   +--> Gemini
+   +--> Gemini
 
-   +--> Razorpay Test Mode
+   +--> Razorpay Test Mode
 
-   +--> approved Merchant interfaces
+   +--> approved Merchant interfaces
 
 ```
 
@@ -952,25 +799,25 @@ No credential values are published in this README.
 
 ├── apps/
 
-│   ├── backend/          # Java/Spring modular monolith, Flyway schema, tests
+│   ├── backend/          # Java/Spring modular monolith, Flyway schema, tests
 
-│   └── web/              # Next.js Buyer, Merchant, landing, and proof surfaces
+│   └── web/              # Next.js Buyer, Merchant, landing, and proof surfaces
 
 ├── evaluation/
 
-│   ├── demo-data/        # Synthetic Amazing and evaluation catalogue fixtures
+│   ├── demo-data/        # Synthetic Amazing and evaluation catalogue fixtures
 
-│   └── retrieval/        # Grounded retrieval evaluation seeds
+│   └── retrieval/        # Grounded retrieval evaluation seeds
 
-├── proof/results/        # Generated deterministic safety report (JSON + Markdown)
+├── proof/results/        # Generated deterministic safety report (JSON + Markdown)
 
-├── docs/readme/          # Reviewer-facing screenshots and Amana logo
+├── docs/readme/          # Reviewer-facing screenshots and Amana logo
 
-├── PROJECT_SPEC.md       # Product and architecture source of truth
+├── PROJECT_SPEC.md       # Product and architecture source of truth
 
-├── DECISIONS.md          # Accepted architecture decisions
+├── DECISIONS.md          # Accepted architecture decisions
 
-└── CONTEXT.md            # Current implementation and verification state
+└── CONTEXT.md            # Current implementation and verification state
 
 ```
 
