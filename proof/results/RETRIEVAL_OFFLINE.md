@@ -28,9 +28,9 @@ Semantic calibration: NOT_RUN (provider inactive).
 ## Provenance
 
 - Schema version: `amana-retrieval-evidence-v1`
-- Commit SHA: `6fc5594f32a8afdccd64b8ff71e150c16650a851`
+- Commit SHA: `2fb8c630ed488a4dc493d1703022768b64735990`
 - Working tree dirty: `true`
-- Generated UTC: `2026-09-09T17:48:28.891499100Z`
+- Generated UTC: `2026-09-10T17:21:33.182168300Z`
 - Runtime: Java `25.0.4.1+1-LTS`; Node `v24.19.0`
 - OS / host: `Windows 11 10.0 amd64` / `DESKTOP-P3MC09V`
 - Sample size: 80

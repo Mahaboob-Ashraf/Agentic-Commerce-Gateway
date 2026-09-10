@@ -38,6 +38,7 @@ import tools.jackson.databind.node.ObjectNode;
 
 /** Provider-backed Buyer intent -> production search mapping -> PostgreSQL hybrid-v3 evaluation. */
 @Testcontainers
+@EnabledIfEnvironmentVariable(named = "RUN_MULTILINGUAL_E2E_EVALUATION", matches = "true")
 @SpringBootTest(properties = {"buyer.gemini.enabled=false", "catalogue.embedding.enabled=true"})
 class MultilingualBuyerRetrievalEvaluationIntegrationTest {
     private static final String MODEL = "gemini-3.1-flash-lite";
@@ -56,7 +57,6 @@ class MultilingualBuyerRetrievalEvaluationIntegrationTest {
     @Autowired ObjectMapper mapper;
 
     @Test
-    @EnabledIfEnvironmentVariable(named = "RUN_MULTILINGUAL_E2E_EVALUATION", matches = "true")
     void measuresTrueMultilingualBuyerRetrieval() throws Exception {
         String key = firstNonBlank(System.getenv("GEMINI_API_KEYLAND"), System.getenv("GEMINI_API_KEY"));
         assertThat(key).as("GEMINI_API_KEYLAND or GEMINI_API_KEY is required for real Gemini intent and embeddings").isNotBlank();
@@ -390,3 +390,5 @@ class MultilingualBuyerRetrievalEvaluationIntegrationTest {
         }
     }
 }
+
+

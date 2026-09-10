@@ -1,9 +1,9 @@
 {
   "schemaVersion" : "amana-deterministic-safety-evidence-v1",
   "provenance" : {
-    "commitSha" : "6fc5594f32a8afdccd64b8ff71e150c16650a851",
+    "commitSha" : "2fb8c630ed488a4dc493d1703022768b64735990",
     "workingTreeDirty" : true,
-    "generatedAtUtc" : "2026-09-09T16:20:13.858387400Z",
+    "generatedAtUtc" : "2026-09-10T17:21:50.107479400Z",
     "runtime" : {
       "java" : "25.0.4.1+1-LTS",
       "node" : "v24.19.0"
@@ -2522,7 +2522,7 @@
   } ],
   "limitations" : [ "Offline deterministic component proof with inert persistence/provider boundaries." ],
   "whatThisDoesNotProve" : "This does not prove mutation sensitivity, HTTP security, PostgreSQL concurrency, provider behavior, or production traffic safety.",
-  "timestamp" : "2026-09-09T16:20:13.898275200Z",
+  "timestamp" : "2026-09-10T17:21:50.130480200Z",
   "suite" : "Amana deterministic safety evaluation",
   "version" : "amana-safety-proof-v1",
   "totalCases" : 250,
