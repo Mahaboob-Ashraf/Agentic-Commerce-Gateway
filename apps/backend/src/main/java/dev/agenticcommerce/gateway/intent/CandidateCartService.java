@@ -32,7 +32,7 @@ public class CandidateCartService {
             CatalogueRepository catalogues,BuyerDecisionProvider decisions,CanonicalJsonService canonical,ObjectMapper mapper){
         this.retrieval=retrieval;this.repository=repository;this.catalogues=catalogues;this.decisions=decisions;this.canonical=canonical;this.mapper=mapper;}
     public MerchantSearch search(BuyerIntent intent,MerchantDiscovery discovery){long started=System.nanoTime();List<MerchantResult> results=new ArrayList<>();
-        for(MerchantCandidate merchant:discovery.eligibleMerchants()){SearchResponse response=retrieval.search(merchant.merchantId(),request(intent.compiled()));
+        for(MerchantCandidate merchant:discovery.eligibleMerchants()){SearchResponse response=retrieval.search(merchant.merchantId(),searchRequest(intent.compiled()));
             results.add(new MerchantResult(merchant,response));}
         results.sort(Comparator.<MerchantResult,Boolean>comparing(r->r.merchant().quoteMappingId()!=null).reversed()
                 .thenComparing(Comparator.<MerchantResult>comparingDouble(r->r.response().matches().isEmpty()?0:r.response().matches().getFirst().score()).reversed())
@@ -85,7 +85,7 @@ public class CandidateCartService {
         }catch(BuyerException e){if(e.code().equals("AI_PROVIDER_UNAVAILABLE")||e.code().equals("AI_PROVIDER_RATE_LIMITED"))throw e;feedback=bounded(e.getMessage());}
         catch(RuntimeException e){feedback="Candidate output failed deterministic validation";}
         throw new BuyerException("BUYER_CANDIDATE_DECISION_INVALID",HttpStatus.UNPROCESSABLE_ENTITY,"Candidate decision remained invalid after one retry");}
-    private SearchHit revalidatedHit(BuyerIntent intent,GroundedCandidate selected){return retrieval.search(selected.merchant().merchantId(),request(intent.compiled())).matches().stream()
+    private SearchHit revalidatedHit(BuyerIntent intent,GroundedCandidate selected){return retrieval.search(selected.merchant().merchantId(),searchRequest(intent.compiled())).matches().stream()
             .filter(candidate->candidate.product().id().equals(selected.hit().product().id())).findFirst()
             .orElseThrow(()->new BuyerException("SELECTED_PRODUCT_REVALIDATION_FAILED",HttpStatus.CONFLICT,"Selected product no longer satisfies authoritative deterministic filters"));}
     private CandidateOption option(GroundedCandidate candidate){Product p=candidate.hit().product();return new CandidateOption(p.id(),p.merchantId(),p.canonicalName(),p.brand(),p.variant(),p.sizeStorage(),p.colour(),p.category(),p.priceMinor(),p.currency(),candidate.hit().score());}
@@ -93,7 +93,7 @@ public class CandidateCartService {
         if(context.candidates().stream().noneMatch(candidate->candidate.productId().equals(selection.productId())))throw new IllegalArgumentException("Candidate product ID is outside the supplied set");
         if(selection.conciseRationale()==null||selection.conciseRationale().isBlank()||selection.conciseRationale().length()>512)throw new IllegalArgumentException("Candidate rationale is invalid");
         if(selection.evidenceReferences()==null||selection.evidenceReferences().size()>32||!Set.copyOf(context.evidenceReferences()).containsAll(selection.evidenceReferences()))throw new IllegalArgumentException("Candidate evidence references are outside the supplied set");}
-    private static SearchRequest request(CompiledIntent i){StringBuilder q=new StringBuilder();if(i.categoryRequest()!=null)q.append(i.categoryRequest());
+    static SearchRequest searchRequest(CompiledIntent i){StringBuilder q=new StringBuilder();if(i.categoryRequest()!=null)q.append(i.categoryRequest());
         if(i.exactBrand()!=null)q.append(' ').append(i.exactBrand());if(i.exactVariant()!=null)q.append(' ').append(i.exactVariant());
         if(i.exactSizeStorage()!=null)q.append(' ').append(i.exactSizeStorage());if(i.exactColour()!=null)q.append(' ').append(i.exactColour());
         if(i.softPreferences()!=null&&i.softPreferences().contains("HIGH_PROTEIN"))q.append(" high protein");

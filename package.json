@@ -21,6 +21,7 @@
     "proof:latency": "node scripts/run-evidence.mjs latency",
     "proof:evaluate:retrieval": "node scripts/run-evidence.mjs retrieval",
     "proof:evaluate:intent": "node scripts/run-evidence.mjs intent",
+    "proof:evaluate:multilingual": "node scripts/run-evidence.mjs multilingual",
     "proof:verify": "node scripts/run-evidence.mjs verify",
     "proof:evaluate": "pnpm proof:evaluate:retrieval && pnpm proof:evaluate:intent"
   }

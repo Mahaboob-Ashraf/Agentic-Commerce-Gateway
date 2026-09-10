@@ -115,6 +115,36 @@ function providerIntent() {
   if (result.status !== 0) throw new Error(`provider intent evaluation failed with exit code ${result.status}`);
 }
 
+function dotenvValue(name) {
+  try {
+    const source = fs.readFileSync(path.join(root, ".env"), "utf8");
+    for (const rawLine of source.split(/\r?\n/)) {
+      const line = rawLine.trim();
+      if (!line || line.startsWith("#")) continue;
+      const separator = line.indexOf("=");
+      if (separator < 1 || line.slice(0, separator).trim() !== name) continue;
+      let value = line.slice(separator + 1).trim();
+      if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+        value = value.slice(1, -1);
+      }
+      return value;
+    }
+  } catch {}
+  return "";
+}
+
+function providerMultilingual() {
+  const key = process.env.GEMINI_API_KEYLAND || process.env.GEMINI_API_KEY || dotenvValue("GEMINI_API_KEY");
+  if (!key) throw new Error("multilingual evaluation requires GEMINI_API_KEYLAND or GEMINI_API_KEY (process environment or repository .env)");
+  const env = { ...process.env, GEMINI_API_KEY: key, RUN_MULTILINGUAL_E2E_EVALUATION: "true",
+    CATALOGUE_EMBEDDING_ENABLED: "true", GEMINI_BUYER_INTENT_MODEL: "gemini-3.1-flash-lite" };
+  const result = spawnSync(wrapper, ["--batch-mode", `-Dmaven.repo.local=${path.join(os.homedir(), ".m2", "repository")}`,
+    "-Dtest=dev.agenticcommerce.gateway.intent.MultilingualBuyerRetrievalEvaluationIntegrationTest", "test"],
+    { cwd: backend, env, stdio: "inherit", shell: windows });
+  if (result.error) throw result.error;
+  if (result.status !== 0) throw new Error("multilingual evaluation failed: verify Docker/Testcontainers is running and Gemini provider access is valid");
+}
+
 function verify() {
   execute(process.execPath, ["scripts/evidence.mjs", "validate"]);
   maven("dev.agenticcommerce.gateway.proof.SafetyEvaluationTest,dev.agenticcommerce.gateway.proof.MutationProofTest");
@@ -133,6 +163,7 @@ try {
   else if (action === "latency") maven("Task011BuyerLifecycleIntegrationTest#measuredWarmPathLatencyUsesLocalDeterministicProviders");
   else if (action === "retrieval") maven("dev.agenticcommerce.gateway.catalogue.RetrievalEvaluationIntegrationTest");
   else if (action === "intent") providerIntent();
+  else if (action === "multilingual") providerMultilingual();
   else throw new Error(`Unknown evidence action: ${action}`);
 } catch (error) {
   console.error(error.message);

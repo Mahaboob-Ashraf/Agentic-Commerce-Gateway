@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const resultsDir = path.join(root, "proof", "results");
 const retrievalPath = path.join(root, "evaluation", "retrieval", "amazing-labelled-v1.json");
+const multilingualPath = path.join(root, "evaluation", "retrieval", "multilingual-e2e-labelled-v1.json");
 const intentPath = path.join(root, "evaluation", "intent", "buyer-intent-labelled-v1.json");
 const command = process.argv[2] ?? "validate";
 
@@ -40,6 +41,26 @@ function validateDatasets() {
       `${item.id} expected outcome and labels disagree`);
   }
 
+  const multilingual = readJson(multilingualPath);
+  requireValue(multilingual.schemaVersion === "amana-multilingual-e2e-dataset-v1", "multilingual E2E schemaVersion is invalid");
+  requireValue(multilingual.cases.length === 17, "multilingual E2E dataset must contain 12 recall cases and 5 negative controls");
+  requireValue(multilingual.cases.filter(value => value.cohort === "RECALL").length === 12, "multilingual E2E recall cohort must contain 12 cases");
+  requireValue(multilingual.cases.filter(value => value.cohort === "NEGATIVE_CONTROL").length === 5, "multilingual E2E negative cohort must contain 5 cases");
+  for (const language of ["hi", "hinglish", "te", "ur"]) {
+    requireValue(multilingual.cases.filter(value => value.cohort === "RECALL" && value.language === language).length === 3,
+      `multilingual E2E ${language} recall cohort must contain 3 cases`);
+  }
+  const multilingualIds = new Set();
+  for (const item of multilingual.cases) {
+    requireValue(!multilingualIds.has(item.id), `duplicate multilingual E2E id ${item.id}`);
+    multilingualIds.add(item.id);
+    requireValue(typeof item.utterance === "string" && item.utterance.trim(), `${item.id} has no utterance`);
+    requireValue(typeof item.expectedNormalizedMeaning === "string" && item.expectedNormalizedMeaning.trim(), `${item.id} has no normalized meaning label`);
+    requireValue(["VALID_MATCH", "NO_TRUSTWORTHY_MATCH", "CLARIFICATION"].includes(item.expectedOutcome), `${item.id} outcome is invalid`);
+    requireValue(Array.isArray(item.expectedSkus), `${item.id} expectedSkus is invalid`);
+    for (const sku of item.expectedSkus) requireValue(skus.has(sku), `${item.id} labels unknown SKU ${sku}`);
+  }
+
   const intent = readJson(intentPath);
   requireValue(intent.schemaVersion === "amana-buyer-intent-dataset-v1", "intent schemaVersion is invalid");
   requireValue(intent.cases.length >= 48, "intent dataset must contain at least 48 cases");
@@ -59,7 +80,8 @@ function validateDatasets() {
   }
   return {
     retrieval: { sampleSize: retrieval.cases.length, classCounts: Object.fromEntries([...retrievalMinimums.keys()].map(name => [name, countClass(retrieval.cases, name)])) },
-    intent: { sampleSize: intent.cases.length, classCounts: Object.fromEntries(intentClasses.map(name => [name, countClass(intent.cases, name)])) }
+    intent: { sampleSize: intent.cases.length, classCounts: Object.fromEntries(intentClasses.map(name => [name, countClass(intent.cases, name)])) },
+    multilingualE2e: { sampleSize: multilingual.cases.length, recallCases: 12, negativeControls: 5 }
   };
 }
 

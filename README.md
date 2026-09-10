@@ -310,6 +310,8 @@ The Buyer can accept Hindi, Hinglish, Telugu, Urdu, and English while keeping me
 
 This keeps language understanding inside the model while catalogue identity and transaction authority remain deterministic.
 
+A provider-backed end-to-end evaluation now measures that actual path against the English Amazing fixture: multilingual utterance → `gemini-3.1-flash-lite` intent compilation → the production `SearchRequest` mapping → `gemini-embedding-2` query embedding → PostgreSQL 17/pgvector hybrid-v3 retrieval. Across 12 labelled Hindi, Hinglish, Telugu, and Urdu cases, valid Recall@1/5 is **8/12 (66.67%)** and discovery Recall@1/5 is **10/12 (83.33%)**. Each language scores 2/3 valid at ranks 1 and 5, and all 12 intents produce the labelled English meaning and hard constraints. Four separate multilingual no-match controls score **4/4 (100%)**, and a fifth authorization-skip control correctly requests clarification, with no fabricated valid product, wrong valid product/variant, vector fallback, provider error, or authorization attempt. This is a small fixture evaluation, not production-scale benchmarking. [Generated evidence](proof/results/MULTILINGUAL_E2E.md)
+
 ### Multimodal input, one authority path
 
 The Buyer accepts typed language, realtime voice, image/product visual input, and conversational corrections. Each surface produces a hypothesis or structured request; none creates authoritative commerce facts.
@@ -521,7 +523,7 @@ with hybrid-v3: **`wireless earphones under 3500` → `AMZ-AUDIO-032`**. The sep
 
 passes: cosine `0.7306`, unchanged blended score `0.3920`, and authoritative catalogue price ₹2,999.
 
-The lexical Bluetooth regression remains green. The live run had **50 READY, 0 FAILED embeddings and 0 evaluation fallbacks**. The direct retrieval fixture still scores **5/12** on raw multilingual queries, but that evaluator bypasses the Buyer intent compiler. The production Buyer now normalizes multilingual semantic commerce fields into English before retrieval while preserving the original user-language evidence. End-to-end multilingual Buyer retrieval has not yet been re-benchmarked. `bedside light` still has a wrong related alternative and `rain jacket` an unwanted related result, neither a valid match.
+The lexical Bluetooth regression remains green. The live run had **50 READY, 0 FAILED embeddings and 0 evaluation fallbacks**. The old direct multilingual retrieval fixture remains **5/12 (41.67%)** because it sends raw multilingual queries straight to retrieval and bypasses the Buyer intent compiler. The new provider-backed Buyer-path measurement is **8/12 (66.67%) valid Recall@1/5** after Gemini English normalization, a 25 percentage-point increase, while discovery Recall@1/5 is **10/12 (83.33%)**. The four valid misses are the white-shoes cases: two return the labelled SKU only as a related alternative and two return no candidate. `bedside light` still has a wrong related alternative and `rain jacket` an unwanted related result, neither a valid match.
 
 > Vector similarity is evidence of relevance, not authority. Amana lets semantic retrieval broaden discovery while deterministic software still controls product identity, constraints, authorization and money.
 
