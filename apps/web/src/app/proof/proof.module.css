@@ -66,6 +66,27 @@
   letter-spacing: 0.04em;
 }
 
+.navActions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.securityLink {
+  border-right: 1px solid var(--proof-border);
+  padding-right: 1rem;
+  color: var(--proof-blue-deep);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.securityLink:hover,
+.securityLink:focus-visible {
+  text-decoration: underline;
+  text-underline-offset: 0.25rem;
+}
+
 .liveDot {
   width: 0.45rem;
   height: 0.45rem;

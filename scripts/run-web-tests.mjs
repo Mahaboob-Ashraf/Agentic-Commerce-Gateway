@@ -25,7 +25,7 @@ function run(name, script) {
 function commandOutput(command, args) { try { return execFileSync(command, args, { cwd: root, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim(); } catch { return "UNAVAILABLE"; } }
 
 try {
-  const suites = [run("Buyer", "test:commerce"), run("Merchant", "test:merchant"), run("Proof", "test:proof")];
+  const suites = [run("Buyer", "test:commerce"), run("Merchant", "test:merchant"), run("Proof", "test:proof"), run("Security", "test:security")];
   if (suites.some(value => value.tests === null || value.passed === null || value.failed === null)) throw new Error("Could not parse Node test-runner counts");
   const totals = suites.reduce((sum, value) => ({ tests: sum.tests + value.tests, passed: sum.passed + value.passed, failed: sum.failed + value.failed, skipped: sum.skipped + (value.skipped || 0) }), { tests: 0, passed: 0, failed: 0, skipped: 0 });
   const artifact = { schemaVersion: "amana-frontend-test-evidence-v1", provenance: {

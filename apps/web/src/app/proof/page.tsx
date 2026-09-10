@@ -136,9 +136,12 @@ export default function ProofPage() {
           />
           <span>Amana</span>
         </Link>
-        <div className={styles.navMeta}>
-          <span className={styles.liveDot} aria-hidden="true" />
-          EVIDENCE HUB
+        <div className={styles.navActions}>
+          <Link className={styles.securityLink} href="/security">Security replay</Link>
+          <div className={styles.navMeta}>
+            <span className={styles.liveDot} aria-hidden="true" />
+            EVIDENCE HUB
+          </div>
         </div>
       </nav>
 
