@@ -32,7 +32,7 @@ export function SecurityExperience({ scenarios }: SecurityExperienceProps) {
     setReplayStage(replaySteps.length);
   };
 
-  const replayProof = () => {
+  const replayEvidence = () => {
     setReplayStage(1);
   };
 
@@ -98,15 +98,20 @@ export function SecurityExperience({ scenarios }: SecurityExperienceProps) {
           </div>
         </div>
 
-        <button
-          className={styles.replayButton}
-          disabled={replayStage > 0 && replayStage < replaySteps.length}
-          onClick={replayProof}
-          type="button"
-        >
-          <span aria-hidden="true">↻</span>
-          Replay deterministic proof
-        </button>
+        <div className={styles.replayActions}>
+          <button
+            className={styles.replayButton}
+            disabled={replayStage > 0 && replayStage < replaySteps.length}
+            onClick={replayEvidence}
+            type="button"
+          >
+            <span aria-hidden="true">↻</span>
+            Replay evidence trace
+          </button>
+          <p className={styles.replayDisclosure}>
+            Visualization of an executed deterministic proof case. No live attack is performed.
+          </p>
+        </div>
 
         <dl className={styles.engineeringDetails}>
           <div>

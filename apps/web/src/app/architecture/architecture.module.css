@@ -1,0 +1,1304 @@
+.page {
+  --architecture-blue: #1653e8;
+  --architecture-blue-deep: #103baf;
+  --architecture-ink: #101d35;
+  --architecture-muted: #64728a;
+  --architecture-border: #d9e3f1;
+  --architecture-ai: #f0f4fb;
+  --architecture-authority: #eaf2ff;
+  --architecture-external: #fff8e8;
+  min-height: 100svh;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 82% 5%, rgb(190 215 255 / 54%), transparent 25rem),
+    radial-gradient(circle at 5% 34%, rgb(226 238 255 / 64%), transparent 24rem),
+    linear-gradient(180deg, #f8fbff 0, #fff 52rem);
+  color: var(--architecture-ink);
+  font-family: var(--amana-font-body);
+}
+
+.nav,
+.hero,
+.diagramSection,
+.detailSection,
+.explanationSection,
+.destinations,
+.footer {
+  width: min(calc(100% - 2rem), 82rem);
+  margin-inline: auto;
+}
+
+.nav {
+  display: flex;
+  min-height: 4.75rem;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--architecture-border);
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: var(--architecture-ink);
+  font-family: var(--amana-font-display);
+  font-size: 1.125rem;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  text-decoration: none;
+}
+
+.brandMark {
+  display: block;
+  width: 2.15rem;
+  height: 2.15rem;
+  object-fit: contain;
+}
+
+.navLinks {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.navLinks > span {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--architecture-muted);
+  font-size: 0.67rem;
+  font-weight: 720;
+  letter-spacing: 0.08em;
+}
+
+.navLinks i {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background: #12a477;
+  box-shadow: 0 0 0 0.25rem rgb(18 164 119 / 11%);
+}
+
+.navLinks a {
+  border-left: 1px solid var(--architecture-border);
+  padding-left: 1rem;
+  color: var(--architecture-blue-deep);
+  font-size: 0.78rem;
+  font-weight: 720;
+  text-decoration: none;
+}
+
+.navLinks a:hover,
+.navLinks a:focus-visible,
+.footer a:hover,
+.footer a:focus-visible {
+  text-decoration: underline;
+  text-underline-offset: 0.25rem;
+}
+
+.hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(20rem, 0.65fr);
+  align-items: end;
+  gap: clamp(2rem, 7vw, 7rem);
+  padding-block: clamp(3.5rem, 7vw, 6.25rem) clamp(3rem, 5vw, 4.5rem);
+}
+
+.eyebrow {
+  margin: 0 0 0.9rem;
+  color: var(--architecture-blue);
+  font-size: 0.69rem;
+  font-weight: 760;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.hero h1,
+.diagramHeading h2,
+.sectionHeading h2,
+.destinations h2 {
+  margin: 0;
+  font-family: var(--amana-font-display);
+  font-variation-settings: "wdth" 104;
+  font-weight: 570;
+  letter-spacing: -0.05em;
+}
+
+.hero h1 {
+  max-width: 15ch;
+  font-size: clamp(3rem, 5.8vw, 5.75rem);
+  line-height: 0.94;
+}
+
+.hero h1 em {
+  color: var(--architecture-blue);
+  font-style: normal;
+}
+
+.heroSupport {
+  padding-bottom: 0.35rem;
+}
+
+.heroSupport p {
+  margin: 0;
+  color: #4f5f78;
+  font-size: clamp(1rem, 1.3vw, 1.16rem);
+  line-height: 1.65;
+}
+
+.heroSupport strong {
+  display: block;
+  margin-top: 1.4rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--architecture-border);
+  font-size: 0.78rem;
+  line-height: 1.65;
+}
+
+.diagramSection {
+  padding-bottom: clamp(5rem, 8vw, 8rem);
+}
+
+.diagramHeading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 2rem;
+  margin-bottom: 1.4rem;
+}
+
+.diagramHeading h2,
+.sectionHeading h2,
+.destinations h2 {
+  font-size: clamp(2rem, 3.6vw, 3.6rem);
+  line-height: 1;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.55rem;
+}
+
+.legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: #526178;
+  font-size: 0.66rem;
+  font-weight: 680;
+}
+
+.legend span::before {
+  width: 0.58rem;
+  height: 0.58rem;
+  border: 1px solid #aebbd0;
+  border-radius: 0.18rem;
+  background: var(--architecture-ai);
+  content: "";
+}
+
+.legend span[data-kind="authority"]::before {
+  border-color: #77a1f4;
+  background: var(--architecture-authority);
+}
+
+.legend span[data-kind="external"]::before {
+  border-color: #d8bd79;
+  background: var(--architecture-external);
+}
+
+.systemMap {
+  position: relative;
+  overflow: hidden;
+  margin: 0;
+  border: 1px solid #cad9ee;
+  border-radius: 1.5rem;
+  background: rgb(255 255 255 / 91%);
+  box-shadow: 0 2.5rem 7rem -3rem rgb(23 72 161 / 30%);
+}
+
+.reasoningZone {
+  display: grid;
+  grid-template-columns: 10rem minmax(0, 1fr);
+  align-items: center;
+  gap: 1.25rem;
+  padding: 1.15rem 1.4rem;
+  background:
+    linear-gradient(90deg, rgb(238 243 251 / 96%), rgb(248 250 253 / 96%)),
+    repeating-linear-gradient(90deg, transparent 0 1.9rem, rgb(38 69 119 / 5%) 1.9rem 2rem);
+}
+
+.zoneLabel,
+.columnLabel {
+  color: #5d6b81;
+  font-size: 0.63rem;
+  font-weight: 760;
+  letter-spacing: 0.12em;
+}
+
+.geminiNode {
+  display: grid;
+  grid-template-columns: 7rem minmax(13rem, 0.7fr) minmax(18rem, 1fr) minmax(13rem, 0.75fr);
+  align-items: center;
+  gap: 1rem;
+  padding: 0.85rem 1rem;
+  border: 1px dashed #aab8ce;
+  border-radius: 0.9rem;
+  background: rgb(255 255 255 / 74%);
+}
+
+.nodeKicker,
+.merchantSystems > span:first-child,
+.razorpayNode > span,
+.reconciliationNode > span,
+.postgresNode span,
+.controlEyebrow,
+.agentCard > span {
+  color: var(--architecture-blue-deep);
+  font-size: 0.62rem;
+  font-weight: 780;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.geminiNode h3,
+.agentCard h3,
+.merchantSystems h3,
+.controlPlane h3,
+.razorpayNode h3,
+.reconciliationNode h3,
+.fulfilmentNode h3,
+.postgresNode h3,
+.flowCard h3,
+.explanationGrid h3 {
+  margin: 0;
+  font-family: var(--amana-font-display);
+  font-weight: 620;
+  letter-spacing: -0.025em;
+}
+
+.geminiNode h3 {
+  font-size: 1rem;
+}
+
+.geminiNode p,
+.geminiNode small {
+  margin: 0;
+  color: #56667e;
+  font-size: 0.7rem;
+  line-height: 1.5;
+}
+
+.geminiNode small {
+  color: #34445e;
+  font-weight: 650;
+}
+
+.trustBoundary {
+  display: grid;
+  grid-template-columns: 10rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 1.25rem;
+  padding: 0.7rem 1.4rem;
+  border-block: 1px solid #7399dd;
+  background: #173f91;
+  color: #fff;
+}
+
+.trustBoundary span {
+  font-size: 0.61rem;
+  font-weight: 760;
+  letter-spacing: 0.12em;
+}
+
+.trustBoundary span:last-child {
+  color: #c8d9ff;
+  text-align: right;
+}
+
+.trustBoundary strong {
+  font-size: 0.75rem;
+}
+
+.geminiIngress {
+  display: grid;
+  grid-template-columns: minmax(14rem, 0.72fr) minmax(31rem, 1.7fr) minmax(13rem, 0.68fr);
+  gap: 1rem;
+  padding-inline: 1.25rem;
+  background: #f8fbff;
+}
+
+.geminiIngress > span {
+  grid-column: 2;
+  justify-self: center;
+  padding-top: 0.55rem;
+  color: #5b6e8b;
+  font-size: 0.53rem;
+  font-weight: 780;
+  letter-spacing: 0.1em;
+  text-align: center;
+}
+
+.geminiIngress > i,
+.controlDrop > i {
+  position: relative;
+  grid-column: 2;
+  justify-self: center;
+  width: 1px;
+  height: 1.2rem;
+  background: #5279bb;
+}
+
+.geminiIngress > i::after,
+.controlDrop > i::after {
+  position: absolute;
+  bottom: -0.05rem;
+  left: -0.25rem;
+  border-top: 0.38rem solid #5279bb;
+  border-right: 0.25rem solid transparent;
+  border-left: 0.25rem solid transparent;
+  content: "";
+}
+
+.controlGrid {
+  display: grid;
+  grid-template-columns: minmax(14rem, 0.72fr) minmax(31rem, 1.7fr) minmax(13rem, 0.68fr);
+  align-items: stretch;
+  gap: 1rem;
+  padding: 1.25rem;
+  background:
+    linear-gradient(180deg, #f8fbff, #fff),
+    repeating-linear-gradient(0deg, transparent 0 2.9rem, rgb(18 60 126 / 4%) 2.9rem 3rem);
+}
+
+.agentColumn {
+  display: grid;
+  align-content: center;
+  gap: 0.7rem;
+}
+
+.columnLabel {
+  padding-inline: 0.2rem;
+}
+
+.agentCard,
+.merchantSystems {
+  position: relative;
+  padding: 1rem;
+  border: 1px solid #cbd6e5;
+  border-radius: 0.9rem;
+  background: #fff;
+}
+
+.agentCard::after {
+  position: absolute;
+  z-index: 2;
+  top: 50%;
+  right: -1.15rem;
+  width: 1.15rem;
+  border-top: 1px solid #6888bf;
+  content: "";
+}
+
+.agentCard::before {
+  position: absolute;
+  z-index: 3;
+  top: 50%;
+  right: -1.25rem;
+  transform: translateY(-50%);
+  border-top: 0.25rem solid transparent;
+  border-bottom: 0.25rem solid transparent;
+  border-left: 0.4rem solid #6888bf;
+  content: "";
+}
+
+.agentCard h3,
+.merchantSystems h3 {
+  margin-top: 0.35rem;
+  font-size: 1rem;
+  line-height: 1.15;
+}
+
+.agentCard p,
+.merchantSystems p {
+  margin: 0.6rem 0 0;
+  color: #4f5f77;
+  font-size: 0.7rem;
+  line-height: 1.5;
+}
+
+.agentCard small,
+.merchantSystems small {
+  display: block;
+  margin-top: 0.65rem;
+  color: #2c3d57;
+  font-size: 0.64rem;
+  font-weight: 650;
+  line-height: 1.45;
+}
+
+.agentCard b,
+.merchantSystems b {
+  display: block;
+  margin-top: 0.65rem;
+  color: var(--architecture-blue-deep);
+  font-size: 0.56rem;
+  letter-spacing: 0.08em;
+}
+
+.agentCard b::after {
+  content: " →";
+}
+
+.controlPlane {
+  position: relative;
+  padding: 1.25rem;
+  border: 1px solid #7098e5;
+  border-radius: 1.1rem;
+  background:
+    radial-gradient(circle at 100% 0, rgb(186 211 255 / 52%), transparent 18rem),
+    #edf4ff;
+  box-shadow: 0 1.2rem 3rem -2rem rgb(20 70 164 / 46%);
+}
+
+.authorityBadge,
+.externalBadge {
+  position: absolute;
+  top: 0;
+  right: 1rem;
+  transform: translateY(-50%);
+  border: 1px solid #7098e5;
+  border-radius: 999px;
+  background: #fff;
+  padding: 0.28rem 0.55rem;
+  color: var(--architecture-blue-deep);
+  font-size: 0.53rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+}
+
+.controlEyebrow {
+  margin: 0 0 0.3rem;
+}
+
+.controlPlane > h3 {
+  font-size: clamp(1.35rem, 2.2vw, 2rem);
+}
+
+.controlIntro {
+  max-width: 48rem;
+  margin: 0.5rem 0 1rem;
+  color: #465875;
+  font-size: 0.72rem;
+}
+
+.capabilityGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.55rem;
+}
+
+.capabilityGrid article {
+  position: relative;
+  min-height: 5.6rem;
+  padding: 0.8rem;
+  border: 1px solid #c8daf8;
+  border-radius: 0.75rem;
+  background: rgb(255 255 255 / 80%);
+}
+
+.capabilityGrid article > span {
+  color: #0b7b58;
+  font-size: 0.72rem;
+}
+
+.capabilityGrid h4 {
+  margin: 0.3rem 0 0;
+  font-size: 0.73rem;
+}
+
+.capabilityGrid p {
+  margin: 0.35rem 0 0;
+  color: #5b6a81;
+  font-size: 0.61rem;
+  line-height: 1.4;
+}
+
+.transitionRail {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: 0.75rem;
+  border: 1px solid #b8cff5;
+  border-radius: 0.75rem;
+  background: #fff;
+}
+
+.transition {
+  position: relative;
+  display: grid;
+  gap: 0.15rem;
+  padding: 0.6rem 0.75rem;
+}
+
+.transition + .transition {
+  border-left: 1px solid #d4e1f7;
+}
+
+.transition + .transition::before {
+  position: absolute;
+  top: 50%;
+  left: -0.32rem;
+  transform: translateY(-50%);
+  background: #fff;
+  color: var(--architecture-blue);
+  content: "→";
+  font-size: 0.68rem;
+}
+
+.transition span {
+  color: #738199;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.52rem;
+}
+
+.transition strong {
+  overflow-wrap: anywhere;
+  color: #193f85;
+  font-size: 0.62rem;
+}
+
+.merchantSystems {
+  align-self: center;
+  border-color: #d8bd79;
+  background: var(--architecture-external);
+}
+
+.merchantSystems::before {
+  position: absolute;
+  z-index: 2;
+  top: 50%;
+  left: -1.15rem;
+  width: 1.15rem;
+  border-top: 1px solid #9d803c;
+  content: "";
+}
+
+.merchantSystems::after {
+  position: absolute;
+  z-index: 3;
+  top: 50%;
+  left: -1.25rem;
+  transform: translateY(-50%);
+  border-top: 0.25rem solid transparent;
+  border-right: 0.4rem solid #9d803c;
+  border-bottom: 0.25rem solid transparent;
+  content: "";
+}
+
+.externalBadge {
+  border-color: #d8bd79;
+  color: #775611;
+}
+
+.merchantSystems > span:first-child {
+  color: #775611;
+}
+
+.merchantSystems b::after {
+  content: " ←";
+}
+
+.controlDrop {
+  display: grid;
+  grid-template-columns: 1fr;
+  justify-items: center;
+  padding: 0 1.25rem;
+  background: #fff;
+}
+
+.controlDrop > span {
+  padding-top: 0.45rem;
+  color: #234b8f;
+  font-size: 0.53rem;
+  font-weight: 780;
+  letter-spacing: 0.1em;
+}
+
+.controlDrop > i {
+  grid-column: 1;
+  height: 1.5rem;
+}
+
+.paymentPath {
+  display: grid;
+  grid-template-columns:
+    minmax(9rem, 1.05fr) minmax(5rem, 0.55fr)
+    minmax(9rem, 0.9fr) minmax(6rem, 0.7fr)
+    minmax(11rem, 1.15fr) minmax(5rem, 0.55fr)
+    minmax(10rem, 1fr);
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0 1.25rem 1.25rem;
+}
+
+.pathConnector {
+  display: grid;
+  align-items: center;
+  gap: 0.2rem;
+  color: #6b7b92;
+  font-size: 0.52rem;
+  font-weight: 730;
+  letter-spacing: 0.06em;
+  line-height: 1.45;
+  text-align: center;
+}
+
+.pathConnector small {
+  color: #8290a5;
+  font-size: 0.48rem;
+  letter-spacing: 0;
+}
+
+.pathConnector i {
+  position: relative;
+  width: 100%;
+  height: 1px;
+  margin-top: 0.2rem;
+  background: #5279bb;
+}
+
+.pathConnector i::after {
+  position: absolute;
+  top: -0.25rem;
+  right: -0.05rem;
+  border-top: 0.25rem solid transparent;
+  border-bottom: 0.25rem solid transparent;
+  border-left: 0.42rem solid #5279bb;
+  content: "";
+}
+
+.executionGate {
+  display: flex;
+  min-height: 6.25rem;
+  flex-direction: column;
+  justify-content: center;
+  border-radius: 0.8rem;
+  background: #102f69;
+  padding: 0.85rem 0.95rem;
+  color: #fff;
+  box-shadow: 0 1.2rem 2.6rem -1.8rem rgb(15 47 105 / 65%);
+}
+
+.executionGate span {
+  color: #a9c5ff;
+  font-size: 0.53rem;
+  font-weight: 760;
+  letter-spacing: 0.09em;
+}
+
+.executionGate strong {
+  margin-top: 0.2rem;
+  font-family: var(--amana-font-display);
+  font-size: 1rem;
+}
+
+.executionGate small {
+  margin-top: 0.35rem;
+  color: #d5e2ff;
+  font-size: 0.56rem;
+  line-height: 1.4;
+}
+
+.razorpayNode,
+.reconciliationNode,
+.fulfilmentNode {
+  min-height: 6.25rem;
+  padding: 0.8rem 0.9rem;
+  border: 1px solid var(--architecture-border);
+  border-radius: 0.8rem;
+  background: #fff;
+}
+
+.razorpayNode {
+  border-color: #8ba9e2;
+  background: #f5f8ff;
+}
+
+.razorpayNode h3,
+.reconciliationNode h3,
+.fulfilmentNode h3 {
+  margin-top: 0.2rem;
+  font-size: 0.9rem;
+}
+
+.razorpayNode p,
+.reconciliationNode p,
+.fulfilmentNode p {
+  margin: 0.35rem 0 0;
+  color: #5b6a81;
+  font-size: 0.59rem;
+  line-height: 1.45;
+}
+
+.reconciliationNode {
+  border-color: #78a1eb;
+  background: var(--architecture-authority);
+}
+
+.fulfilmentNode {
+  background: #f4faf7;
+}
+
+.substrateLinks {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+  padding: 0 1.25rem;
+  color: #708099;
+  font-size: 0.5rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.substrateLinks span {
+  display: grid;
+  justify-items: center;
+  gap: 0.2rem;
+}
+
+.substrateLinks i {
+  position: relative;
+  width: 1px;
+  height: 1.5rem;
+  background: #a1b2ce;
+}
+
+.substrateLinks i::before,
+.substrateLinks i::after {
+  position: absolute;
+  left: -0.19rem;
+  border-right: 0.22rem solid transparent;
+  border-left: 0.22rem solid transparent;
+  content: "";
+}
+
+.substrateLinks i::before {
+  top: -0.05rem;
+  border-bottom: 0.3rem solid #a1b2ce;
+}
+
+.substrateLinks i::after {
+  bottom: -0.05rem;
+  border-top: 0.3rem solid #a1b2ce;
+}
+
+.postgresNode {
+  display: grid;
+  grid-template-columns: 0.7fr 1.35fr 0.8fr;
+  align-items: center;
+  gap: 1.25rem;
+  margin: 0 1.25rem 1.25rem;
+  border: 1px solid #9fb9e5;
+  border-radius: 0.9rem;
+  background: #112f64;
+  padding: 0.85rem 1.1rem;
+  color: #fff;
+}
+
+.postgresNode h3 {
+  margin-top: 0.1rem;
+  font-size: 1rem;
+}
+
+.postgresNode span {
+  color: #a9c5ff;
+}
+
+.postgresNode p,
+.postgresNode strong {
+  margin: 0;
+  color: #d8e5ff;
+  font-size: 0.65rem;
+  line-height: 1.5;
+}
+
+.postgresNode strong {
+  color: #fff;
+  text-align: right;
+}
+
+.systemMap figcaption {
+  padding: 0.75rem 1.25rem;
+  border-top: 1px solid var(--architecture-border);
+  background: #f7f9fd;
+  color: #5f6f86;
+  font-size: 0.65rem;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.detailSection,
+.explanationSection {
+  padding-block: clamp(5rem, 8vw, 8rem);
+  border-top: 1px solid var(--architecture-border);
+}
+
+.sectionHeading {
+  max-width: 46rem;
+  margin-bottom: clamp(2rem, 4vw, 3.5rem);
+}
+
+.detailGrid,
+.explanationGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.flowCard {
+  padding: clamp(1.35rem, 2.4vw, 2rem);
+  border: 1px solid var(--architecture-border);
+  border-radius: 1.1rem;
+  background: #fff;
+  box-shadow: 0 1rem 3rem -2.4rem rgb(28 63 120 / 24%);
+}
+
+.authorityCard {
+  border-color: #86a9ea;
+  background: #f3f7ff;
+}
+
+.cardNumber {
+  color: var(--architecture-blue);
+  font-size: 0.62rem;
+  font-weight: 760;
+  letter-spacing: 0.1em;
+}
+
+.flowCard h3 {
+  margin-top: 0.7rem;
+  font-size: 1.35rem;
+  line-height: 1.15;
+}
+
+.flowCard ol {
+  display: grid;
+  gap: 0;
+  margin: 1.25rem 0 0;
+  padding: 0;
+  border-top: 1px solid var(--architecture-border);
+  list-style: none;
+  counter-reset: authority-flow;
+}
+
+.flowCard li {
+  position: relative;
+  display: grid;
+  gap: 0.15rem;
+  padding: 0.7rem 0 0.7rem 1.65rem;
+  border-bottom: 1px solid var(--architecture-border);
+  color: #263a58;
+  font-size: 0.72rem;
+  font-weight: 650;
+  line-height: 1.4;
+  counter-increment: authority-flow;
+}
+
+.flowCard li::before {
+  position: absolute;
+  top: 0.75rem;
+  left: 0;
+  color: var(--architecture-blue);
+  content: counter(authority-flow, decimal-leading-zero);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.57rem;
+}
+
+.flowCard li:not(:last-child)::after {
+  position: absolute;
+  bottom: -0.38rem;
+  left: 0.25rem;
+  z-index: 1;
+  background: #fff;
+  color: var(--architecture-blue);
+  content: "↓";
+  font-size: 0.68rem;
+}
+
+.authorityCard li:not(:last-child)::after {
+  background: #f3f7ff;
+}
+
+.flowCard li span {
+  color: #66758c;
+  font-size: 0.64rem;
+  font-weight: 480;
+}
+
+.flowCard > p {
+  margin: 1.1rem 0 0;
+  color: #586880;
+  font-size: 0.7rem;
+  line-height: 1.6;
+}
+
+.flowCard > p strong {
+  color: #173b7d;
+}
+
+.explanationSection {
+  background: linear-gradient(180deg, transparent, rgb(239 245 255 / 45%));
+}
+
+.explanationGrid article {
+  padding: 1.5rem 0;
+  border-top: 2px solid var(--architecture-ink);
+}
+
+.explanationGrid article > span {
+  color: var(--architecture-blue);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.64rem;
+}
+
+.explanationGrid h3 {
+  margin-top: 1.2rem;
+  font-size: 1.25rem;
+}
+
+.explanationGrid p {
+  max-width: 34ch;
+  margin: 0.7rem 0 0;
+  color: #5d6c82;
+  font-size: 0.78rem;
+  line-height: 1.65;
+}
+
+.destinations {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(30rem, 1.2fr);
+  gap: clamp(3rem, 8vw, 8rem);
+  padding-block: clamp(5rem, 8vw, 8rem);
+}
+
+.destinations nav {
+  border-top: 1px solid var(--architecture-border);
+}
+
+.destinations nav a {
+  display: flex;
+  min-height: 4rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 1px solid var(--architecture-border);
+  color: var(--architecture-ink);
+  font-size: 0.74rem;
+  text-decoration: none;
+}
+
+.destinations nav a span {
+  color: #65748a;
+}
+
+.destinations nav a strong {
+  color: var(--architecture-blue-deep);
+}
+
+.destinations nav a:hover strong,
+.destinations nav a:focus-visible strong {
+  text-decoration: underline;
+  text-underline-offset: 0.25rem;
+}
+
+.footer {
+  display: grid;
+  min-height: 6rem;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 1rem;
+  border-top: 1px solid var(--architecture-border);
+  color: var(--architecture-muted);
+  font-size: 0.68rem;
+}
+
+.footer div {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  color: var(--architecture-ink);
+  font-weight: 650;
+}
+
+.footer p {
+  margin: 0;
+}
+
+.footer a {
+  justify-self: end;
+  color: var(--architecture-blue-deep);
+  font-weight: 720;
+  text-decoration: none;
+}
+
+@media (max-width: 70rem) {
+  .geminiNode {
+    grid-template-columns: 6rem 1fr 1.35fr;
+  }
+
+  .geminiNode small {
+    grid-column: 2 / -1;
+  }
+
+  .controlGrid,
+  .geminiIngress {
+    grid-template-columns: minmax(11.5rem, 0.7fr) minmax(25rem, 1.6fr) minmax(11.5rem, 0.7fr);
+  }
+
+  .paymentPath {
+    grid-template-columns: 1fr;
+    gap: 0.4rem;
+    padding-inline: clamp(1rem, 8vw, 5rem);
+  }
+
+  .pathConnector {
+    min-height: 3rem;
+    justify-items: center;
+  }
+
+  .pathConnector i {
+    width: 1px;
+    height: 1.35rem;
+    margin-top: 0;
+  }
+
+  .pathConnector i::after {
+    top: auto;
+    right: auto;
+    bottom: -0.05rem;
+    left: -0.25rem;
+    border-top: 0.42rem solid #5279bb;
+    border-right: 0.25rem solid transparent;
+    border-bottom: 0;
+    border-left: 0.25rem solid transparent;
+  }
+}
+
+@media (max-width: 52rem) {
+  .hero {
+    grid-template-columns: 1fr;
+  }
+
+  .heroSupport {
+    max-width: 42rem;
+  }
+
+  .diagramHeading {
+    align-items: start;
+    flex-direction: column;
+  }
+
+  .legend {
+    justify-content: flex-start;
+  }
+
+  .reasoningZone,
+  .trustBoundary,
+  .geminiIngress {
+    grid-template-columns: 1fr;
+  }
+
+  .geminiIngress > span,
+  .geminiIngress > i {
+    grid-column: 1;
+  }
+
+  .geminiNode {
+    grid-template-columns: 1fr 1.5fr;
+  }
+
+  .geminiNode p,
+  .geminiNode small {
+    grid-column: 1 / -1;
+  }
+
+  .trustBoundary {
+    gap: 0.25rem;
+  }
+
+  .trustBoundary span:last-child {
+    text-align: left;
+  }
+
+  .controlGrid,
+  .detailGrid,
+  .explanationGrid,
+  .destinations {
+    grid-template-columns: 1fr;
+  }
+
+  .agentCard::after {
+    top: auto;
+    right: 50%;
+    bottom: -0.75rem;
+    width: 0;
+    height: 0.75rem;
+    border-top: 0;
+    border-right: 1px solid #6888bf;
+  }
+
+  .agentCard::before {
+    top: auto;
+    right: calc(50% - 0.25rem);
+    bottom: -0.82rem;
+    transform: none;
+    border-top: 0.4rem solid #6888bf;
+    border-right: 0.25rem solid transparent;
+    border-bottom: 0;
+    border-left: 0.25rem solid transparent;
+  }
+
+  .agentCard b::after {
+    content: " ↓";
+  }
+
+  .controlPlane {
+    grid-row: 3;
+  }
+
+  .merchantSystems {
+    grid-row: 2;
+  }
+
+  .merchantSystems::before {
+    top: auto;
+    right: 50%;
+    bottom: -1.15rem;
+    left: auto;
+    height: 1.15rem;
+    border-top: 0;
+    border-right: 1px solid #9d803c;
+  }
+
+  .merchantSystems::after {
+    top: auto;
+    right: calc(50% - 0.25rem);
+    bottom: -1.23rem;
+    left: auto;
+    transform: none;
+    border-top: 0.4rem solid #9d803c;
+    border-right: 0.25rem solid transparent;
+    border-bottom: 0;
+    border-left: 0.25rem solid transparent;
+  }
+
+  .merchantSystems b::after {
+    content: " ↓";
+  }
+
+  .postgresNode {
+    grid-template-columns: 1fr;
+  }
+
+  .postgresNode strong {
+    text-align: left;
+  }
+}
+
+@media (max-width: 38rem) {
+  .nav {
+    align-items: flex-start;
+    padding-block: 0.85rem;
+  }
+
+  .navLinks {
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 0.45rem 0.8rem;
+  }
+
+  .navLinks > span {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .navLinks a {
+    padding-left: 0.8rem;
+  }
+
+  .hero h1 {
+    font-size: clamp(2.7rem, 13vw, 4rem);
+  }
+
+  .systemMap {
+    border-radius: 1rem;
+  }
+
+  .reasoningZone,
+  .controlGrid {
+    padding: 1rem;
+  }
+
+  .trustBoundary {
+    padding: 0.8rem 1rem;
+  }
+
+  .capabilityGrid,
+  .transitionRail {
+    grid-template-columns: 1fr;
+  }
+
+  .transition + .transition {
+    border-top: 1px solid #d4e1f7;
+    border-left: 0;
+  }
+
+  .transition + .transition::before {
+    top: -0.4rem;
+    left: 0.7rem;
+    transform: none;
+    content: "↓";
+  }
+
+  .executionGate {
+    grid-template-columns: 1fr;
+  }
+
+  .paymentPath {
+    padding-inline: 1rem;
+  }
+
+  .postgresNode {
+    margin-inline: 1rem;
+  }
+
+  .systemMap figcaption {
+    text-align: left;
+  }
+
+  .destinations nav a {
+    align-items: flex-start;
+    flex-direction: column;
+    justify-content: center;
+    padding-block: 0.75rem;
+  }
+
+  .footer {
+    grid-template-columns: 1fr auto;
+    padding-block: 1.25rem;
+  }
+
+  .footer p {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page {
+    scroll-behavior: auto;
+  }
+}

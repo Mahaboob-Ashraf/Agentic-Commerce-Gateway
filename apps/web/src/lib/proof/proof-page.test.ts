@@ -108,6 +108,10 @@ test("proof page links reviewers to the security replay", () => {
   assert.match(proofPage, /<Link className={styles\.securityLink} href="\/security">Security replay<\/Link>/);
 });
 
+test("proof page links reviewers to the whole-system architecture", () => {
+  assert.match(proofPage, /<Link className={styles\.securityLink} href="\/architecture">Architecture<\/Link>/);
+});
+
 test("landing navigation stays high-level", () => {
   const navigation = landingPage.match(
     /<div className={styles\.navLinks}>([\s\S]*?)<\/div>/,

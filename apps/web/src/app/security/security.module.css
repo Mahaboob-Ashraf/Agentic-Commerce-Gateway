@@ -533,12 +533,20 @@
   line-height: 1.55;
 }
 
+.replayActions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0 1.75rem 1.75rem;
+}
+
 .replayButton {
   display: inline-flex;
+  flex: none;
   min-height: 2.8rem;
   align-items: center;
   gap: 0.65rem;
-  margin: 0 1.75rem 1.75rem;
+  margin: 0;
   border: 1px solid #bfd0e8;
   border-radius: 0.7rem;
   background: #fff;
@@ -561,6 +569,14 @@
 
 .replayButton span {
   font-size: 1rem;
+}
+
+.replayDisclosure {
+  max-width: 31rem;
+  margin: 0;
+  color: #66758b;
+  font-size: 0.66rem;
+  line-height: 1.55;
 }
 
 .engineeringDetails {
@@ -978,8 +994,11 @@
     margin-top: 0;
   }
 
-  .replayButton {
-    margin: 0 1.25rem 1.25rem;
+  .replayActions {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 0 1.25rem 1.25rem;
   }
 
   .engineeringDetails {

@@ -134,11 +134,26 @@ test("security navigation links to proof", () => {
   assert.match(securityPage, /href="\/proof#negative-controls"/);
 });
 
+test("security navigation links to the whole-system architecture", () => {
+  assert.match(securityPage, /<Link href="\/architecture">Architecture<\/Link>/);
+});
+
 test("attack selectors expose keyboard-native controls and selection state", () => {
   assert.match(securityExperience, /<button/);
   assert.match(securityExperience, /type="button"/);
   assert.match(securityExperience, /aria-pressed=/);
   assert.match(securityExperience, /aria-controls="attack-detail"/);
   assert.match(securityExperience, /aria-live="polite"/);
-  assert.match(securityExperience, /Replay deterministic proof/);
+  assert.match(securityExperience, /Replay evidence trace/);
+  assert.doesNotMatch(securityExperience, /Replay deterministic proof/);
+});
+
+test("security replay is explicitly a visualization, not a live attack", () => {
+  assert.match(
+    securityExperience,
+    /Visualization of an executed deterministic proof case\. No live attack is performed\./,
+  );
+  assert.match(securityExperience, /selected\.proofCaseId/);
+  assert.match(securityExperience, /selected\.expected/);
+  assert.match(securityExperience, /selected\.observed/);
 });
