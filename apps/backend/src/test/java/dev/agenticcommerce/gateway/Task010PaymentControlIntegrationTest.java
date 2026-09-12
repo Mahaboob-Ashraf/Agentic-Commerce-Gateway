@@ -16,6 +16,7 @@ import dev.agenticcommerce.gateway.identity.model.*;
 import dev.agenticcommerce.gateway.identity.persistence.*;
 import dev.agenticcommerce.gateway.intent.*;
 import dev.agenticcommerce.gateway.payment.*;
+import dev.agenticcommerce.gateway.proof.EvidenceSupport;
 import dev.agenticcommerce.gateway.onboarding.*;
 import static dev.agenticcommerce.gateway.onboarding.OnboardingModels.*;
 import dev.agenticcommerce.gateway.risk.*;
@@ -152,17 +153,118 @@ class Task010PaymentControlIntegrationTest {
     @Test
     void lostCreateResponseIsReconciledByStableReceiptWithoutBlindRecreation() {
         Ready ready = ready("lost");
+        String initialExecutionState = jdbc.sql(
+                "SELECT status FROM transaction_execution WHERE execution_id=:id")
+                .param("id", ready.executionId()).query(String.class).single();
+        assertThat(initialExecutionState).isEqualTo("RESERVED");
         provider.loseCreateResponse = true;
         PaymentStateView uncertain = payments.initiate(ready.buyerId(), ready.threadId(), ready.proposalId());
         assertThat(uncertain.paymentState()).isEqualTo(PaymentState.PAYMENT_UNCERTAIN);
         assertThat(provider.createCalls).hasValue(1);
+        assertThat(provider.receipts).hasSize(1);
+        String uncertainAttemptOutcome = jdbc.sql("""
+                SELECT outcome FROM provider_order_creation_attempt WHERE execution_id=:id
+                """).param("id", ready.executionId()).query(String.class).single();
+        assertThat(uncertainAttemptOutcome).isEqualTo("UNCERTAIN");
         provider.loseCreateResponse = false;
-        PaymentStateView recovered = payments.initiate(ready.buyerId(), ready.threadId(), ready.proposalId());
-        assertThat(recovered.paymentState()).isEqualTo(PaymentState.PAYMENT_PENDING);
+        ReconciliationResult reconciliation = payments.reconcile(
+                ready.buyerId(), ready.threadId(), ready.proposalId());
+        PaymentStateView recovered = reconciliation.state();
+        assertThat(recovered.paymentState()).isEqualTo(PaymentState.PAYMENT_UNCERTAIN);
         assertThat(recovered.providerOrderId()).isNotBlank();
+        assertThat(reconciliation.attemptCount()).isOne();
+        assertThat(reconciliation.reconciliationStatus()).isEqualTo("PENDING");
+        PaymentStateView retried = payments.initiate(
+                ready.buyerId(), ready.threadId(), ready.proposalId());
+        assertThat(retried.providerOrderId()).isEqualTo(recovered.providerOrderId());
         assertThat(provider.createCalls).hasValue(1);
-        assertThat(jdbc.sql("SELECT count(*)::int FROM provider_order_creation_attempt WHERE execution_id=:id")
-                .param("id", ready.executionId()).query(Integer.class).single()).isOne();
+        int executionReservations = jdbc.sql(
+                "SELECT count(*)::int FROM transaction_execution WHERE execution_id=:id")
+                .param("id", ready.executionId()).query(Integer.class).single();
+        int initiationAttempts = jdbc.sql(
+                "SELECT count(*)::int FROM provider_order_creation_attempt WHERE execution_id=:id")
+                .param("id", ready.executionId()).query(Integer.class).single();
+        int persistedProviderOrders = jdbc.sql(
+                "SELECT count(*)::int FROM payment_provider_order WHERE execution_id=:id")
+                .param("id", ready.executionId()).query(Integer.class).single();
+        String finalExecutionState = jdbc.sql(
+                "SELECT status FROM transaction_execution WHERE execution_id=:id")
+                .param("id", ready.executionId()).query(String.class).single();
+        String executionIdempotencyKey = jdbc.sql(
+                "SELECT idempotency_key FROM transaction_execution WHERE execution_id=:id")
+                .param("id", ready.executionId()).query(String.class).single();
+        assertThat(executionReservations).isOne();
+        assertThat(initiationAttempts).isOne();
+        assertThat(persistedProviderOrders).isOne();
+        assertThat(provider.receipts).hasSize(1);
+        assertThat(finalExecutionState).isEqualTo("PAYMENT_PENDING");
+
+        if (Boolean.getBoolean("amana.failure-lab.evidence")) {
+            var summary = mapper.createObjectNode();
+            summary.put("status", "PASS");
+            summary.put("verdict", "NO_DUPLICATE_PROVIDER_ORDER");
+            summary.put("executionReservations", executionReservations);
+            summary.put("providerCreateCalls", provider.createCalls.get());
+            summary.put("providerOrdersObserved", provider.receipts.size());
+            summary.put("persistedProviderOrders", persistedProviderOrders);
+            summary.put("duplicateProviderOrders", provider.receipts.size() - 1);
+            summary.put("recoveredByReconciliation", true);
+            summary.put("paymentConfirmed", false);
+
+            var details = mapper.createObjectNode();
+            details.put("testClass", getClass().getName());
+            details.put("testMethod", "lostCreateResponseIsReconciledByStableReceiptWithoutBlindRecreation");
+            details.put("providerAdapter", TestPaymentProvider.class.getName());
+            details.put("providerBoundary", "INERT_TEST_ADAPTER");
+            details.put("canCallRealRazorpay", false);
+            details.put("deployedStateTouched", false);
+            details.put("executionId", ready.executionId().toString());
+            details.put("executionIdempotencyKey", executionIdempotencyKey);
+            details.put("stableReceipt", PaymentControlService.stableReceipt(ready.executionId()));
+            details.put("providerOrderIdRecovered", recovered.providerOrderId());
+            details.put("initialExecutionState", initialExecutionState);
+            details.put("uncertainAttemptOutcome", uncertainAttemptOutcome);
+            details.put("uncertainPaymentState", uncertain.paymentState().name());
+            details.put("reconciliationAttempts", reconciliation.attemptCount());
+            details.put("reconciliationStatus", reconciliation.reconciliationStatus());
+            details.put("finalExecutionState", finalExecutionState);
+            details.put("finalPaymentState", recovered.paymentState().name());
+            var failure = details.putObject("injectedFailure");
+            failure.put("providerSideEffectCreatedOrder", true);
+            failure.put("responseDelivery", "LOST");
+            failure.put("exceptionCategory", "TIMEOUT");
+            failure.put("requestMayHaveReachedProvider", true);
+            details.putArray("productionLogic")
+                    .add("ExecutionGate")
+                    .add("PaymentControlService.initiate")
+                    .add("PaymentControlService.reconcile")
+                    .add("PaymentRepository")
+                    .add("PaymentEvidenceReducer");
+            details.putArray("executionStateTransitions")
+                    .add("RESERVED")
+                    .add("PAYMENT_PENDING");
+            details.putArray("paymentStateTransitions")
+                    .add("PAYMENT_UNCERTAIN")
+                    .add("PAYMENT_UNCERTAIN");
+
+            var artifact = EvidenceSupport.envelope(mapper, "amana-failure-lab-evidence-v1", 1,
+                    ".\\apps\\backend\\mvnw.cmd \"-Dtest=dev.agenticcommerce.gateway.Task010PaymentControlIntegrationTest#lostCreateResponseIsReconciledByStableReceiptWithoutBlindRecreation\" \"-Damana.failure-lab.evidence=true\" test",
+                    summary, details,
+                    List.of(
+                            "Runs production execution/payment/reconciliation services against PostgreSQL 17 and an inert in-process provider adapter.",
+                            "Proves recovery of provider-order existence only; it does not prove captured payment or PAYMENT_CONFIRMED."),
+                    "This isolated test does not call Razorpay, mutate deployed commerce state, or prove live-provider availability.");
+            EvidenceSupport.write(mapper, "failure-lab.json", "FAILURE_LAB.md", artifact, """
+                    # Unknown provider-order creation recovery
+
+                    **PASS — NO DUPLICATE PROVIDER ORDER**
+
+                    The inert provider created an order and then raised a timeout marked as possibly delivered. Amana
+                    persisted the uncertain attempt, reconciled the stable receipt, bound the existing provider order,
+                    and retained one execution, one creation call, and one provider order. Execution advances to
+                    `PAYMENT_PENDING`; payment state remains `PAYMENT_UNCERTAIN`, not `PAYMENT_CONFIRMED`.
+                    """);
+        }
     }
 
     @Test

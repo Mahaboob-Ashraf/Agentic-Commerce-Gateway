@@ -73,6 +73,7 @@ export default function ArchitecturePage() {
         </Link>
         <div className={styles.navLinks}>
           <span><i aria-hidden="true" /> SYSTEM ARCHITECTURE</span>
+          <Link href="/failure-lab">Failure Lab</Link>
           <Link href="/security">Security</Link>
           <Link href="/proof">Proof</Link>
         </div>
@@ -346,6 +347,7 @@ export default function ArchitecturePage() {
           <h2 id="destinations-title">Move from the map to the working surfaces.</h2>
         </div>
         <nav aria-label="Architecture destinations">
+          <Link href="/failure-lab"><span>Failure Lab</span><strong>Replay unknown-order recovery →</strong></Link>
           <Link href="/security"><span>Security replay</span><strong>See the boundary attacked →</strong></Link>
           <Link href="/proof"><span>Evidence hub</span><strong>Inspect measured proof →</strong></Link>
           <Link href="/buyer/chat"><span>Safe AI Buyer</span><strong>Open buyer workspace →</strong></Link>

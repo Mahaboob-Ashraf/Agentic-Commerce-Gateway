@@ -62,6 +62,7 @@ export default function SecurityPage() {
         </Link>
         <div className={styles.navLinks}>
           <span><i aria-hidden="true" /> RED TEAM / SECURITY</span>
+          <Link href="/failure-lab">Failure Lab</Link>
           <Link href="/architecture">Architecture</Link>
           <Link href="/proof">View proof</Link>
         </div>

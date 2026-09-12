@@ -1,21 +1,21 @@
 {
   "schemaVersion": "amana-frontend-test-evidence-v1",
   "provenance": {
-    "commitSha": "77c8b3a91cecc1c46cce982eb133385c310a5372",
+    "commitSha": "f01ea09f9aecbdb7d85c042b1ab667533c604e24",
     "workingTreeDirty": true,
-    "generatedAtUtc": "2026-09-11T12:53:52.720Z",
+    "generatedAtUtc": "2026-09-11T14:48:00.201Z",
     "runtime": {
       "node": "v24.19.0"
     },
     "operatingSystem": "Windows_NT 10.0.26200 x64",
     "hostLabel": "DESKTOP-P3MC09V",
-    "sampleSize": 121,
+    "sampleSize": 136,
     "command": "pnpm web:test"
   },
   "summary": {
     "status": "PASS",
-    "tests": 121,
-    "passed": 121,
+    "tests": 136,
+    "passed": 136,
     "failed": 0,
     "skipped": 0
   },
@@ -46,19 +46,27 @@
     },
     {
       "name": "Security",
-      "tests": 10,
-      "passed": 10,
+      "tests": 12,
+      "passed": 12,
       "failed": 0,
       "skipped": 0,
       "command": "pnpm --filter @agentic-commerce/web test:security"
     },
     {
       "name": "Architecture",
+      "tests": 13,
+      "passed": 13,
+      "failed": 0,
+      "skipped": 0,
+      "command": "pnpm --filter @agentic-commerce/web test:architecture"
+    },
+    {
+      "name": "Failure Lab",
       "tests": 11,
       "passed": 11,
       "failed": 0,
       "skipped": 0,
-      "command": "pnpm --filter @agentic-commerce/web test:architecture"
+      "command": "pnpm --filter @agentic-commerce/web test:failure-lab"
     }
   ],
   "limitations": [

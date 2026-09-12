@@ -115,7 +115,7 @@ test("architecture does not claim direct AI payment authority", () => {
 });
 
 test("architecture links to reviewer and product destinations", () => {
-  for (const destination of ["/security", "/proof", "/buyer/chat", "/merchant"]) {
+  for (const destination of ["/failure-lab", "/security", "/proof", "/buyer/chat", "/merchant"]) {
     assert.match(architecturePage, new RegExp(`href="${destination.replace("/", "\\/")}"`));
   }
 });

@@ -1,0 +1,57 @@
+{
+  "schemaVersion" : "amana-failure-lab-evidence-v1",
+  "provenance" : {
+    "commitSha" : "f01ea09f9aecbdb7d85c042b1ab667533c604e24",
+    "workingTreeDirty" : true,
+    "generatedAtUtc" : "2026-09-11T14:47:48.302876600Z",
+    "runtime" : {
+      "java" : "25.0.4.1+1-LTS",
+      "node" : "v24.19.0"
+    },
+    "operatingSystem" : "Windows 11 10.0 amd64",
+    "hostLabel" : "DESKTOP-P3MC09V",
+    "sampleSize" : 1,
+    "command" : ".\\apps\\backend\\mvnw.cmd \"-Dtest=dev.agenticcommerce.gateway.Task010PaymentControlIntegrationTest#lostCreateResponseIsReconciledByStableReceiptWithoutBlindRecreation\" \"-Damana.failure-lab.evidence=true\" test"
+  },
+  "summary" : {
+    "status" : "PASS",
+    "verdict" : "NO_DUPLICATE_PROVIDER_ORDER",
+    "executionReservations" : 1,
+    "providerCreateCalls" : 1,
+    "providerOrdersObserved" : 1,
+    "persistedProviderOrders" : 1,
+    "duplicateProviderOrders" : 0,
+    "recoveredByReconciliation" : true,
+    "paymentConfirmed" : false
+  },
+  "details" : {
+    "testClass" : "dev.agenticcommerce.gateway.Task010PaymentControlIntegrationTest",
+    "testMethod" : "lostCreateResponseIsReconciledByStableReceiptWithoutBlindRecreation",
+    "providerAdapter" : "dev.agenticcommerce.gateway.Task010PaymentControlIntegrationTest$TestPaymentProvider",
+    "providerBoundary" : "INERT_TEST_ADAPTER",
+    "canCallRealRazorpay" : false,
+    "deployedStateTouched" : false,
+    "executionId" : "601b5215-fc49-4450-a710-ce16ab54b94f",
+    "executionIdempotencyKey" : "7ad1e3f410c0fd3e7d6930926f70a99b3f3d4cf14b882f04dddfd98e8f136e2e",
+    "stableReceipt" : "acg_601b5215fc494450a710ce16ab54b94f",
+    "providerOrderIdRecovered" : "order_601b5215fc49",
+    "initialExecutionState" : "RESERVED",
+    "uncertainAttemptOutcome" : "UNCERTAIN",
+    "uncertainPaymentState" : "PAYMENT_UNCERTAIN",
+    "reconciliationAttempts" : 1,
+    "reconciliationStatus" : "PENDING",
+    "finalExecutionState" : "PAYMENT_PENDING",
+    "finalPaymentState" : "PAYMENT_UNCERTAIN",
+    "injectedFailure" : {
+      "providerSideEffectCreatedOrder" : true,
+      "responseDelivery" : "LOST",
+      "exceptionCategory" : "TIMEOUT",
+      "requestMayHaveReachedProvider" : true
+    },
+    "productionLogic" : [ "ExecutionGate", "PaymentControlService.initiate", "PaymentControlService.reconcile", "PaymentRepository", "PaymentEvidenceReducer" ],
+    "executionStateTransitions" : [ "RESERVED", "PAYMENT_PENDING" ],
+    "paymentStateTransitions" : [ "PAYMENT_UNCERTAIN", "PAYMENT_UNCERTAIN" ]
+  },
+  "limitations" : [ "Runs production execution/payment/reconciliation services against PostgreSQL 17 and an inert in-process provider adapter.", "Proves recovery of provider-order existence only; it does not prove captured payment or PAYMENT_CONFIRMED." ],
+  "whatThisDoesNotProve" : "This isolated test does not call Razorpay, mutate deployed commerce state, or prove live-provider availability."
+}

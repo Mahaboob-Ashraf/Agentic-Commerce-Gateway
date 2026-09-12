@@ -138,6 +138,10 @@ test("security navigation links to the whole-system architecture", () => {
   assert.match(securityPage, /<Link href="\/architecture">Architecture<\/Link>/);
 });
 
+test("security navigation links to the unknown-order failure lab", () => {
+  assert.match(securityPage, /<Link href="\/failure-lab">Failure Lab<\/Link>/);
+});
+
 test("attack selectors expose keyboard-native controls and selection state", () => {
   assert.match(securityExperience, /<button/);
   assert.match(securityExperience, /type="button"/);
