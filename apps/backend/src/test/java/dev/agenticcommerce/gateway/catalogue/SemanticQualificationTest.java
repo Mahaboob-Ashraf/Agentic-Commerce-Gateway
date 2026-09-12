@@ -61,6 +61,24 @@ class SemanticQualificationTest {
         assertThat(query.getValue().at("/retrievalQualification/matches/0/path").asText()).isEqualTo("SEMANTIC");
     }
 
+    @Test void semanticQualificationReusesOneQueryEmbeddingAndOneVectorCandidatePass() {
+        var response = retrieval.search(merchant, request("wireless earphones"));
+
+        assertThat(response.matches()).singleElement().satisfies(hit -> {
+            assertThat(hit.product().merchantSku()).isEqualTo("AMZ-AUDIO-032");
+            assertThat(hit.scoreEvidence()).containsEntry("semanticQualified", 1.0);
+        });
+        assertThat(response.evidence()).contains("qualification:SEMANTIC");
+        verify(embeddings, times(1)).available();
+        verify(embeddings, times(1)).embedQuery("wireless earphones");
+        verify(repository, times(1)).lexicalCandidates(eq(merchant), eq(version), eq("wireless earphones"),
+                nullable(String.class), nullable(String.class), eq("wireless earphones"),
+                nullable(Long.class), eq(350000L), eq(RetrievalThresholds.MAX_CANDIDATES));
+        verify(repository, times(1)).vectorCandidates(eq(merchant), eq(version), anyList(),
+                eq(RetrievalThresholds.MAX_CANDIDATES));
+        verifyNoMoreInteractions(embeddings);
+    }
+
     @Test void oldRankerReproducesNoValidMatchOnTheSameVectorEvidence() {
         var old = new HybridV2RetrievalSnapshot(repository, catalogues, embeddings, new CanonicalJsonService(mapper), mapper);
         var result = old.search(merchant, request("wireless earphones"));

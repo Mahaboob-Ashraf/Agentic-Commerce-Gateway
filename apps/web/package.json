@@ -13,7 +13,8 @@
     "test:proof": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types --test src/lib/proof/proof-page.test.ts",
     "test:security": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types --test src/lib/security/security-page.test.ts",
     "test:architecture": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types --test src/lib/architecture/architecture-page.test.ts",
-    "test:failure-lab": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types --test src/lib/failure-lab/failure-lab-page.test.ts"
+    "test:failure-lab": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types --test src/lib/failure-lab/failure-lab-page.test.ts",
+    "test:performance": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types --test src/lib/performance/performance-page.test.ts"
   },
   "dependencies": {
     "@google/genai": "2.19.0",

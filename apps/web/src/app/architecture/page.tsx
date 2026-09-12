@@ -73,6 +73,7 @@ export default function ArchitecturePage() {
         </Link>
         <div className={styles.navLinks}>
           <span><i aria-hidden="true" /> SYSTEM ARCHITECTURE</span>
+          <Link href="/performance">Performance</Link>
           <Link href="/failure-lab">Failure Lab</Link>
           <Link href="/security">Security</Link>
           <Link href="/proof">Proof</Link>

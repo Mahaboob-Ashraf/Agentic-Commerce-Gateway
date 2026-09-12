@@ -23,6 +23,7 @@ export default function FailureLabPage() {
         </Link>
         <div className={styles.navLinks}>
           <span><i aria-hidden="true" /> FAILURE INJECTION</span>
+          <Link href="/performance">Performance</Link>
           <Link href="/architecture">Architecture</Link>
           <Link href="/security">Security</Link>
           <Link href="/proof">Proof</Link>

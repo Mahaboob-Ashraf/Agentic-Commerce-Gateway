@@ -1,21 +1,21 @@
 {
   "schemaVersion": "amana-frontend-test-evidence-v1",
   "provenance": {
-    "commitSha": "f01ea09f9aecbdb7d85c042b1ab667533c604e24",
+    "commitSha": "f4d80727b0cf3d8abd275d4b98adece746acf471",
     "workingTreeDirty": true,
-    "generatedAtUtc": "2026-09-11T14:48:00.201Z",
+    "generatedAtUtc": "2026-09-12T08:32:24.721Z",
     "runtime": {
       "node": "v24.19.0"
     },
     "operatingSystem": "Windows_NT 10.0.26200 x64",
     "hostLabel": "DESKTOP-P3MC09V",
-    "sampleSize": 136,
+    "sampleSize": 145,
     "command": "pnpm web:test"
   },
   "summary": {
     "status": "PASS",
-    "tests": 136,
-    "passed": 136,
+    "tests": 145,
+    "passed": 145,
     "failed": 0,
     "skipped": 0
   },
@@ -67,10 +67,18 @@
       "failed": 0,
       "skipped": 0,
       "command": "pnpm --filter @agentic-commerce/web test:failure-lab"
+    },
+    {
+      "name": "Performance",
+      "tests": 9,
+      "passed": 9,
+      "failed": 0,
+      "skipped": 0,
+      "command": "pnpm --filter @agentic-commerce/web test:performance"
     }
   ],
   "limitations": [
-    "Counts are the Node test runner output for Buyer, Merchant, Proof, Security, and Architecture suites and remain separate from backend/proof counts."
+    "Counts are the Node test runner output for Buyer, Merchant, Proof, Security, Architecture, Failure Lab, and Performance suites and remain separate from backend/proof counts."
   ],
   "whatThisDoesNotProve": "Frontend unit/contract tests do not prove browser compatibility, accessibility, backend safety, or deployment behavior."
 }
