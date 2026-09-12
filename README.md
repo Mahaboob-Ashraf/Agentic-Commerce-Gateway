@@ -10,7 +10,9 @@
 </p>
 
 
-Amana turns existing merchants into verified AI-transactable businesses, then lets customers discover, reason, and purchase through a multimodal AI Buyer. Language models interpret and plan; deterministic application logic controls capability readiness, product and policy evidence, transaction authority, payment truth, and recovery.
+**Amana is a deterministic trust layer for agentic commerce.** It turns existing merchants into verified AI-transactable businesses, then lets customers discover, reason, and purchase through a multimodal AI Buyer. Language models interpret and plan; deterministic application logic controls capability readiness, product and policy evidence, transaction authority, payment truth, and recovery.
+
+> **How can AI participate in commerce without becoming an authority over money?**
 
 > **AI handles unstructured meaning and planning. Deterministic software controls truth, authority and money.**
 
@@ -26,9 +28,13 @@ Amana turns existing merchants into verified AI-transactable businesses, then le
 | Experience | Link |
 |---|---|
 | **Live product** | [agentic-commerce-gateway-web.vercel.app](https://agentic-commerce-gateway-web.vercel.app/) |
-| **Safety proof** | [/proof](https://agentic-commerce-gateway-web.vercel.app/proof) |
 | **Safe AI Buyer** | [/buyer/chat](https://agentic-commerce-gateway-web.vercel.app/buyer/chat) |
 | **Merchant** | [/merchant](https://agentic-commerce-gateway-web.vercel.app/merchant) |
+| **Architecture** | [/architecture](https://agentic-commerce-gateway-web.vercel.app/architecture) |
+| **Security / Red Team** | [/security](https://agentic-commerce-gateway-web.vercel.app/security) |
+| **Failure Lab** | [/failure-lab](https://agentic-commerce-gateway-web.vercel.app/failure-lab) |
+| **Performance** | [/performance](https://agentic-commerce-gateway-web.vercel.app/performance) |
+| **Proof** | [/proof](https://agentic-commerce-gateway-web.vercel.app/proof) |
 
 The Buyer and Merchant sign-in screens include reviewer demo-access controls when the public demo configuration is present. Those controls fill the normal form only: the reviewer still submits credentials through the same Spring Security authentication, session, CSRF, and role checks as every other user.
 
@@ -111,27 +117,38 @@ Amana is evaluated beyond happy-path demos. The repository includes reproducible
 | **Multilingual intent subset** | **100%** | Labelled Hindi, Hinglish, Telugu, and Urdu intent cases passed after English normalization |
 | **Authorization-skip attempts** | **0 / 3 gained authority** | Language such as “just buy it” did not bypass explicit authorization |
 | **Negative controls** | **12 / 12 mutations killed** | Selected safety tests detect intentionally weakened guards rather than merely passing |
-| **Concurrency** | **5 critical operations passed at N=8 and N=32** | Execution, provider-order creation, webhook ingestion, outbox claims, and refund reservation converged correctly under concurrent callers |
-| **Backend verification** | **295 tests; 0 failures, 0 errors, 1 skipped** | Current backend verification remains green; the provider-only intent evaluator is opt-in |
-| **Frontend verification** | **98 / 98 passed** | Buyer, Merchant, and proof/evidence UI contracts remain green |
+| **Concurrency** | **10 / 10 scenarios passed across 5 critical operations at N=8 and N=32** | Bounded correctness and idempotent convergence under concurrent callers; not maximum production throughput |
+| **Backend verification** | **297 tests; 0 failures, 0 errors, 2 skipped** | Current full backend verification remains green |
+| **Frontend verification** | **145 / 145 passed** | Buyer, Merchant, Proof, Security, Architecture, Failure Lab, and Performance UI contracts remain green |
 | **Offline proof command** | **`pnpm proof:verify` passes** | Core evidence can be reproduced without Gemini, Razorpay, Vercel, Render, or production Supabase |
 
 ### Measured latency
 
-Local deterministic/stub measurements were collected on Java 25 + PostgreSQL 17 Testcontainers after one warm-up run.
+The current provider-backed multilingual Buyer run measures the real pre-cart discovery path across the 12-case recall cohort:
+
+| Provider-backed Buyer stage | p50 | p95 |
+|---|---:|---:|
+| Gemini intent compilation | 3,237.0239 ms | 13,298.7314 ms |
+| Gemini query embedding | 542.1521 ms | 690.8272 ms |
+| Estimated local deterministic retrieval | 32.8302 ms | 45.3321 ms |
+| Total pre-cart discovery | 3,837.6999 ms | 13,838.6417 ms |
+
+**The observed long tail is dominated by Gemini intent compilation, not deterministic Java/PostgreSQL retrieval.** The local retrieval value is estimated as hybrid-v3 wall time minus the separately timed embedding call; percentiles are not additive.
+
+Separate local deterministic/stub measurements were collected on Java 25 + PostgreSQL 17 Testcontainers after one warm-up journey was excluded. Each stage has 10 samples.
 
 | Path | p50 | p95 |
 |---|---:|---:|
-| Intent compilation | 10.21 ms | 15.34 ms |
-| Catalogue retrieval | 13.30 ms | 19.12 ms |
-| Candidate cart | 25.77 ms | 35.92 ms |
-| Authoritative quote | 13.47 ms | 15.28 ms |
-| Constraint verification | 18.71 ms | 21.52 ms |
-| Proposal construction | 16.96 ms | 19.04 ms |
-| Execution gate | 15.47 ms | 17.56 ms |
-| Razorpay order boundary (stub) | 9.95 ms | 11.28 ms |
+| Intent compilation stub | 7.9045 ms | 8.4053 ms |
+| Catalogue retrieval | 10.3383 ms | 10.8844 ms |
+| Candidate cart | 20.2279 ms | 21.4802 ms |
+| Authoritative quote | 10.4022 ms | 10.9183 ms |
+| Constraint verification | 15.4029 ms | 17.0208 ms |
+| Proposal construction | 14.1575 ms | 25.8816 ms |
+| Execution gate | 12.8483 ms | 17.1645 ms |
+| Razorpay order boundary (stub) | 8.5178 ms | 10.1480 ms |
 
-The latest provider-backed Gemini intent evaluation ran across **52 labelled utterances** with **0 provider errors**. Per-case provider timings are retained in `proof/results/intent-eval.json`; these measurements are **not production SLAs**.
+These are engineering measurements, not production SLAs. Production-scale throughput testing has not been performed; Render cold starts are not represented in the local deterministic table, and provider/model/network behavior can change over time. Review the evidence breakdown at [/performance](https://agentic-commerce-gateway-web.vercel.app/performance). A separate provider-backed Gemini intent-accuracy evaluation covers **52 labelled utterances** with **0 provider errors** in `proof/results/intent-eval.json`.
 
 ### Reproduce the evidence
 
@@ -147,13 +164,17 @@ pnpm proof:evaluate
 
 Detailed artifacts are available under:
 
-- `proof/results/SCORECARD.md`
+- `proof/results/index.json`
+- `proof/results/latest.json`
 - `proof/results/retrieval.json`
 - `proof/results/intent-eval.json`
-- `proof/results/mutation.json`
-- `proof/results/concurrency.json`
+- `proof/results/multilingual-e2e.json`
 - `proof/results/latency.json`
-- `proof/results/latest.json`
+- `proof/results/concurrency.json`
+- `proof/results/mutation.json`
+- `proof/results/failure-lab.json`
+- `proof/results/frontend-tests.json`
+- `proof/results/SCORECARD.md`
 
 > The evaluation datasets are repository-authored labelled fixtures, not independent third-party benchmarks. Metrics are reported as measured rather than generalized beyond the tested sets.
 
@@ -310,7 +331,9 @@ The Buyer can accept Hindi, Hinglish, Telugu, Urdu, and English while keeping me
 
 This keeps language understanding inside the model while catalogue identity and transaction authority remain deterministic.
 
-A provider-backed end-to-end evaluation now measures that actual path against the English Amazing fixture: multilingual utterance → `gemini-3.1-flash-lite` intent compilation → the production `SearchRequest` mapping → `gemini-embedding-2` query embedding → PostgreSQL 17/pgvector hybrid-v3 retrieval. Across 12 labelled Hindi, Hinglish, Telugu, and Urdu cases, valid Recall@1/5 is **8/12 (66.67%)** and discovery Recall@1/5 is **10/12 (83.33%)**. Each language scores 2/3 valid at ranks 1 and 5, and all 12 intents produce the labelled English meaning and hard constraints. Four separate multilingual no-match controls score **4/4 (100%)**, and a fifth authorization-skip control correctly requests clarification, with no fabricated valid product, wrong valid product/variant, vector fallback, provider error, or authorization attempt. This is a small fixture evaluation, not production-scale benchmarking. [Generated evidence](proof/results/MULTILINGUAL_E2E.md)
+A provider-backed end-to-end evaluation measures that actual path against the English Amazing fixture: multilingual utterance → `gemini-3.1-flash-lite` intent compilation → production `SearchRequest` → `gemini-embedding-2` query embedding → PostgreSQL 17/pgvector hybrid-v3 retrieval → authoritative SKU. The primary recall cohort has **12 cases: 3 Hindi, 3 Hinglish, 3 Telugu, and 3 Urdu**. Intent normalization is correct for **12/12**; valid Recall@1 and Recall@5 are both **8/12 (66.67%)**; discovery Recall@1 and Recall@5 are both **10/12 (83.33%)**. Each language scores 2/3 valid at ranks 1 and 5.
+
+Four multilingual no-match controls score **4/4 (100%)**. Fabricated valid product rate and wrong valid product/variant rate are both **0%**; vector fallbacks are **0**; embeddings are **50 READY and 0 failed**. The older direct-query multilingual retrieval result was **5/12 (41.67%)** because it bypassed Gemini English normalization and is not representative of the current Buyer path. End-to-end valid recall is **66.67%**, a **+25 percentage-point** improvement over that raw-query result. This remains a small labelled fixture evaluation, not production-scale multilingual benchmarking. [Generated evidence](proof/results/MULTILINGUAL_E2E.md)
 
 ### Multimodal input, one authority path
 
@@ -432,6 +455,12 @@ Failure recovery is designed into the state model rather than added as generic r
 | Wrong tenant or merchant | Role checks plus actor-to-merchant membership and tenant-scoped queries deny cross-merchant access. |
 | Degraded realtime voice | Audio is stopped safely and the user can retry the session or continue by typing; commerce state remains application-owned. |
 
+### Failure Lab: lost Razorpay Order response
+
+The reviewer-facing [/failure-lab](https://agentic-commerce-gateway-web.vercel.app/failure-lab) replays generated evidence from one executed, isolated PostgreSQL 17/Testcontainers simulation using the production execution/payment/reconciliation services and an inert in-process provider adapter. The adapter creates an order and loses the response; Amana records an uncertain creation attempt, refuses a blind second create, and reconciliation finds and binds the original order. The measured result is **one provider create call, one provider order, and zero duplicates**.
+
+The page is an evidence replay: it cannot call Razorpay or touch deployed payment state. Recovering provider-order existence does **not** confirm payment; payment remains uncertain until complete captured-payment and paid-order evidence satisfies the deterministic reducer. [Raw evidence](proof/results/failure-lab.json)
+
 ### What actually broke while we built Amana
 
 The recovery model above was not only designed on paper. Several real integration failures shaped the final system:
@@ -442,7 +471,7 @@ The recovery model above was not only designed on paper. Several real integratio
 
 - **Gemini Live session degradation.** One long-running Live session degraded to roughly 10–30 second responses while fresh sessions remained fast. Amana therefore classifies session health and recovers by creating a fresh constrained Live session seeded only with compact deterministic application state—without replaying transcript or audio history.
 
-- **A positive-path safety fixture became stale as invariants hardened.** After stronger proposal, policy, and availability requirements landed, an older test fixture no longer satisfied the real authority boundary. The fixture was repaired with the missing legitimate evidence instead of weakening production checks; the final backend suite returned to 251 passing tests.
+- **A positive-path safety fixture became stale as invariants hardened.** After stronger proposal, policy, and availability requirements landed, an older test fixture no longer satisfied the real authority boundary. The fixture was repaired with the missing legitimate evidence instead of weakening production checks; the backend suite returned to green.
 
 ### When hybrid retrieval was not actually semantic enough
 
@@ -473,6 +502,8 @@ authoritative product; inventory, serviceability, authorization and payment gate
 The score is not inflated: `qualification:SEMANTIC`, threshold/version and score components identify
 
 the path in response evidence and persisted retrieval audit material.
+
+The production hybrid-v3 path performs **one query embedding, one lexical candidate query, and one vector candidate query**. Semantic qualification inspects the already retrieved candidates and vector scores locally; it does not trigger a second embedding or provider/vector retrieval. A focused counting test verifies that single-pass behavior on the semantic qualification success path without changing retrieval correctness.
 
 The cutoff came from a bounded grid on the **same 80 labelled cases**, using real PostgreSQL 17/pgvector
 
@@ -527,6 +558,12 @@ The lexical Bluetooth regression remains green. The live run had **50 READY, 0 F
 
 > Vector similarity is evidence of relevance, not authority. Amana lets semantic retrieval broaden discovery while deterministic software still controls product identity, constraints, authorization and money.
 
+## Security / Red Team
+
+The [/security](https://agentic-commerce-gateway-web.vercel.app/security) reviewer surface replays evidence traces from executed deterministic and in-process proof cases covering prompt injection, a fabricated product request, changed amount, stale authorization, duplicate checkout, webhook replay, wrong merchant/provider account, and wrong currency. It is **not a live exploitation console** and touches no live payment state.
+
+Current generated evidence records **250/250 deterministic safety cases passed, 0 hard safety violations, and 12/12 selected mutations killed**. The selected mutations are bounded guard-removal negative controls, not exhaustive repository-wide mutation testing, and the adversarial cases are not all HTTP black-box tests. [Safety evidence](proof/results/latest.json) · [Mutation evidence](proof/results/mutation.json)
+
 ## Deterministic Safety Proof
 
 ### Safety is measured, not claimed.
@@ -560,6 +597,12 @@ The generated report lives in [`proof/results/SUMMARY.md`](proof/results/SUMMARY
 
 ## Architecture
 
+**Amana — a deterministic trust layer for agentic commerce — asks how AI can participate in commerce without becoming an authority over money.** The [/architecture](https://agentic-commerce-gateway-web.vercel.app/architecture) reviewer surface shows exactly two P0 runtime commerce agents: the Merchant Agentization Agent and Safe AI Buyer. Gemini is their untrusted interpretation/planning layer, not a third commerce agent; there is no AI-to-Razorpay authority path.
+
+The deterministic commerce control plane owns readiness, catalogue and policy grounding, immutable proposal authority, authorization, execution, and payment reduction. PostgreSQL is the system of record. Razorpay callbacks, webhooks, and provider API observations are evidence reconciled by deterministic logic, and only the readiness reducer may publish merchant capabilities.
+
+> **AI handles unstructured meaning and planning. Deterministic software controls truth, authority and money.**
+
 ### Merchant-side architecture
 
 <p align="center">
@@ -590,7 +633,7 @@ flowchart TB
 
     C --> P[(PostgreSQL 17 / Supabase)]
 
-    C --> G[Gemini]
+    G[Gemini / untrusted reasoning] --> C
 
     C --> R[Razorpay Test Mode]
 
@@ -650,13 +693,12 @@ These are product implications of the implemented mechanisms, not measured conve
 
 ## Automated Testing
 
-The three numbers below measure different things and are intentionally not added into a single marketing total.
+The suites below measure different things and are intentionally not added into a single marketing total.
 
 | Suite | Current verified result | Purpose |
 |---|---:|---|
-| Backend | **295 tests; 0 failures, 0 errors, 1 skipped** | JUnit 5 unit/integration coverage, including real PostgreSQL/Testcontainers. The unrelated live intent-provider evaluator is opt-in and skipped; retrieval was also measured separately with live embeddings. |
-| Frontend Buyer | **62 passed; 0 failed, 0 skipped** | Buyer commerce, multimodal, voice, auth/demo, and UI contract behavior. |
-| Frontend Merchant | **26 passed; 0 failed, 0 skipped** | Merchant access, Amazing demo selection, guided tour, and isolated agentization replay boundaries. |
+| Backend | **297 tests; 0 failures, 0 errors, 2 skipped** | JUnit 5 unit/integration coverage, including real PostgreSQL/Testcontainers; retrieval was also measured separately with live embeddings. |
+| Frontend | **145 passed; 0 failed, 0 skipped** | Buyer 62, Merchant 26, Proof 12, Security 12, Architecture 13, Failure Lab 11, and Performance 9. |
 | Deterministic safety proof | **250 / 250 passed** | Separate adversarial cases against production safety reducers and guards. |
 
 Run the suites:
@@ -787,9 +829,9 @@ Public frontend: <https://agentic-commerce-gateway-web.vercel.app/>
 
 6. Continue to real Razorpay Test Mode Standard Checkout.
 
-### Proof
+### Reviewer evidence
 
-Open the [/proof](https://agentic-commerce-gateway-web.vercel.app/proof) route for the deterministic report and invariant coverage.
+Start with [/architecture](https://agentic-commerce-gateway-web.vercel.app/architecture), then inspect the generated evidence replays at [/security](https://agentic-commerce-gateway-web.vercel.app/security) and [/failure-lab](https://agentic-commerce-gateway-web.vercel.app/failure-lab), the measured latency/concurrency view at [/performance](https://agentic-commerce-gateway-web.vercel.app/performance), and the raw evidence index at [/proof](https://agentic-commerce-gateway-web.vercel.app/proof).
 
 No credential values are published in this README.
 
