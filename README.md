@@ -16,32 +16,40 @@
 
 ## What is Amana?
 
-**Amana is a control plane for safe agentic commerce.**
+**Amana is a deterministic trust layer for agentic commerce.**
 
-It solves both sides of the problem:
+It solves both sides of agentic commerce:
 
-- **Merchant Agentization Agent** turns merchant-approved APIs, catalogues, and policies into tested, agent-readable commerce capabilities.
-- **Safe AI Buyer** lets users discover and purchase through AI without giving the model authority over money.
+- **Merchant Agentization Agent** turns existing merchant-approved APIs, catalogues, and policies into tested, evidence-backed capabilities that AI buyers can safely use.
+- **Safe AI Buyer** understands multimodal shopping intent and can discover, reason, and purchase without giving the model authority over money.
 
-The central rule is simple:
+The core rule is simple:
 
-> **The AI may interpret, recommend, and plan. It cannot decide what is financially true or independently execute what was not authorized.**
+> **AI may interpret, recommend, diagnose, and plan. It cannot decide what is financially true or independently execute what was not authorized.**
 
 ```text
-User intent
-    ↓
+Merchant-approved systems
+        ↓
+Merchant Agentization Agent
+        ↓
+Tested + evidence-backed capabilities
+        ↓
+────────────────────────────────────
+        ↓
+Safe AI Buyer
+        ↓
 Grounded merchant + product evidence
-    ↓
+        ↓
 Immutable Transaction Proposal
-    ↓
+        ↓
 Exact user authorization
-    ↓
+        ↓
 Deterministic Execution Gate
-    ↓
+        ↓
 Razorpay Test Mode
-    ↓
+        ↓
 Verified payment evidence
-    ↓
+        ↓
 Merchant fulfilment
 ```
 
@@ -51,20 +59,21 @@ Merchant fulfilment
 
 ## 60-second proof
 
-Amana is not only a shopping demo. Its trust boundaries are tested independently of the LLM.
+Amana is not only a shopping demo. Its authority boundaries are independently exercised and measured.
 
 | Proof | Result |
 |---|---:|
-| Deterministic adversarial safety cases | **250 / 250 passed** |
+| Deterministic safety cases | **250 / 250 passed** |
 | Hard safety violations | **0** |
 | Guard-removal negative controls | **12 / 12 killed** |
 | Concurrency scenarios | **10 / 10 passed** |
+| Critical operations tested concurrently | **5 at N=8 and N=32** |
 | Backend verification | **297 tests, 0 failures** |
 | Frontend verification | **145 / 145 passed** |
 
-The concurrency suite exercises **5 money-critical operations at N=8 and N=32 concurrent callers**, testing bounded execution and idempotent convergence.
+The safety harness covers proposal integrity, money integrity, callback truth, payment idempotency, refund integrity, capability readiness, evidence, and policy enforcement.
 
-The core safety proof runs offline:
+Run the core proof offline:
 
 ```bash
 pnpm proof:verify
@@ -76,66 +85,30 @@ It does not require Gemini, Razorpay, Vercel, Render, or production Supabase.
 
 ---
 
-## What happens when the AI is wrong?
+## Two agents. One deterministic control plane.
 
-The important question is not whether an LLM can always behave correctly.
-
-It cannot.
-
-The question is whether an incorrect or manipulated model can cross a financial authority boundary.
-
-### Example: the AI tries to change an authorized purchase
-
-```text
-User authorizes Proposal A
-        ↓
-Proposal A is canonically hashed
-        ↓
-execution attempts modified Proposal B
-        ↓
-authorization no longer binds
-        ↓
-EXECUTION DENIED
-```
-
-The same principle applies to:
-
-- stale authorization;
-- changed amount;
-- duplicate checkout;
-- fabricated products;
-- webhook replay;
-- wrong merchant/provider account;
-- wrong currency;
-- missing or ambiguous safety-critical evidence.
-
-Unknown authority-critical state **fails closed**.
-
-### Example: concurrent execution
-
-```text
-many callers
-    ↓
-same authorized transaction
-    ↓
-database constraints + locks + stable identities
-    ↓
-one converged financial execution
-```
-
-Amana treats retries and concurrency as normal payment-system behavior rather than exceptional cases.
-
----
-
-## Why two agents?
+Amana has exactly **two P0 runtime commerce agents**.
 
 ### 1. Merchant Agentization Agent
 
-Existing merchant APIs were written for applications and human operators, not autonomous buyers.
+Existing commerce systems were built for applications and human operators, not autonomous AI buyers.
 
-A schema looking plausible does **not** make an endpoint safe to expose to an AI.
+An endpoint named `getQuote` is not automatically trustworthy just because its schema looks plausible.
 
-Amana therefore operates only on **merchant-approved structured sources**.
+Merchant interfaces can differ in:
+
+- catalogue schemas;
+- money units;
+- inventory semantics;
+- availability and fulfilment behavior;
+- cancellation and return policies;
+- authentication and tenant boundaries;
+- capability naming;
+- response shapes.
+
+Amana therefore starts from **merchant-approved structured sources**, not arbitrary web crawling.
+
+The agentization lifecycle is:
 
 ```text
 Inspect
@@ -149,45 +122,92 @@ Inspect
   → Deterministically reduce readiness
 ```
 
-The agent may reason about a failure and propose a repair.
+The AI can help reason about an interface.
 
 It **cannot declare a capability READY**.
 
-Readiness comes from deterministic evidence reduction.
+Only deterministic evidence reduction can publish a capability for Buyer use.
 
-### Example: bounded money-unit repair
+### Merchant authority boundary
 
-A merchant returns:
+```text
+Merchant-approved source
+        ↓
+AI discovers / proposes mapping
+        ↓
+Contract test
+        ↓
+Observed evidence
+        ↓
+AI may diagnose failure
+        ↓
+bounded repair proposal
+        ↓
+merchant approval if semantics change
+        ↓
+retest
+        ↓
+deterministic readiness reducer
+        ↓
+READY / BLOCKED / UNTESTED
+```
+
+A fluent model answer is therefore never enough to make a merchant transactable.
+
+### Example: money-unit mismatch
+
+The demo merchant returns:
 
 ```text
 2999
 ```
 
-for a ₹2,999 quote, while Amana's canonical contract expects minor units:
+for a ₹2,999 product.
+
+Amana's canonical money contract expects minor units:
 
 ```text
 299900
 ```
 
-The agent may diagnose a rupees/paise mismatch and propose:
+The agent can diagnose a likely rupees-to-paise mismatch and propose:
 
 ```text
 amount_minor = amount_rupees × 100
 ```
 
-But that semantic repair requires explicit merchant approval, creates a new mapping version, and must pass deterministic contract tests before becoming eligible.
+But that does **not** immediately change the merchant capability.
 
-Arbitrary website crawling is deliberately excluded as an authority source.
+The repair must:
+
+1. become a new mapping version;
+2. receive Merchant approval because money semantics changed;
+3. pass deterministic contract tests;
+4. satisfy the readiness reducer.
+
+Only then can the resulting capability become eligible.
 
 <p align="center">
-  <img src="docs/readme/06_agentization-repair-approval.png" width="1000" alt="Merchant agentization repair awaiting approval">
+  <img src="docs/readme/06_agentization-repair-approval.png" width="1000" alt="Merchant Agentization Agent proposing a bounded money-unit repair">
 </p>
+
+<p align="center">
+  <img src="docs/readme/07_agentization-retest-ready.png" width="1000" alt="Merchant capability after deterministic retest and readiness reduction">
+</p>
+
+### Why this matters
+
+The Merchant Agentization Agent is not merely generating API wrappers.
+
+It creates an **evidence-backed Agent Commerce Manifest** describing what an AI buyer is actually allowed to rely on.
+
+> **Merchant agentization converts interfaces into tested capability, not just tools into prompts.**
 
 ---
 
 ### 2. Safe AI Buyer
 
-The Buyer can understand typed, spoken, visual, multilingual, and conversational requests.
+The Buyer understands typed, spoken, visual, multilingual, and conversational requests.
 
 For example:
 
@@ -197,11 +217,11 @@ Gemini can interpret that request.
 
 It cannot turn its own interpretation directly into a payment.
 
-The Buyer must instead move through:
+The Buyer moves through explicit deterministic boundaries:
 
 ```text
 Intent
-  → eligible merchants
+  → eligible READY merchants
   → grounded catalogue records
   → authoritative quote
   → stock + serviceability + policy
@@ -215,55 +235,155 @@ Intent
 Product identity, exact money, authorization, and payment truth remain application-owned.
 
 <p align="center">
-  <img src="docs/readme/04_buyer-proposal-awaiting-authorization.png" width="1000" alt="Safe AI Buyer proposal awaiting authorization">
+  <img src="docs/readme/03_buyer-searching.png" width="1000" alt="Safe AI Buyer searching eligible merchants">
 </p>
+
+<p align="center">
+  <img src="docs/readme/04_buyer-proposal-awaiting-authorization.png" width="1000" alt="Grounded proposal waiting for explicit authorization">
+</p>
+
+---
+
+## What happens when the AI is wrong?
+
+The important question is not whether an LLM can always behave correctly.
+
+It cannot.
+
+The important question is whether an incorrect or manipulated model can cross a financial authority boundary.
+
+### Modified transaction after authorization
+
+```text
+User authorizes Proposal A
+        ↓
+Proposal A is canonically hashed
+        ↓
+execution attempts modified Proposal B
+        ↓
+authorization no longer binds
+        ↓
+EXECUTION DENIED
+```
+
+The same principle protects against:
+
+- changed amount;
+- stale authorization;
+- fabricated products;
+- wrong product or variant;
+- duplicate checkout;
+- wrong merchant;
+- wrong provider account;
+- wrong currency;
+- missing safety-critical evidence.
+
+Authority-critical uncertainty **fails closed**.
+
+---
+
+## What happens under concurrency?
+
+Payment systems receive retries, duplicate requests, and concurrent callers.
+
+Amana treats that as normal behavior.
+
+```text
+multiple callers
+      ↓
+same authorized transaction
+      ↓
+stable identities
++ database constraints
++ transactional locking
+      ↓
+one converged financial execution
+```
+
+The concurrency suite exercises **5 critical operations at N=8 and N=32 concurrent callers** across **10 scenarios**, all of which currently pass.
+
+The goal is correctness and idempotent convergence, not a claim of maximum production throughput.
 
 ---
 
 ## Payment truth
 
-A browser saying **"payment succeeded"** is not financial truth.
+A browser saying:
 
-Amana keeps separate evidence for:
+> Payment succeeded.
+
+is not financial truth.
+
+Amana separately models:
 
 - transaction proposal;
 - authorization;
 - execution;
-- Razorpay order/payment state;
-- callback/webhook observations;
-- reconciliation;
+- Razorpay order;
+- Razorpay payment;
+- callback observations;
+- webhook observations;
+- provider reconciliation;
 - merchant fulfilment;
 - refunds.
 
-Razorpay callbacks and webhooks are treated as evidence that must be bound and reduced deterministically.
+Callbacks and webhooks are treated as **evidence**, not unquestioned truth.
 
-Ambiguous provider outcomes are reconciled instead of guessed.
+The backend binds and reduces provider evidence deterministically before progressing financial state.
 
-Money-critical retries use stable identities, database constraints, and idempotent state transitions.
+Ambiguous outcomes are reconciled instead of guessed.
 
-Durable post-commit work uses a **PostgreSQL transactional outbox**.
+Durable work after transaction commit uses a **PostgreSQL transactional outbox**.
 
 ---
 
-## Measured AI quality
+## Measured evidence
 
-The LLM is not trusted with authority, but its interpretation and retrieval quality still matter.
+### Safety
+
+| Boundary | Cases |
+|---|---:|
+| Evidence & policy | **48** |
+| Capability readiness | **36** |
+| Proposal integrity | **60** |
+| Money integrity | **48** |
+| Callback truth | **12** |
+| Payment idempotency | **16** |
+| Refund integrity | **20** |
+| Refund idempotency | **10** |
+| **Total** | **250** |
+
+Current result:
+
+**250 / 250 passed · 0 hard safety violations**
+
+---
+
+### Buyer intent and retrieval
+
+The model is not trusted with authority, but its interpretation and retrieval quality still matter.
 
 | Evaluation | Result |
 |---|---:|
 | Buyer intent field accuracy | **92.41%** |
 | Budget extraction | **100%** |
 | Labelled multilingual intent subset | **100%** |
+| Hybrid-v3 discovery Recall@5 | **83.58%** |
 | Hybrid-v3 valid-product Recall@5 | **76.12%** |
 | Previous hybrid-v2 valid-product Recall@5 | **55.22%** |
+| Valid-product recall improvement | **+20.90 percentage points** |
 | Exact-identity precision | **100%** |
 | Valid no-match accuracy | **100%** |
 | Fabricated valid products observed | **0** |
 | Wrong valid product / variant observed | **0** |
 
-These measurements use repository-authored labelled datasets and are reported as fixture measurements, not generalized production claims.
+Semantic similarity can broaden discovery.
 
-**Semantic similarity helps discover candidates. It never creates authority.**
+It never creates transaction authority.
+
+> **Similarity is evidence of relevance, not evidence of truth.**
+
+These results come from repository-authored labelled fixtures and should not be interpreted as independent or production-scale benchmarks.
 
 ---
 
@@ -271,40 +391,56 @@ These measurements use repository-authored labelled datasets and are reported as
 
 ```mermaid
 flowchart TB
-    U[User] --> B[Safe AI Buyer]
-    M[Merchant Admin] --> A[Merchant Agentization Agent]
+    MA[Merchant Admin] --> M[Merchant Agentization Agent]
+    U[Buyer] --> B[Safe AI Buyer]
 
-    G[Gemini<br/>untrusted interpretation & planning] --> B
-    G --> A
+    G[Gemini<br/>untrusted interpretation & planning] --> M
+    G --> B
 
-    A --> C[Deterministic Commerce Control Plane]
+    M --> C[Deterministic Commerce Control Plane]
     B --> C
+
+    I[Merchant-approved interfaces] --> C
 
     C --> P[(PostgreSQL 17)]
     C --> R[Razorpay Test Mode]
-    C --> I[Merchant-approved interfaces]
 ```
 
-### Deterministic control plane owns
+### AI owns
+
+- natural-language interpretation;
+- visual interpretation;
+- multilingual understanding;
+- merchant-interface reasoning;
+- diagnosis;
+- bounded planning.
+
+### Deterministic software owns
 
 - merchant capability readiness;
-- catalogue and policy evidence;
-- product identity;
+- catalogue identity;
+- policy evidence;
 - authoritative quotes;
-- immutable transaction proposals;
+- serviceability;
+- transaction proposals;
 - authorization;
-- execution and idempotency;
-- payment evidence reduction;
+- execution;
+- exact money;
+- payment truth;
 - reconciliation;
-- transactional outbox work;
-- refunds.
+- fulfilment handoff;
+- refund accounting.
 
 The backend is a **Java 25 / Spring Boot 4.1.1 modular monolith** with PostgreSQL as the system of record.
 
-This was deliberate: authority-critical invariants remain inside explicit module and transaction boundaries without introducing unnecessary distributed-system failure modes.
+That choice is deliberate: authority-critical invariants remain inside explicit module and transaction boundaries without introducing unnecessary distributed-system failure modes.
 
 <p align="center">
-  <img src="apps/web/public/amana/architecture-buyer.png" width="1000" alt="Amana Safe AI Buyer architecture">
+  <img src="apps/web/public/amana/architecture-merchant.png" width="1000" alt="Merchant Agentization Agent architecture">
+</p>
+
+<p align="center">
+  <img src="apps/web/public/amana/architecture-buyer.png" width="1000" alt="Safe AI Buyer architecture">
 </p>
 
 ---
@@ -322,27 +458,63 @@ This was deliberate: authority-critical invariants remain inside explicit module
 | **Architecture** | [/architecture](https://agentic-commerce-gateway-web.vercel.app/architecture) |
 | **Performance** | [/performance](https://agentic-commerce-gateway-web.vercel.app/performance) |
 
-> The Render backend uses a free tier and can take a few minutes to wake after inactivity. If the demo is asleep, open `https://agentic-commerce-gateway.onrender.com/actuator/health`, wait until it returns `{"status":"UP"}`, then reopen Amana.
+> The backend runs on Render's free tier and may sleep after inactivity. If the demo is unavailable, open `https://agentic-commerce-gateway.onrender.com/actuator/health`, wait until it returns `{"status":"UP"}`, then reload Amana.
 
-### Fastest reviewer path
+---
 
-#### 1. Buyer
+## Fastest reviewer path
 
-Open the Safe AI Buyer and ask for:
+### 1. See the Buyer flow
+
+Open the **Safe AI Buyer**.
+
+Use the demo account and ask for:
 
 > Auralink Buds Bluetooth Earphones under ₹3,000
 
-Follow the request through:
+Follow:
 
-**grounded discovery → proposal → authorization → Razorpay Test Mode**
+**intent → grounded retrieval → authoritative evidence → immutable proposal → explicit authorization → Razorpay Test Mode**
 
-#### 2. Merchant
+---
 
-Open the Merchant Agentization workspace and replay the bounded:
+### 2. See merchant agentization
 
-**`2999 → 299900` money-unit repair**
+Open the **Merchant** experience.
 
-#### 3. Proof
+Use the Amazing demo setup and inspect the Agentization workspace.
+
+Replay:
+
+```text
+2999
+ ↓
+contract failure
+ ↓
+AI diagnosis
+ ↓
+rupees → paise repair proposal
+ ↓
+Merchant approval
+ ↓
+new mapping version
+ ↓
+retest
+ ↓
+deterministic readiness reduction
+```
+
+This demonstrates the difference between:
+
+> “AI thinks this API works”
+
+and:
+
+> “The system has evidence that this capability is ready.”
+
+---
+
+### 3. Verify the safety claims
 
 Open `/proof` and `/security`, or run:
 
@@ -354,33 +526,53 @@ pnpm proof:verify
 
 ## Failure recovery
 
-Amana explicitly models failures that are dangerous in payment systems:
+Amana explicitly models failure cases that matter in payment infrastructure:
 
-- provider timeout after a local commit;
-- duplicate or concurrent execution;
+- provider timeout after local state changes;
+- duplicate execution;
+- concurrent execution;
 - stale authorization;
 - webhook replay;
-- wrong provider account;
+- mismatched merchant/provider identity;
 - wrong currency;
 - missing evidence;
 - repeated outbox delivery;
 - repeated refund request;
 - merchant failure after payment.
 
-The system prefers **UNKNOWN + reconciliation** over inventing certainty.
+The system prefers:
+
+**UNKNOWN → reconciliation**
+
+over inventing certainty.
 
 ---
 
 ## Security / trust principles
 
-- **Identity before authority:** server-backed sessions, Argon2 password verification, session fixation protection, CSRF, and role-specific APIs.
-- **Tenant isolation:** Merchant Admin access is backed by explicit merchant membership.
-- **Approved-source execution:** merchant endpoints are allowlisted, HTTPS-only, SSRF-checked, DNS-pinned, and redirect-free.
-- **Fail-closed evidence:** missing or safety-critical `UNKNOWN` evidence blocks readiness, proposals, and execution.
-- **Immutable transaction intent:** canonical proposal hashes and expiring decisions prevent stale approval reuse.
-- **Provider evidence over browser claims:** payment success is reduced from bound Razorpay payment and order facts.
-- **Idempotent money movement:** execution, provider order, outbox work, and refund retries use stable identities and database constraints.
-- **Auditable lifecycle:** proposal, authorization, payment, fulfilment, and refund records retain separate state and evidence lineage.
+- **Identity before authority**  
+  Server-backed sessions, Argon2 password verification, session fixation protection, CSRF, and role-specific APIs.
+
+- **Tenant isolation**  
+  Merchant data is accessible only through explicit Merchant Admin membership.
+
+- **Approved-source execution**  
+  Merchant endpoints are allowlisted, HTTPS-only, SSRF-checked, DNS-pinned, and redirect-free.
+
+- **Fail-closed evidence**  
+  Missing or safety-critical `UNKNOWN` state blocks readiness, proposals, or execution.
+
+- **Immutable transaction intent**  
+  Canonical proposal hashes bind authorization to the exact transaction.
+
+- **Provider evidence over browser claims**  
+  Payment success is reduced from bound Razorpay order/payment evidence.
+
+- **Idempotent money movement**  
+  Execution, provider-order creation, outbox processing, and refunds use stable identities and database constraints.
+
+- **Auditable lifecycle**  
+  Proposal, authorization, execution, payment, fulfilment, and refund state remain separately recorded.
 
 No compliance certification is claimed.
 
@@ -391,15 +583,16 @@ No compliance certification is claimed.
 | Layer | Technology |
 |---|---|
 | Frontend | Next.js 16.2.11, React 19.2, TypeScript 5.9, Tailwind CSS 4 |
-| Design system | Razorpay Blade |
+| Design system | Razorpay Blade 12.121.1 |
 | Backend | Java 25, Spring Boot 4.1.1 |
-| Database | PostgreSQL 17 locally; Supabase PostgreSQL for deployment |
-| AI | Gemini reasoning, vision, and Live native audio |
+| Database | PostgreSQL 17 locally; Supabase PostgreSQL in deployment |
+| AI reasoning | Gemini |
+| Realtime voice | Gemini Live native audio |
 | Retrieval | PostgreSQL FTS, `pg_trgm`, `pgvector`, Gemini embeddings |
 | Payments | Razorpay Orders + Standard Checkout in Test Mode |
-| Reliability | Transactions, row locks, unique constraints, immutable evidence, transactional outbox |
-| Testing | JUnit 5, Testcontainers PostgreSQL, Node test runner |
-| Deployment | Vercel web, Render backend, Supabase PostgreSQL |
+| Reliability | PostgreSQL transactions, locks, constraints, immutable evidence, transactional outbox |
+| Testing | JUnit 5, Spring Boot Test, Testcontainers PostgreSQL, Node test runner |
+| Deployment | Vercel, Render, Supabase |
 
 No Kafka, BullMQ, or Redis service is required for P0.
 
@@ -407,15 +600,16 @@ No Kafka, BullMQ, or Redis service is required for P0.
 
 ## Verification
 
-The suites below measure different things and are intentionally not added into one marketing total.
+The suites measure different things and are intentionally kept separate.
 
-| Suite | Current verified result | Purpose |
+| Suite | Current result | Purpose |
 |---|---:|---|
-| Backend | **297 tests; 0 failures, 0 errors, 2 skipped** | Unit/integration coverage, including real PostgreSQL via Testcontainers |
-| Frontend | **145 passed; 0 failed, 0 skipped** | Buyer, Merchant, Proof, Security, Architecture, Failure Lab, and Performance UI contracts |
-| Deterministic safety proof | **250 / 250 passed** | Adversarial cases against production safety reducers and guards |
+| Backend | **297 tests; 0 failures, 0 errors, 2 skipped** | Unit/integration coverage including real PostgreSQL via Testcontainers |
+| Frontend | **145 passed; 0 failed, 0 skipped** | Buyer, Merchant, Proof, Security, Architecture, Failure Lab, and Performance UI |
+| Deterministic safety proof | **250 / 250 passed** | Production safety reducers and guards |
+| Negative controls | **12 / 12 killed** | Checks that selected weakened guards are actually detected |
 
-Run the suites:
+Run:
 
 ```powershell
 cd apps/backend
@@ -430,6 +624,20 @@ pnpm web:test
 pnpm proof:verify
 ```
 
+Provider-backed evaluation is separate:
+
+```bash
+pnpm proof:evaluate
+```
+
+Generated evidence is stored under:
+
+```text
+proof/results/
+```
+
+including safety, retrieval, intent, concurrency, latency, mutation, failure-lab, and frontend verification artifacts.
+
 ---
 
 ## Repository structure
@@ -437,16 +645,20 @@ pnpm proof:verify
 ```text
 .
 ├── apps/
-│   ├── backend/        # Spring Boot deterministic control plane
-│   └── web/            # Buyer, Merchant, landing, and evidence surfaces
+│   ├── backend/          # Java/Spring deterministic commerce control plane
+│   └── web/              # Buyer, Merchant, landing, and evidence surfaces
+│
 ├── evaluation/
-│   ├── demo-data/      # synthetic merchant/product fixtures
-│   └── retrieval/      # grounded retrieval evaluation seeds
-├── proof/results/      # generated safety/evaluation evidence
-├── docs/readme/        # reviewer-facing screenshots
-├── PROJECT_SPEC.md
-├── DECISIONS.md
-└── CONTEXT.md
+│   ├── demo-data/        # synthetic merchant/product fixtures
+│   └── retrieval/        # retrieval evaluation fixtures
+│
+├── proof/
+│   └── results/          # generated machine-readable evidence
+│
+├── docs/readme/          # reviewer-facing screenshots
+├── PROJECT_SPEC.md       # product + architecture source of truth
+├── DECISIONS.md          # architectural decisions
+└── CONTEXT.md            # current implementation state
 ```
 
 ---
@@ -460,7 +672,7 @@ pnpm proof:verify
 - pnpm 10.15.0
 - Docker with Compose
 
-### 1. Install and configure
+### Install
 
 ```powershell
 corepack enable
@@ -468,26 +680,26 @@ pnpm install --frozen-lockfile
 Copy-Item .env.example .env
 ```
 
-### 2. Start PostgreSQL
+### Start PostgreSQL
 
 ```powershell
 docker compose --env-file .env -f infra/compose.yml up -d
 ```
 
-### 3. Start the backend
+### Start backend
 
 ```powershell
 cd apps/backend
 .\mvnw.cmd spring-boot:run
 ```
 
-### 4. Start the web application
+### Start web
 
 ```powershell
 pnpm web:dev
 ```
 
-### 5. Validate
+### Validate
 
 ```powershell
 pnpm web:check
@@ -510,10 +722,12 @@ The public system intentionally uses:
 
 - synthetic demo merchants and products;
 - Razorpay Test Mode;
-- merchant-approved structured sources rather than arbitrary web crawling;
+- merchant-approved structured sources rather than arbitrary website crawling;
 - explicit on-screen authorization for current purchases.
 
-Unattended scheduled AutoBuy and native Buyer clients remain future directions.
+Current P0 does **not** present unattended scheduled AutoBuy as completed.
+
+Native Buyer applications remain a future direction.
 
 No production revenue, security certification, or compliance certification is claimed.
 
@@ -523,4 +737,12 @@ No production revenue, security certification, or compliance certification is cl
 
 > **Don't make the model the authority just because it is intelligent enough to participate.**
 
-**Amana lets AI reason about commerce while deterministic software retains control of truth, authority, and money.**
+Amana's two agents handle the parts AI is good at:
+
+**understanding, reasoning, diagnosis, and planning.**
+
+The deterministic commerce control plane handles the parts where being plausible is not enough:
+
+**readiness, identity, authority, exact money, execution, and payment truth.**
+
+**Amana makes merchants understandable to AI buyers — without making AI the authority over commerce.**
